@@ -4,8 +4,7 @@ import { useActionState } from "react";
 import { setupAction } from "@/actions/setup";
 import type { ActionState } from "@/actions/auth";
 
-const input =
-  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200";
+const input = "input";
 
 export function SetupForm() {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(setupAction, {});
@@ -40,7 +39,7 @@ export function SetupForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+        className="btn-brand w-full"
       >
         {pending ? "Creating workspace…" : "Create workspace"}
       </button>

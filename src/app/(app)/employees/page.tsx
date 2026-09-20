@@ -62,17 +62,17 @@ export default async function EmployeesPage({
         </form>
       </Card>
 
-      <Card>
+      <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
-                <th className="px-5 py-3">Employee</th>
-                <th className="px-5 py-3">Code</th>
-                <th className="px-5 py-3">Department</th>
-                <th className="px-5 py-3">Designation</th>
-                <th className="px-5 py-3">Joined</th>
-                <th className="px-5 py-3">Status</th>
+              <tr className="border-b border-slate-100 bg-slate-50/80">
+                <th className="th">Employee</th>
+                <th className="th">Code</th>
+                <th className="th">Department</th>
+                <th className="th">Designation</th>
+                <th className="th">Joined</th>
+                <th className="th">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -84,10 +84,10 @@ export default async function EmployeesPage({
                 </tr>
               )}
               {employees.map((e) => (
-                <tr key={e.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <tr key={e.id} className="border-b border-slate-50 transition-colors last:border-0 hover:bg-amber-50/40">
                   <td className="px-5 py-3">
                     <Link href={`/employees/${e.id}`} className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-amber-400">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-amber-400 ring-2 ring-amber-400/20">
                         {initials(`${e.firstName} ${e.lastName}`)}
                       </span>
                       <span>

@@ -4,15 +4,76 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --color-brand-50: #fffbeb;
   --color-brand-100: #fef3c7;
+  --color-brand-400: #fbbf24;
   --color-brand-500: #f59e0b;
   --color-brand-600: #d97706;
   --color-brand-700: #b45309;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 20px -2px rgb(16 24 40 / 0.07);
+  --shadow-pop: 0 8px 30px -6px rgb(16 24 40 / 0.18);
 }
 
 :root {
   color-scheme: light;
 }
 
-body {
-  background: #f8fafc;
+html {
+  scroll-behavior: smooth;
 }
+
+body {
+  background: #f6f7f9;
+}
+
+::selection {
+  background: #fde68a;
+  color: #0f172a;
+}
+
+/* ---- page entrance ---- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-up-slow {
+  animation: fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-slate-200/80 bg-white;
+    box-shadow: var(--shadow-card);
+  }
+  .input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-[0.97] disabled:opacity-50;
+  }
+  .btn-brand {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 active:scale-[0.97] disabled:opacity-50;
+    box-shadow: 0 4px 14px -2px rgb(245 158 11 / 45%);
+  }
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 active:scale-[0.97] disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.97] disabled:opacity-50;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset;
+  }
+  .th {
+    @apply px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500;
+  }
+  .td {
+    @apply px-5 py-3.5;
+  }
+}
+
+/* slim scrollbars */
+*::-webkit-scrollbar { height: 8px; width: 8px; }
+*::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }

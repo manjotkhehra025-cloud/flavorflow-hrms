@@ -20,7 +20,7 @@ if [ "$EUID" -ne 0 ]; then echo "Run with sudo."; exit 1; fi
 
 echo "==> System packages"
 apt-get update -y
-apt-get install -y curl ca-certificates gnupg ufw nginx postgresql postgresql-contrib rsync unzip
+apt-get install -y curl ca-certificates gnupg git ufw nginx postgresql postgresql-contrib rsync unzip
 
 echo "==> Node.js 22"
 if ! command -v node >/dev/null 2>&1; then
