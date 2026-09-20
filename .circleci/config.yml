@@ -58,12 +58,13 @@ jobs:
       - run:
           name: Sync build to VPS
           command: |
-            rsync -az --delete --exclude .env ./.next/standalone/ "$VPS_USER@$VPS_HOST:/tmp/hrms-deploy/"
-            ssh "$VPS_USER@$VPS_HOST" '
+            rsync -az ./.next/standalone/ "$VPS_USER@$VPS_HOST:/tmp/hrms-$CIRCLE_SHA1/"
+            ssh "$VPS_USER@$VPS_HOST" "
               set -e
-              sudo rsync -az --delete --chown=root:root --exclude .env /tmp/hrms-deploy/ /opt/hrms/app/
-              rm -rf /tmp/hrms-deploy
-            '
+              sudo find /opt/hrms/app -mindepth 1 -maxdepth 1 ! -name .env -exec rm -rf {} +
+              sudo cp -a /tmp/hrms-$CIRCLE_SHA1/. /opt/hrms/app/
+              rm -rf /tmp/hrms-$CIRCLE_SHA1
+            "
       - run:
           name: Run migrations & restart app
           command: |
