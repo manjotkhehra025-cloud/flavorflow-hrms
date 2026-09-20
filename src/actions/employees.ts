@@ -1,0 +1,115 @@
+"use server";
+
+import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { requireStaff } from "@/lib/auth";
+import { nextEmployeeCode } from "@/lib/org";
+import { toDateOnly } from "@/lib/utils";
+import type { ActionState } from "./auth";
+
+const employeeSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional(),
+  gender: z.string().optional(),
+  joinDate: z.string().min(4, "Join date is required"),
+  departmentId: z.string().optional(),
+  designationId: z.string().optional(),
+  address: z.string().optional(),
+  createAccount: z.boolean().default(false),
+  accountRole: z.enum(["HR", "EMPLOYEE"]).default("EMPLOYEE"),
+  tempPassword: z.string().optional(),
+});
+
+function emptyToUndefined(v: string | undefined) {
+  return v && v.length > 0 ? v : undefined;
+}
+
+export async function createEmployeeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireStaff();
+
+  const parsed = employeeSchema.safeParse({
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
+    email: (formData.get("email") as string)?.trim(),
+    phone: formData.get("phone") ?? undefined,
+    gender: formData.get("gender") ?? undefined,
+    joinDate: formData.get("joinDate"),
+    departmentId: formData.get("departmentId") ?? undefined,
+    designationId: formData.get("designationId") ?? undefined,
+    address: formData.get("address") ?? undefined,
+    createAccount: formData.get("createAccount") === "on",
+    accountRole: formData.get("accountRole") === "HR" ? "HR" : "EMPLOYEE",
+    tempPassword: formData.get("tempPassword") ?? undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid data." };
+  const d = parsed.data;
+
+  if (d.createAccount) {
+    if (!d.email) return { error: "Email is required to create a login account." };
+    if (!d.tempPassword || d.tempPassword.length < 8)
+      return { error: "Temporary password must be at least 8 characters." };
+  }
+
+  const company = await db.company.findUniqueOrThrow({ where: { id: me.companyId } });
+  const code = await nextEmployeeCode(me.companyId, company.code);
+
+  const employee = await db.employee.create({
+    data: {
+      companyId: me.companyId,
+      code,
+      firstName: d.firstName.trim(),
+      lastName: d.lastName.trim(),
+      email: emptyToUndefined(d.email?.toLowerCase()),
+      phone: emptyToUndefined(d.phone?.trim()),
+      gender: emptyToUndefined(d.gender),
+      joinDate: toDateOnly(d.joinDate),
+      departmentId: emptyToUndefined(d.departmentId) ?? null,
+      designationId: emptyToUndefined(d.designationId) ?? null,
+      address: emptyToUndefined(d.address?.trim()),
+      status: "ACTIVE",
+    },
+  });
+
+  if (d.createAccount && d.email && d.tempPassword) {
+    await db.user.create({
+      data: {
+        companyId: me.companyId,
+        email: d.email.toLowerCase(),
+        name: `${d.firstName} ${d.lastName}`,
+        role: d.accountRole,
+        passwordHash: await bcrypt.hash(d.tempPassword, 10),
+        employeeId: employee.id,
+      },
+    });
+  }
+
+  revalidatePath("/employees");
+  redirect(`/employees/${employee.id}`);
+}
+
+export async function updateEmployeeStatusAction(employeeId: string, status: "ACTIVE" | "INACTIVE") {
+  const me = await requireStaff();
+  await db.employee.updateMany({
+    where: { id: employeeId, companyId: me.companyId },
+    data: { status },
+  });
+  if (status === "INACTIVE") {
+    await db.user.updateMany({ where: { employeeId }, data: { isActive: false } });
+  }
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${employeeId}`);
+}
+
+export async function deleteEmployeeAction(employeeId: string) {
+  const me = await requireStaff();
+  if (me.role !== "ADMIN") return;
+  await db.user.deleteMany({ where: { employeeId, companyId: me.companyId } });
+  await db.employee.deleteMany({ where: { id: employeeId, companyId: me.companyId } });
+  revalidatePath("/employees");
+  redirect("/employees");
+}

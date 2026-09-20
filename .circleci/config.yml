@@ -1,0 +1,74 @@
+# CircleCI pipeline: build → deploy to GCP VPS on every push to main.
+#
+# Required project env vars (CircleCI → Project Settings → Environment Variables):
+#   VPS_HOST   = external static IP of your GCP VM
+#   VPS_USER   = SSH username on the VM (e.g. "deploy" or your gcloud username)
+# SSH key: CircleCI → Project Settings → SSH Keys → add the private key whose
+# PUBLIC key is in  /home/$VPS_USER/.ssh/authorized_keys  on the VM, and put its
+# FINGERPRINT below (replace ADD_YOUR_SSH_KEY_FINGERPRINT_HERE).
+
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: cimg/node:22.11
+    steps:
+      - checkout
+      - restore_cache:
+          key: hrms-npm-{{ checksum "package-lock.json" }}
+      - run: npm ci
+      - save_cache:
+          key: hrms-npm-{{ checksum "package-lock.json" }}
+          paths: [~/.npm]
+      - run: npx prisma generate
+      - run: npm run typecheck
+      - run: npx next build
+      # Assemble the standalone server bundle the VPS actually runs:
+      - run: |
+          set -e
+          cp -r public .next/standalone/public
+          mkdir -p .next/standalone/.next
+          cp -r .next/static .next/standalone/.next/static
+          cp -r prisma .next/standalone/prisma
+          mkdir -p .next/standalone/scripts
+          cp scripts/start.sh scripts/post-deploy.sh .next/standalone/scripts/
+      - persist_to_workspace:
+          root: .
+          paths: [.next/standalone]
+
+  deploy:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Trust VPS host key
+          command: |
+            mkdir -p ~/.ssh
+            ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+      - run:
+          name: Sync build to VPS
+          command: |
+            rsync -az --delete --exclude .env ./.next/standalone/ "$VPS_USER@$VPS_HOST:/tmp/hrms-deploy/"
+            ssh "$VPS_USER@$VPS_HOST" '
+              set -e
+              sudo rsync -az --delete --chown=root:root --exclude .env /tmp/hrms-deploy/ /opt/hrms/app/
+              rm -rf /tmp/hrms-deploy
+            '
+      - run:
+          name: Run migrations & restart app
+          command: |
+            ssh "$VPS_USER@$VPS_HOST" 'sudo bash /opt/hrms/app/scripts/post-deploy.sh'
+
+workflows:
+  build-deploy:
+    jobs:
+      - build
+      - deploy:
+          requires: [build]
+          filters:
+            branches:
+              only: main

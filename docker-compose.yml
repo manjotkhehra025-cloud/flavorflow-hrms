@@ -1,0 +1,16 @@
+# Local development database only:  docker compose up -d db
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hrms
+      POSTGRES_PASSWORD: hrms
+      POSTGRES_DB: hrms
+    ports:
+      - "5432:5432"
+    volumes:
+      - hrms-db:/var/lib/postgresql/data
+
+volumes:
+  hrms-db:
