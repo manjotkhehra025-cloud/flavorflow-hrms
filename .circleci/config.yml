@@ -44,6 +44,9 @@ jobs:
     steps:
       - attach_workspace:
           at: .
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:FM6hR12F1M0wsgOBj/YpWf6NeiOX0inuEqccY8aNBPY"
       - run:
           name: Trust VPS host key
           command: |
