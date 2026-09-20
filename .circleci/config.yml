@@ -53,6 +53,9 @@ jobs:
             mkdir -p ~/.ssh
             ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
       - run:
+          name: Install rsync
+          command: sudo apt-get update -qq && sudo apt-get install -y -qq rsync
+      - run:
           name: Sync build to VPS
           command: |
             rsync -az --delete --exclude .env ./.next/standalone/ "$VPS_USER@$VPS_HOST:/tmp/hrms-deploy/"
