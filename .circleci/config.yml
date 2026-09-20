@@ -27,7 +27,7 @@ jobs:
       # Assemble the standalone server bundle the VPS actually runs:
       - run: |
           set -e
-          cp -r public .next/standalone/public
+          [ -d public ] && cp -r public .next/standalone/public || true
           mkdir -p .next/standalone/.next
           cp -r .next/static .next/standalone/.next/static
           cp -r prisma .next/standalone/prisma
