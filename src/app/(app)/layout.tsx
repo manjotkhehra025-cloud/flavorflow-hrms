@@ -12,10 +12,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Desktop sidebar */}
       <Sidebar name={user.name} role={user.role} companyName={user.companyName} />
 
-      {/* Mobile chrome */}
+      {/* Mobile chrome (fixed, out of flow) */}
       <MobileTopBar name={user.name} />
 
-      <main className="min-w-0 flex-1 px-4 pb-32 pt-20 lg:pl-72 lg:pr-8 lg:pt-8 lg:pb-10">
+      <main className="min-w-0 flex-1 px-4 pb-32 pt-[4.25rem] lg:pl-72 lg:pr-8 lg:pt-8 lg:pb-10">
         <div className="animate-fade-up mx-auto max-w-6xl">{children}</div>
       </main>
 
