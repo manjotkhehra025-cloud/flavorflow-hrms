@@ -8,7 +8,7 @@ import { Icon } from "@/components/icons";
 
 type Pass = { id: string; date: string; exitAt: string; returnAt: string | null; reason: string | null; status: string; verified: boolean };
 
-export function GatePassForm({ isOwner, passes }: { isOwner: boolean; passes: Pass[] }) {
+export function GatePassForm({ isOwner, targetEmployeeId, passes }: { isOwner: boolean; targetEmployeeId: string; passes: Pass[] }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createGatePassAction, {});
 
   return (
@@ -21,8 +21,9 @@ export function GatePassForm({ isOwner, passes }: { isOwner: boolean; passes: Pa
         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">({passes.length})</span>
       </div>
 
-      {isOwner && (
+      {(isOwner || targetEmployeeId) && (
         <form action={formAction} className="mb-4 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/40 p-4">
+          <input type="hidden" name="employeeId" value={targetEmployeeId} />
           {state.error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{state.error}</p>}
           {state.success && <p className="mb-3 rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-800">{state.success}</p>}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

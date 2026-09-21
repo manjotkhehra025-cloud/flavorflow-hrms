@@ -18,7 +18,17 @@ const gatePassSchema = z.object({
 
 export async function createGatePassAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireUser();
-  if (!me.employeeId) return { error: "Your login isn't linked to an employee profile." };
+
+  // Staff may create a pass on behalf of another employee
+  const targetEmpId = (formData.get("employeeId") as string) || null;
+  let employeeId = me.employeeId;
+  if (targetEmpId && targetEmpId !== me.employeeId) {
+    if (me.role === "EMPLOYEE") return { error: "Not authorized." };
+    const target = await db.employee.findFirst({ where: { id: targetEmpId, companyId: me.companyId } });
+    if (!target) return { error: "Employee not found." };
+    employeeId = target.id;
+  }
+  if (!employeeId) return { error: "Your login isn't linked to an employee profile." };
 
   const parsed = gatePassSchema.safeParse({
     date: formData.get("date"),
@@ -32,7 +42,7 @@ export async function createGatePassAction(_prev: ActionState, formData: FormDat
   await db.gatePass.create({
     data: {
       companyId: me.companyId,
-      employeeId: me.employeeId,
+      employeeId,
       date: toDateOnly(d.date),
       exitAt: d.exitAt,
       returnAt: d.returnAt || null,

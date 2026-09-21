@@ -174,7 +174,7 @@ export default async function IdCardPage({
       {/* ===== Gate Pass ===== */}
       {employee && (employee.id === me.employeeId || staff) && (
         <div className="mt-6">
-          <GatePassForm isOwner={employee.id === me.employeeId} passes={gatePasses.map((g) => ({
+          <GatePassForm isOwner={employee.id === me.employeeId} targetEmployeeId={employee.id} passes={gatePasses.map((g) => ({
             id: g.id, date: fmtDate(g.date), exitAt: g.exitAt, returnAt: g.returnAt,
             reason: g.reason, status: g.status, verified: !!g.entryVerifiedAt,
           }))} />
