@@ -17,14 +17,18 @@ model Company {
   code      String   @unique // e.g. "FF"
   createdAt DateTime @default(now())
 
-  users        User[]
-  employees    Employee[]
-  departments  Department[]
-  designations Designation[]
-  attendances  Attendance[]
-  leaveTypes   LeaveType[]
-  leaveRequests LeaveRequest[]
-  holidays     Holiday[]
+  users            User[]
+  employees        Employee[]
+  departments      Department[]
+  designations     Designation[]
+  attendances      Attendance[]
+  leaveTypes       LeaveType[]
+  leaveRequests    LeaveRequest[]
+  holidays         Holiday[]
+  shifts           Shift[]
+  gatePasses       GatePass[]
+  punchRequests    PunchRequest[]
+  leaveAdjustments LeaveAdjustment[]
 }
 
 enum Role {
@@ -78,32 +82,46 @@ enum EmployeeStatus {
   INACTIVE
 }
 
+enum StaffCategory {
+  OFFICIAL
+  YELLOW_CARD
+}
+
 model Employee {
-  id            String         @id @default(cuid())
-  companyId     String
-  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  code          String // FF-001
-  firstName     String
-  lastName      String
-  email         String?
-  phone         String?
-  gender        String?
-  dateOfBirth   DateTime?      @db.Date
-  joinDate      DateTime       @db.Date
-  address       String?
-  status        EmployeeStatus @default(ACTIVE)
+  id             String         @id @default(cuid())
+  companyId      String
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  code           String // FF-001
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  gender         String?
+  dateOfBirth    DateTime?      @db.Date
+  joinDate       DateTime       @db.Date
+  address        String?
+  status         EmployeeStatus @default(ACTIVE)
+  category       StaffCategory  @default(OFFICIAL)
+  weeklyOff      Int            @default(0) // JS getUTCDay(): 0=Sun ... 6=Sat
+  bloodGroup     String?
+  emergencyPhone String?
+  shiftId        String?
+  shift          Shift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
 
   departmentId  String?
-  department    Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  department    Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   designationId String?
-  designation   Designation?   @relation(fields: [designationId], references: [id], onDelete: SetNull)
+  designation   Designation? @relation(fields: [designationId], references: [id], onDelete: SetNull)
   managerId     String?
-  manager       Employee?      @relation("Reports", fields: [managerId], references: [id], onDelete: SetNull)
-  reports       Employee[]     @relation("Reports")
+  manager       Employee?    @relation("Reports", fields: [managerId], references: [id], onDelete: SetNull)
+  reports       Employee[]   @relation("Reports")
 
-  users         User[]
-  attendances   Attendance[]
-  leaveRequests LeaveRequest[]
+  users            User[]
+  attendances      Attendance[]
+  leaveRequests    LeaveRequest[]
+  gatePasses       GatePass[]
+  punchRequests    PunchRequest[]
+  leaveAdjustments LeaveAdjustment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -137,11 +155,11 @@ model Attendance {
 }
 
 model LeaveType {
-  id             String  @id @default(cuid())
-  companyId      String
-  company        Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name           String
-  daysPerYear    Int     @default(12)
+  id          String  @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  daysPerYear Int     @default(12)
 
   requests LeaveRequest[]
 
@@ -156,22 +174,22 @@ enum LeaveStatus {
 }
 
 model LeaveRequest {
-  id         String      @id @default(cuid())
-  companyId  String
-  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  employeeId String
-  employee   Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id          String      @id @default(cuid())
+  companyId   String
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   leaveTypeId String
-  leaveType  LeaveType   @relation(fields: [leaveTypeId], references: [id])
-  fromDate   DateTime    @db.Date
-  toDate     DateTime    @db.Date
-  days       Int
-  reason     String?
-  status     LeaveStatus @default(PENDING)
-  approverId String?
-  approver   User?       @relation("LeaveApprover", fields: [approverId], references: [id], onDelete: SetNull)
-  decidedAt  DateTime?
-  createdAt  DateTime    @default(now())
+  leaveType   LeaveType   @relation(fields: [leaveTypeId], references: [id])
+  fromDate    DateTime    @db.Date
+  toDate      DateTime    @db.Date
+  days        Int
+  reason      String?
+  status      LeaveStatus @default(PENDING)
+  approverId  String?
+  approver    User?       @relation("LeaveApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  decidedAt   DateTime?
+  createdAt   DateTime    @default(now())
 
   @@index([companyId, status])
   @@index([employeeId])
@@ -185,4 +203,80 @@ model Holiday {
   date      DateTime @db.Date
 
   @@unique([companyId, date])
+}
+
+// ---------- HRMate v3: shifts, approvals hub, ID/gate pass ----------
+
+model Shift {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String // "General Day Shift"
+  startTime String // "08:00" (factory local, Asia/Kolkata)
+  durationH Float   @default(9)
+
+  employees Employee[]
+
+  @@unique([companyId, name])
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model GatePass {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId      String
+  employee        Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date            DateTime      @db.Date
+  exitAt          String // "14:00"
+  returnAt        String?
+  reason          String?
+  status          RequestStatus @default(PENDING)
+  approverId      String?
+  decidedAt       DateTime?
+  entryVerifiedAt DateTime?
+  createdAt       DateTime      @default(now())
+
+  @@index([companyId, status])
+  @@index([employeeId])
+}
+
+model PunchRequest {
+  id         String        @id @default(cuid())
+  companyId  String
+  company    Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date       DateTime      @db.Date
+  type       String // MANUAL_IN | MANUAL_OUT | OT
+  time       String? // "08:53" for manual punches
+  hours      Float? // OT hours
+  reason     String?
+  status     RequestStatus @default(PENDING)
+  approverId String?
+  decidedAt  DateTime?
+  createdAt  DateTime      @default(now())
+
+  @@index([companyId, status])
+  @@index([employeeId])
+}
+
+model LeaveAdjustment {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveTypeId String
+  days        Float // + = consumes balance (deduction), - = credits balance back
+  note        String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  @@index([employeeId])
 }

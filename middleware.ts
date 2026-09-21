@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const PUBLIC_PATHS = ["/login", "/setup", "/api/auth/login"];
+const PUBLIC_PATHS = ["/login", "/setup", "/verify", "/api/auth/login"];
 
 function isPublic(pathname: string) {
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) return true;

@@ -20,6 +20,12 @@ const employeeSchema = z.object({
   departmentId: z.string().optional(),
   designationId: z.string().optional(),
   address: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  category: z.enum(["OFFICIAL", "YELLOW_CARD"]).default("OFFICIAL"),
+  weeklyOff: z.coerce.number().int().min(0).max(6).default(0),
+  shiftId: z.string().optional(),
+  bloodGroup: z.string().optional(),
+  emergencyPhone: z.string().optional(),
   createAccount: z.boolean().default(false),
   accountRole: z.enum(["HR", "EMPLOYEE"]).default("EMPLOYEE"),
   tempPassword: z.string().optional(),
@@ -42,6 +48,12 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
     departmentId: formData.get("departmentId") ?? undefined,
     designationId: formData.get("designationId") ?? undefined,
     address: formData.get("address") ?? undefined,
+    dateOfBirth: formData.get("dateOfBirth") || undefined,
+    category: formData.get("category") === "YELLOW_CARD" ? "YELLOW_CARD" : "OFFICIAL",
+    weeklyOff: formData.get("weeklyOff") ?? 0,
+    shiftId: formData.get("shiftId") ?? undefined,
+    bloodGroup: formData.get("bloodGroup") ?? undefined,
+    emergencyPhone: formData.get("emergencyPhone") ?? undefined,
     createAccount: formData.get("createAccount") === "on",
     accountRole: formData.get("accountRole") === "HR" ? "HR" : "EMPLOYEE",
     tempPassword: formData.get("tempPassword") ?? undefined,
@@ -71,6 +83,12 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
       departmentId: emptyToUndefined(d.departmentId) ?? null,
       designationId: emptyToUndefined(d.designationId) ?? null,
       address: emptyToUndefined(d.address?.trim()),
+      dateOfBirth: d.dateOfBirth ? toDateOnly(d.dateOfBirth) : null,
+      category: d.category,
+      weeklyOff: d.weeklyOff,
+      shiftId: emptyToUndefined(d.shiftId) ?? null,
+      bloodGroup: emptyToUndefined(d.bloodGroup?.trim()),
+      emergencyPhone: emptyToUndefined(d.emergencyPhone?.trim()),
       status: "ACTIVE",
     },
   });
@@ -90,6 +108,30 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
 
   revalidatePath("/employees");
   redirect(`/employees/${employee.id}`);
+}
+
+/** Staff edit of profile basics (category, shift, weekly-off, emergency info). */
+export async function updateEmployeeDetailsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireStaff();
+  const id = formData.get("employeeId") as string;
+  if (!id) return { error: "Employee missing." };
+
+  const weeklyOff = parseInt((formData.get("weeklyOff") as string) ?? "0", 10);
+  const data = {
+    category: formData.get("category") === "YELLOW_CARD" ? ("YELLOW_CARD" as const) : ("OFFICIAL" as const),
+    weeklyOff: Number.isFinite(weeklyOff) && weeklyOff >= 0 && weeklyOff <= 6 ? weeklyOff : 0,
+    shiftId: emptyToUndefined((formData.get("shiftId") as string) ?? "") ?? null,
+    bloodGroup: emptyToUndefined(((formData.get("bloodGroup") as string) ?? "").trim()),
+    emergencyPhone: emptyToUndefined(((formData.get("emergencyPhone") as string) ?? "").trim()),
+    phone: emptyToUndefined(((formData.get("phone") as string) ?? "").trim()),
+    dateOfBirth: formData.get("dateOfBirth") ? toDateOnly(formData.get("dateOfBirth") as string) : null,
+  };
+
+  const res = await db.employee.updateMany({ where: { id, companyId: me.companyId }, data });
+  if (res.count === 0) return { error: "Employee not found." };
+  revalidatePath(`/employees/${id}`);
+  revalidatePath("/employees");
+  return { success: "Profile updated." };
 }
 
 export async function updateEmployeeStatusAction(employeeId: string, status: "ACTIVE" | "INACTIVE") {

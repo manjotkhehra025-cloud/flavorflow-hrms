@@ -10,17 +10,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
-      <div className="sticky top-0 hidden h-screen md:block">
-        <Sidebar userName={user.name} role={user.role} companyName={user.companyName} />
-      </div>
+      <Sidebar name={user.name} role={user.role} companyName={user.companyName} />
 
       {/* Mobile chrome */}
-      <MobileTopBar companyName={user.companyName} userName={user.name} />
-      <MobileBottomNav role={user.role} />
+      <MobileTopBar name={user.name} />
 
-      <main className="min-w-0 flex-1 px-4 pb-28 pt-[4.25rem] md:px-8 md:pb-10 md:pt-8">
+      <main className="min-w-0 flex-1 px-4 pb-32 pt-20 lg:pl-72 lg:pr-8 lg:pt-8 lg:pb-10">
         <div className="animate-fade-up mx-auto max-w-6xl">{children}</div>
       </main>
+
+      <MobileBottomNav role={user.role} employeeId={user.employeeId} />
     </div>
   );
 }

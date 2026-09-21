@@ -11,7 +11,7 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-export type ActionState = { error?: string };
+export type ActionState = { error?: string; success?: string };
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = loginSchema.safeParse({

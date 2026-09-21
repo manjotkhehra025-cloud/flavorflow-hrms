@@ -6,8 +6,11 @@ import type { ActionState } from "@/actions/auth";
 import { inputCls, btnBrand } from "@/components/ui";
 
 type Opt = { id: string; name?: string; title?: string };
+type ShiftOpt = { id: string; name: string; startTime: string };
 
-export function NewEmployeeForm({ departments, designations }: { departments: Opt[]; designations: Opt[] }) {
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+export function NewEmployeeForm({ departments, designations, shifts }: { departments: Opt[]; designations: Opt[]; shifts: ShiftOpt[] }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createEmployeeAction, {});
   const [createAccount, setCreateAccount] = useState(false);
 
@@ -20,8 +23,31 @@ export function NewEmployeeForm({ departments, designations }: { departments: Op
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="First name *"><input name="firstName" required className={inputCls} /></Field>
         <Field label="Last name *"><input name="lastName" required className={inputCls} /></Field>
-        <Field label="Email"><input name="email" type="email" className={inputCls} placeholder="name@flavorflow.co.in" /></Field>
+        <Field label="Email"><input name="email" type="email" className={inputCls} placeholder="name@gdfoods.co.in" /></Field>
         <Field label="Phone"><input name="phone" className={inputCls} placeholder="+91…" /></Field>
+        <Field label="Staff category">
+          <select name="category" className={inputCls}>
+            <option value="OFFICIAL">Official Staff</option>
+            <option value="YELLOW_CARD">Yellow Card (15 EL / yr)</option>
+          </select>
+        </Field>
+        <Field label="Weekly off">
+          <select name="weeklyOff" className={inputCls}>
+            {WEEKDAYS.map((d, i) => (
+              <option key={d} value={i}>{d}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Shift">
+          <select name="shiftId" className={inputCls}>
+            <option value="">General Day (default)</option>
+            {shifts.map((s) => (
+              <option key={s.id} value={s.id}>{s.name} ({s.startTime})</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Blood group"><input name="bloodGroup" className={inputCls} placeholder="e.g. AB+" /></Field>
+        <Field label="Emergency contact"><input name="emergencyPhone" className={inputCls} placeholder="+91…" /></Field>
         <Field label="Gender">
           <select name="gender" className={inputCls}>
             <option value="">—</option>
@@ -47,6 +73,7 @@ export function NewEmployeeForm({ departments, designations }: { departments: Op
             ))}
           </select>
         </Field>
+        <Field label="Date of birth"><input name="dateOfBirth" type="date" className={inputCls} /></Field>
       </div>
 
       <Field label="Address">
@@ -59,7 +86,7 @@ export function NewEmployeeForm({ departments, designations }: { departments: Op
           name="createAccount"
           checked={createAccount}
           onChange={(e) => setCreateAccount(e.target.checked)}
-          className="h-4 w-4 accent-amber-500"
+          className="h-4 w-4 accent-emerald-500"
         />
         Give this person a login (for self check-in & leave requests)
       </label>

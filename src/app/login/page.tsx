@@ -2,31 +2,30 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { LoginForm } from "./LoginForm";
 import { Icon } from "@/components/icons";
+import { HLogo } from "@/components/Sidebar";
 
 export const dynamic = "force-dynamic";
 
 function BrandPanel() {
   return (
-    <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-slate-950 p-10 text-white lg:flex">
-      <div className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full bg-amber-500/25 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-28 -left-16 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl" />
+    <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-[#0a1628] p-10 text-white lg:flex">
+      <div className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-28 -left-16 h-72 w-72 rounded-full bg-teal-500/10 blur-3xl" />
       <div className="relative flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-base font-black text-slate-950 shadow-[0_4px_16px_-2px_rgb(245_158_11_/_50%)]">
-          FF
-        </div>
-        <span className="text-lg font-bold">FlavorFlow HRMS</span>
+        <HLogo className="h-11 w-11" />
+        <span className="text-lg font-bold tracking-tight">HRMate</span>
       </div>
       <div className="relative">
         <h2 className="text-3xl font-extrabold leading-tight tracking-tight">
-          People, attendance<br />&amp; leave — <span className="text-amber-400">sorted.</span>
+          Factory people, punch<br />&amp; gate pass — <span className="text-emerald-400">sorted.</span>
         </h2>
         <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">
-          Your whole team in one clean workspace. Check-ins, leave approvals and holidays — no spreadsheets, no WhatsApp chaos.
+          Your whole workforce in one clean workspace. Biometric-style punches, leave & gate pass approvals, ID cards with QR — no spreadsheets, no WhatsApp chaos.
         </p>
         <ul className="mt-6 space-y-3 text-sm text-slate-300">
-          {["One-tap attendance check-ins", "Leave requests & approvals in seconds", "Roles: Admin, HR and Employee"].map((f) => (
+          {["Live shift ring timer & weekly-off rules", "Approvals hub: Leave / Punch / OT / Gate Pass", "Yellow Card vs Official staff policies built-in"].map((f) => (
             <li key={f} className="flex items-center gap-2.5">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/15 text-amber-400">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
                 <Icon name="check" className="h-3.5 w-3.5" />
               </span>
               {f}
@@ -34,7 +33,7 @@ function BrandPanel() {
           ))}
         </ul>
       </div>
-      <p className="relative text-xs text-slate-600">© {new Date().getFullYear()} · Secure JWT sessions · Hosted on GCP Mumbai</p>
+      <p className="relative text-xs text-slate-600">© {new Date().getFullYear()} HRMate · Secure JWT sessions Hosted on GCP Mumbai</p>
     </div>
   );
 }
@@ -45,15 +44,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { setup } = await searchParams;
 
   return (
-    <main className="flex min-h-screen bg-slate-950">
+    <main className="flex min-h-screen bg-[#0a1628]">
       <BrandPanel />
       <div className="flex flex-1 items-center justify-center bg-[#f6f7f9] px-4">
         <div className="w-full max-w-sm animate-fade-up">
           <div className="mb-6 text-center lg:hidden">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-xl font-black text-amber-400">
-              FF
+            <div className="mx-auto mb-3">
+              <HLogo className="mx-auto h-12 w-12 drop-shadow-[0_6px_16px_rgb(16_185_129_/_35%)]" />
             </div>
-            <h1 className="text-lg font-bold text-slate-900">FlavorFlow HRMS</h1>
+            <h1 className="text-lg font-bold text-slate-900">HRMate</h1>
           </div>
           <div className="card p-7">
             <h2 className="text-lg font-bold text-slate-900">Welcome back</h2>

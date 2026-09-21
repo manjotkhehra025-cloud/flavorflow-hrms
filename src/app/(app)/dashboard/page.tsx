@@ -5,13 +5,27 @@ import { todayDate, fmtDate, fmtTime, initials } from "@/lib/utils";
 import { Card, StatCard, Badge, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { checkInAction, checkOutAction } from "@/actions/attendance";
+import { LiveTimer } from "@/components/LiveTimer";
 
 export const dynamic = "force-dynamic";
+
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 export default async function DashboardPage() {
   const me = await requireUser();
   const today = todayDate();
   const staff = me.role !== "EMPLOYEE";
+
+  const myEmployee = me.employeeId
+    ? await db.employee.findUnique({ where: { id: me.employeeId }, include: { shift: true } })
+    : null;
 
   const [employeeCount, presentToday, pendingLeaves, myAttendance, upcomingHolidays] = await Promise.all([
     db.employee.count({ where: { companyId: me.companyId, status: "ACTIVE" } }),
@@ -27,13 +41,17 @@ export default async function DashboardPage() {
     }),
   ]);
 
+  const teamWorking = staff ? presentToday : 0;
+  const shiftName = myEmployee?.shift?.name ?? "General Day Shift";
+  const shiftHours = myEmployee?.shift?.durationH ?? 9;
+  const isWeeklyOff = myEmployee ? today.getUTCDay() === myEmployee.weeklyOff : false;
+
   return (
     <div className="space-y-6">
       {/* ===== Hero ===== */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-[var(--shadow-pop)] md:p-8">
-        {/* decorations */}
-        <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-amber-500/25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-28 -left-10 h-56 w-56 rounded-full bg-amber-500/10 blur-3xl" />
+      <div className="relative overflow-hidden rounded-3xl bg-[#0a1628] p-6 text-white shadow-[var(--shadow-pop)] md:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-emerald-500/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-28 -left-10 h-56 w-56 rounded-full bg-teal-500/10 blur-3xl" />
         <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.07]" aria-hidden>
           <defs>
             <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
@@ -43,49 +61,96 @@ export default async function DashboardPage() {
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
 
-        <div className="relative flex flex-wrap items-center justify-between gap-5">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400/90">{fmtDate(today)}</p>
-            <h1 className="mt-1.5 text-2xl font-extrabold tracking-tight md:text-3xl">
-              Hello, {me.name.split(" ")[0]} 👋
-            </h1>
-            <p className="mt-1 text-sm text-slate-400">
-              {staff ? "Sab theek chal riha — ajj da din shubh hove!" : "Have a great day at work!"}
-            </p>
+        <div className="relative">
+          <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400/90">{fmtDate(today)}</p>
+          <h1 className="mt-1.5 text-2xl font-extrabold tracking-tight md:text-3xl">
+            {greeting()}, {me.name.split(" ")[0]}! 👋
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Welcome to HRMate · {me.companyName}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            <Link href="/idcard" className="chip-dark hover:bg-white/15">
+              <Icon name="badge" className="h-3.5 w-3.5" /> ID Card &amp; Pass
+            </Link>
+            <Link href="/leaves" className="chip-dark hover:bg-white/15">
+              <Icon name="leaf" className="h-3.5 w-3.5" /> Apply Leave
+            </Link>
+            {isWeeklyOff && (
+              <span className="chip-dark !text-sky-300 ring-sky-400/25!">🌴 Weekly off today</span>
+            )}
           </div>
+        </div>
+      </div>
 
-          {/* attendance quick box */}
-          {me.employeeId && (
-            <div className="flex items-center gap-4 rounded-2xl bg-white/[0.06] p-4 ring-1 ring-white/10 backdrop-blur">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Today</div>
-                <div className="mt-0.5 text-sm font-bold text-white">
-                  {myAttendance?.checkIn
-                    ? `In ${fmtTime(myAttendance.checkIn)}${myAttendance.checkOut ? ` · Out ${fmtTime(myAttendance.checkOut)}` : ""}`
-                    : "Not checked in"}
+      {/* ===== Punch 2.0 ===== */}
+      {me.employeeId && myEmployee && (
+        <div className="relative overflow-hidden rounded-3xl bg-[#0a1628] p-6 text-white shadow-[var(--shadow-pop)]">
+          <div className="pointer-events-none absolute -left-20 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
+          <div className="relative">
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <span className="chip-dark">
+                <Icon name="building" className="h-3.5 w-3.5" /> {me.companyName} · Khadur Sahib Unit
+              </span>
+            </div>
+            <p className="mt-4 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
+              {shiftName} ({shiftHours} hours){isWeeklyOff ? " · Weekly-off day" : ""}
+            </p>
+
+            <div className="mx-auto mt-6 max-w-xs">
+              {myAttendance?.checkIn ? (
+                <LiveTimer checkInIso={myAttendance.checkIn.toISOString()} shiftHours={shiftHours} />
+              ) : (
+                <div className="mx-auto flex h-40 w-40 flex-col items-center justify-center rounded-full border-[9px] border-white/[0.08] text-center">
+                  <Icon name="fingerprint" className="h-10 w-10 text-emerald-400/70" />
+                  <p className="mt-2 px-6 text-xs font-semibold text-slate-400">
+                    {isWeeklyOff ? "Off-day punch allowed" : "Not punched in yet"}
+                  </p>
                 </div>
-              </div>
+              )}
+              {myAttendance?.checkIn && (
+                <p className="mt-3 text-center text-sm font-medium text-slate-400">
+                  Punched In: <span className="font-bold text-white">{fmtTime(myAttendance.checkIn)}</span>
+                  {myAttendance.checkOut && (
+                    <>
+                      {" "}· Out: <span className="font-bold text-emerald-400">{fmtTime(myAttendance.checkOut)}</span>
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
+
+            <div className="mx-auto mt-6 max-w-xs">
               {!myAttendance?.checkIn && (
                 <form action={checkInAction}>
-                  <button className="btn-brand">Check in</button>
+                  <button className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-4 text-base font-bold text-white shadow-[0_10px_30px_-6px_rgb(16_185_129_/_60%)] transition hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.98]">
+                    <Icon name="fingerprint" className="h-6 w-6" /> Punch In
+                  </button>
                 </form>
               )}
               {myAttendance?.checkIn && !myAttendance.checkOut && (
                 <form action={checkOutAction}>
-                  <button className="btn-ghost border-white/20! bg-white/10! text-white! hover:bg-white/20!">Check out</button>
+                  <button className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-4 text-base font-bold text-white shadow-[0_10px_30px_-6px_rgb(16_185_129_/_60%)] transition hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.98]">
+                    <Icon name="fingerprint" className="h-6 w-6" /> Punch Out
+                  </button>
                 </form>
               )}
+              {myAttendance?.checkIn && myAttendance.checkOut && (
+                <div className="rounded-2xl bg-emerald-500/10 py-3.5 text-center text-sm font-bold text-emerald-300 ring-1 ring-emerald-400/25">
+                  ✓ Shift completed — great work today!
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ===== Stats ===== */}
-      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-        <StatCard label="Active employees" value={employeeCount} icon="users" tone="amber" href={staff ? "/employees" : undefined} />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <StatCard label="Active employees" value={employeeCount} icon="users" tone="sky" href={staff ? "/employees" : undefined} />
         <StatCard label="Present today" value={presentToday} icon="clock" tone="emerald" href="/attendance" />
-        <StatCard label="Pending leaves" value={pendingLeaves} icon="leaf" tone="rose" href="/leaves" />
-        <StatCard label="Upcoming holidays" value={upcomingHolidays.length} icon="calendar" tone="sky" href="/holidays" />
+        <StatCard label="Pending leaves" value={pendingLeaves} icon="leaf" tone="amber" href="/leaves" />
+        <StatCard label="Upcoming holidays" value={upcomingHolidays.length} icon="calendar" tone="rose" href="/holidays" />
       </div>
 
       {/* ===== Quick actions ===== */}
@@ -93,7 +158,7 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap gap-3">
           <Link href="/employees/new" className="btn-dark"><Icon name="plus" className="h-4 w-4" /> Add employee</Link>
           <Link href="/holidays" className="btn-ghost"><Icon name="calendar" className="h-4 w-4" /> Add holiday</Link>
-          <Link href="/attendance" className="btn-ghost"><Icon name="clock" className="h-4 w-4" /> View attendance</Link>
+          <Link href="/approvals" className="btn-ghost"><Icon name="check" className="h-4 w-4" /> Approvals hub</Link>
         </div>
       )}
 
@@ -103,7 +168,7 @@ export default async function DashboardPage() {
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Upcoming holidays</h3>
-            <Link href="/holidays" className="text-xs font-semibold text-amber-600 hover:underline">View all</Link>
+            <Link href="/holidays" className="text-xs font-semibold text-emerald-600 hover:underline">View all</Link>
           </div>
           {upcomingHolidays.length === 0 ? (
             <EmptyState icon="calendar" title="No holidays added yet" hint={staff ? "Add your company holidays so everyone sees them" : undefined} />
@@ -135,7 +200,7 @@ async function PendingLeaves({ companyId }: { companyId: string }) {
     <Card className="p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-sm font-bold text-slate-900">Pending leave requests</h3>
-        <Link href="/leaves" className="text-xs font-semibold text-amber-600 hover:underline">View all</Link>
+        <Link href="/approvals" className="text-xs font-semibold text-emerald-600 hover:underline">View all</Link>
       </div>
       {pending.length === 0 ? (
         <EmptyState icon="leaf" title="Nothing waiting for approval" hint="New requests will land here" />
@@ -143,7 +208,7 @@ async function PendingLeaves({ companyId }: { companyId: string }) {
         <ul className="space-y-2.5">
           {pending.map((l) => (
             <li key={l.id} className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 transition hover:bg-slate-100">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-amber-400">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0a1628] text-xs font-bold text-emerald-400">
                 {initials(`${l.employee.firstName} ${l.employee.lastName}`)}
               </div>
               <div className="min-w-0 flex-1">

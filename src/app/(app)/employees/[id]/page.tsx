@@ -5,9 +5,12 @@ import { requireStaff } from "@/lib/auth";
 import { fmtDate, initials, fmtTime, todayDate } from "@/lib/utils";
 import { Card, PageHeader, Badge, btnGhost } from "@/components/ui";
 import { updateEmployeeStatusAction, deleteEmployeeAction } from "@/actions/employees";
-import { getLeaveBalances } from "@/lib/balances";
+import { getLeaveBalances, balanceRemaining } from "@/lib/balances";
+import { ProfileForms } from "./ProfileForms";
 
 export const dynamic = "force-dynamic";
+
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default async function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireStaff();
@@ -18,13 +21,14 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     include: {
       department: true,
       designation: true,
+      shift: true,
       users: { select: { email: true, role: true, isActive: true } },
     },
   });
   if (!employee) notFound();
 
   const monthStart = new Date(Date.UTC(todayDate().getUTCFullYear(), todayDate().getUTCMonth(), 1));
-  const [attendance, leaves, balances] = await Promise.all([
+  const [attendance, leaves, balances, shifts, leaveTypes] = await Promise.all([
     db.attendance.findMany({
       where: { employeeId: employee.id, date: { gte: monthStart } },
       orderBy: { date: "desc" },
@@ -36,7 +40,9 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
-    getLeaveBalances(employee.id, me.companyId),
+    getLeaveBalances(employee, me.companyId),
+    db.shift.findMany({ where: { companyId: me.companyId }, orderBy: { startTime: "asc" } }),
+    db.leaveType.findMany({ where: { companyId: me.companyId }, orderBy: { name: "asc" } }),
   ]);
 
   const bindToggle = updateEmployeeStatusAction.bind(
@@ -44,6 +50,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     employee.id,
     employee.status === "ACTIVE" ? "INACTIVE" : "ACTIVE"
   );
+  const isYellow = employee.category === "YELLOW_CARD";
 
   return (
     <div>
@@ -51,7 +58,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         title={`${employee.firstName} ${employee.lastName}`}
         subtitle={`${employee.code} · ${employee.designation?.title ?? "No designation"}`}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/idcard?emp=${employee.id}`} className={btnGhost}>ID Card</Link>
             <form action={bindToggle}>
               <button className={btnGhost}>
                 {employee.status === "ACTIVE" ? "Deactivate" : "Reactivate"}
@@ -71,19 +79,27 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="p-6">
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-900 text-2xl font-black text-amber-400">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0a1628] text-2xl font-black text-emerald-400">
               {initials(`${employee.firstName} ${employee.lastName}`)}
             </div>
             <h2 className="mt-3 text-lg font-bold text-slate-900">
               {employee.firstName} {employee.lastName}
             </h2>
-            <Badge tone={employee.status === "ACTIVE" ? "green" : "slate"}>{employee.status}</Badge>
+            <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
+              <Badge tone={employee.status === "ACTIVE" ? "green" : "slate"}>{employee.status}</Badge>
+              <Badge tone={isYellow ? "amber" : "blue"}>{isYellow ? "🟡 Yellow Card" : "🔵 Official"}</Badge>
+            </div>
           </div>
           <dl className="mt-6 space-y-3 text-sm">
             <Row k="Email" v={employee.email ?? "—"} />
             <Row k="Phone" v={employee.phone ?? "—"} />
+            <Row k="Blood Group" v={employee.bloodGroup ?? "—"} />
+            <Row k="Emergency Contact" v={employee.emergencyPhone ?? "—"} />
+            <Row k="DOB" v={employee.dateOfBirth ? fmtDate(employee.dateOfBirth) : "—"} />
             <Row k="Department" v={employee.department?.name ?? "—"} />
             <Row k="Designation" v={employee.designation?.title ?? "—"} />
+            <Row k="Shift" v={employee.shift ? `${employee.shift.name} (${employee.shift.startTime}, ${employee.shift.durationH}h)` : "General (default)"} />
+            <Row k="Weekly Off" v={WEEKDAYS[employee.weeklyOff]} />
             <Row k="Joined" v={fmtDate(employee.joinDate)} />
             <Row k="Gender" v={employee.gender ?? "—"} />
             <Row k="Address" v={employee.address ?? "—"} />
@@ -92,6 +108,22 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               v={employee.users[0] ? `${employee.users[0].email} (${employee.users[0].role})` : "No account"}
             />
           </dl>
+
+          <ProfileForms
+            employee={{
+              id: employee.id,
+              category: employee.category,
+              weeklyOff: employee.weeklyOff,
+              shiftId: employee.shiftId,
+              bloodGroup: employee.bloodGroup,
+              emergencyPhone: employee.emergencyPhone,
+              phone: employee.phone,
+              dateOfBirth: employee.dateOfBirth?.toISOString().slice(0, 10) ?? null,
+            }}
+            shifts={shifts.map((s) => ({ id: s.id, name: s.name }))}
+            leaveTypes={leaveTypes.map((t) => ({ id: t.id, name: t.name, quota: t.daysPerYear }))}
+            isYellow={isYellow}
+          />
         </Card>
 
         <Card className="p-6 lg:col-span-2">
@@ -125,17 +157,27 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             </div>
           )}
 
-          <h3 className="mb-3 mt-8 text-sm font-semibold text-slate-900">Leave balance ({new Date().getFullYear()})</h3>
+          <h3 className="mb-3 mt-8 text-sm font-semibold text-slate-900">
+            Leave balance ({new Date().getFullYear()}){isYellow ? " — EL 15·auto" : ""}
+          </h3>
           <div className="mb-6 grid grid-cols-2 gap-2">
-            {balances.map((b) => (
-              <div key={b.leaveTypeId} className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-sm">
-                <div className="text-xs text-slate-500">{b.name}</div>
-                <div className="font-bold text-slate-800">
-                  {b.daysPerYear > 0 ? `${Math.max(b.daysPerYear - b.used, 0)} left` : `${b.used} taken`}
-                  {b.pending > 0 && <span className="ml-1.5 text-xs font-medium text-amber-600">+{b.pending} pending</span>}
+            {balances.map((b) => {
+              const left = balanceRemaining(b);
+              const consumed = Math.max(b.used + b.adjusted, 0);
+              return (
+                <div key={b.leaveTypeId} className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-sm">
+                  <div className="text-xs text-slate-500">{b.name}</div>
+                  <div className="font-bold text-slate-800">
+                    {b.quota === 0
+                      ? `${consumed} taken`
+                      : left !== null
+                        ? `${left} left ${isYellow ? `(accrued ${b.accrued})` : `of ${b.quota}`}`
+                        : `${consumed} taken`}
+                    {b.pending > 0 && <span className="ml-1.5 text-xs font-medium text-amber-600">+{b.pending} pending</span>}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <h3 className="mb-4 text-sm font-semibold text-slate-900">Recent leave requests</h3>

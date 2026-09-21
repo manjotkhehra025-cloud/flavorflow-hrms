@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FlavorFlow HRMS",
-  description: "Core HR for FlavorFlow — people, attendance, leave.",
+  title: "HRMate — Smart Workforce & Attendance",
+  description: "HRMate HRMS for G.D. Foods Mfg. (I) Pvt. Ltd. — people, attendance, leaves, gate passes.",
   icons: { icon: "/favicon.svg" },
 };
 

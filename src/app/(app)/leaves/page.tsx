@@ -1,31 +1,36 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { fmtDate } from "@/lib/utils";
-import { Card, PageHeader, Badge, inputCls, btnBrand } from "@/components/ui";
+import { fmtDate, initials } from "@/lib/utils";
+import { Card, PageHeader, Badge, EmptyState, btnBrand } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import { decideLeaveAction, cancelLeaveAction } from "@/actions/leaves";
-import { getLeaveBalances } from "@/lib/balances";
+import { getLeaveBalances, balanceRemaining } from "@/lib/balances";
 import { ApplyLeaveForm } from "./ApplyLeaveForm";
 
 export const dynamic = "force-dynamic";
 
-function LeaveBadge({ status }: { status: string }) {
-  const tone =
-    status === "APPROVED" ? "green" : status === "REJECTED" ? "red" : status === "CANCELLED" ? "slate" : "amber";
-  return <Badge tone={tone as "green" | "red" | "slate" | "amber"}>{status}</Badge>;
-}
+const TONE: Record<string, "green" | "red" | "amber" | "slate"> = {
+  APPROVED: "green",
+  REJECTED: "red",
+  PENDING: "amber",
+  CANCELLED: "slate",
+};
 
 export default async function LeavesPage() {
   const me = await requireUser();
   const staff = me.role !== "EMPLOYEE";
 
-  const [leaveTypes, myLeaves, pending, balances] = await Promise.all([
+  const myEmp = me.employeeId ? await db.employee.findUnique({ where: { id: me.employeeId } }) : null;
+
+  const [leaveTypesAll, myLeaves, pending, balances] = await Promise.all([
     db.leaveType.findMany({ where: { companyId: me.companyId }, orderBy: { name: "asc" } }),
     me.employeeId
       ? db.leaveRequest.findMany({
           where: { employeeId: me.employeeId },
           include: { leaveType: true },
           orderBy: { createdAt: "desc" },
-          take: 20,
+          take: 10,
         })
       : Promise.resolve([]),
     staff
@@ -35,130 +40,171 @@ export default async function LeavesPage() {
           orderBy: { createdAt: "asc" },
         })
       : Promise.resolve([]),
-    me.employeeId ? getLeaveBalances(me.employeeId, me.companyId) : Promise.resolve([]),
+    myEmp ? getLeaveBalances({ id: myEmp.id, category: myEmp.category, joinDate: myEmp.joinDate }, me.companyId) : Promise.resolve([]),
   ]);
+
+  const isYellow = myEmp?.category === "YELLOW_CARD";
+  const leaveTypes = isYellow ? leaveTypesAll.filter((t) => /earned/i.test(t.name)) : leaveTypesAll;
 
   return (
     <div>
-      <PageHeader title="Leaves" subtitle="Apply for time off and track approvals." />
+      <PageHeader title="Leaves Management" subtitle={isYellow ? "Yellow Card Staff · 15 EL per year" : "Apply for time off and track approvals."} />
 
-      {/* My balance chips */}
-      {me.employeeId && balances.length > 0 && (
-        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {balances.map((b) => (
-            <Card key={b.leaveTypeId} className="p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{b.name}</div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-2xl font-extrabold text-slate-900">
-                  {b.daysPerYear > 0 ? Math.max(b.daysPerYear - b.used, 0) : b.used}
-                </span>
-                <span className="text-xs text-slate-400">
-                  {b.daysPerYear > 0 ? `/ ${b.daysPerYear} left` : "taken"}
-                </span>
-              </div>
-              {b.daysPerYear > 0 && (
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-amber-500 transition-all"
-                    style={{ width: `${Math.min(100, (b.used / b.daysPerYear) * 100)}%` }}
-                  />
-                </div>
-              )}
-              {b.pending > 0 && (
-                <div className="mt-1.5 text-[11px] font-semibold text-amber-600">{b.pending} day(s) pending</div>
-              )}
-            </Card>
-          ))}
+      {/* Yellow Card policy card */}
+      {isYellow && (
+        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-400/20 text-amber-600">
+              <Icon name="badge" className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-900">Yellow Card Staff Leave Policy</h3>
+              <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                Yellow Card staff receive <b>15 Earned Leaves (EL)</b> per year, accrued monthly at{" "}
+                <b>1.25 days per elapsed month</b> from your join month. Casual, Sick and Optional leaves are not applicable.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Balance cards (accrued vs used) */}
+      {myEmp && balances.length > 0 && (
+        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {balances.map((b) => {
+            const remaining = balanceRemaining(b);
+            const entitled = b.accrued;
+            const consumed = Math.max(b.used + b.adjusted, 0);
+            const pct = b.quota === 0 ? 0 : Math.min(100, (consumed / Math.max(entitled, 1)) * 100);
+            return (
+              <Card key={b.leaveTypeId} className="relative p-5">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-bold uppercase tracking-wide text-slate-400">{b.name}</div>
+                  {staff && (
+                    <Link href={`/employees/${myEmp.id}#adjust`} className="text-[11px] font-semibold text-emerald-600 hover:underline">
+                      ✎ Edit
+                    </Link>
+                  )}
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5">
+                  {remaining === null ? (
+                    <>
+                      <span className="text-3xl font-black text-emerald-600">{consumed}</span>
+                      <span className="text-xs font-medium text-slate-400">taken · unlimited</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-3xl font-black text-emerald-600">{remaining}</span>
+                      <span className="text-xs font-medium text-slate-400">days left</span>
+                    </>
+                  )}
+                </div>
+                <div className="mt-1 text-[11px] font-medium text-slate-500">
+                  {b.quota === 0
+                    ? "Unpaid / unlimited"
+                    : isYellow
+                      ? `Accrued: ${b.accrued} · Used: ${consumed}/${b.quota}`
+                      : `Quota: ${b.quota} · Used: ${consumed}`}
+                </div>
+                {b.quota !== 0 && (
+                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all" style={{ width: `${100 - pct}%` }} />
+                  </div>
+                )}
+                {b.pending > 0 && (
+                  <div className="mt-2 text-[11px] font-semibold text-amber-600">{b.pending} day(s) pending approval</div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* Apply + my requests */}
         {me.employeeId && (
-          <Card className="p-5">
-            <h3 className="mb-4 text-sm font-semibold text-slate-900">Apply for leave</h3>
-            <ApplyLeaveForm leaveTypes={leaveTypes} />
-          </Card>
+          <div className="space-y-6 lg:col-span-2">
+            <Card className="p-5">
+              <h3 className="mb-1 text-sm font-bold text-slate-900">Apply for leave</h3>
+              <p className="mb-4 text-xs text-slate-500">Manager reviews and approves.</p>
+              <ApplyLeaveForm leaveTypes={leaveTypes} />
+            </Card>
+
+            <Card className="p-5">
+              <h3 className="mb-4 text-sm font-bold text-slate-900">My requests</h3>
+              {myLeaves.length === 0 ? (
+                <EmptyState icon="leaf" title="No leave requests yet" />
+              ) : (
+                <ul className="space-y-2.5">
+                  {myLeaves.map((l) => (
+                    <li key={l.id} className="rounded-xl bg-slate-50 px-4 py-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-slate-800">{l.leaveType.name}</span>
+                        <Badge tone={TONE[l.status]}>{l.status}</Badge>
+                      </div>
+                      <div className="mt-0.5 text-xs text-slate-500">
+                        {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} · {l.days}d{l.reason ? ` · "${l.reason}"` : ""}
+                      </div>
+                      {l.status === "PENDING" && (
+                        <div className="mt-2 flex gap-2">
+                          <form action={() => cancelLeaveAction(l.id)}>
+                            <button className="text-xs font-semibold text-red-500 hover:underline">Withdraw</button>
+                          </form>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
         )}
 
-        <Card className={me.employeeId ? "p-5 lg:col-span-2" : "p-5 lg:col-span-3"}>
+        {/* Team pending approvals */}
+        <div className={me.employeeId ? "lg:col-span-3" : "lg:col-span-5"}>
           {staff && (
-            <>
-              <h3 className="mb-4 text-sm font-semibold text-slate-900">
-                Needs your decision ({pending.length})
-              </h3>
+            <Card className="p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900">Pending approvals ({pending.length})</h3>
+                <Link href="/approvals" className="text-xs font-semibold text-emerald-600 hover:underline">Approvals hub →</Link>
+              </div>
               {pending.length === 0 ? (
-                <p className="mb-8 text-sm text-slate-500">No pending requests 🎉</p>
+                <EmptyState icon="check" title="Sab clear!" hint="New leave requests will appear here" />
               ) : (
-                <ul className="mb-8 space-y-3">
+                <ul className="space-y-2.5">
                   {pending.map((l) => (
-                    <li key={l.id} className="rounded-xl border border-slate-200 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-slate-900">
-                            {l.employee.firstName} {l.employee.lastName}
-                            <span className="ml-2 text-xs font-normal text-slate-500">({l.employee.code})</span>
-                          </div>
-                          <div className="mt-0.5 text-xs text-slate-500">
-                            {l.leaveType.name} · {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} · {l.days} day{l.days > 1 ? "s" : ""}
-                          </div>
-                          {l.reason && <div className="mt-1 text-sm text-slate-600">“{l.reason}”</div>}
+                    <li key={l.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0a1628] text-xs font-bold text-emerald-400">
+                        {initials(`${l.employee.firstName} ${l.employee.lastName}`)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-slate-800">
+                          {l.employee.firstName} {l.employee.lastName}
                         </div>
-                        <div className="flex gap-2">
-                          <form action={decideLeaveAction.bind(null, l.id, "APPROVED")}>
-                            <button className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500">Approve</button>
-                          </form>
-                          <form action={decideLeaveAction.bind(null, l.id, "REJECTED")}>
-                            <button className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">Reject</button>
-                          </form>
+                        <div className="text-xs text-slate-500">
+                          {l.leaveType.name} · {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} ({l.days}d){l.reason ? ` · "${l.reason}"` : ""}
                         </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <form action={() => decideLeaveAction(l.id, "APPROVED")}>
+                          <button className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 active:scale-95">Approve</button>
+                        </form>
+                        <form action={() => decideLeaveAction(l.id, "REJECTED")}>
+                          <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 active:scale-95">Reject</button>
+                        </form>
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
-            </>
+            </Card>
           )}
-
-          {me.employeeId && (
-            <>
-              <h3 className="mb-4 text-sm font-semibold text-slate-900">My requests</h3>
-              {myLeaves.length === 0 ? (
-                <p className="text-sm text-slate-500">You haven't applied for leave yet.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-xs uppercase text-slate-500">
-                        <th className="py-2 pr-4">Type</th>
-                        <th className="py-2 pr-4">Dates</th>
-                        <th className="py-2 pr-4">Days</th>
-                        <th className="py-2 pr-4">Status</th>
-                        <th className="py-2"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {myLeaves.map((l) => (
-                        <tr key={l.id} className="border-b border-slate-100 last:border-0">
-                          <td className="py-2.5 pr-4 font-medium text-slate-700">{l.leaveType.name}</td>
-                          <td className="py-2.5 pr-4 text-slate-600">{fmtDate(l.fromDate)} – {fmtDate(l.toDate)}</td>
-                          <td className="py-2.5 pr-4 text-slate-600">{l.days}</td>
-                          <td className="py-2.5 pr-4"><LeaveBadge status={l.status} /></td>
-                          <td className="py-2.5 text-right">
-                            {l.status === "PENDING" && (
-                              <form action={cancelLeaveAction.bind(null, l.id)}>
-                                <button className="text-xs text-slate-400 hover:text-red-500 hover:underline">Cancel</button>
-                              </form>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
+          {!me.employeeId && !staff && (
+            <Card className="p-6">
+              <EmptyState icon="leaf" title="No employee profile linked" hint="Ask HR to link your login to an employee record" />
+            </Card>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );

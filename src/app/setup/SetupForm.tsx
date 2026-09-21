@@ -17,7 +17,7 @@ export function SetupForm() {
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2">
           <label className="mb-1 block text-sm font-medium text-slate-700">Company name</label>
-          <input name="companyName" required className={input} placeholder="FlavorFlow Foods Pvt. Ltd." />
+          <input name="companyName" required className={input} placeholder="G.D. Foods Mfg. (I) Pvt. Ltd." />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">Code</label>
