@@ -28,7 +28,7 @@ export function MobileBottomNav({ role }: { role: string }) {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/70 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-      <div className="mx-auto flex max-w-md items-stretch justify-between px-1">
+      <div className="flex items-stretch overflow-x-auto px-1">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
@@ -36,7 +36,7 @@ export function MobileBottomNav({ role }: { role: string }) {
               key={item.href}
               href={item.href}
               className={cx(
-                "flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-semibold transition-colors",
+                "flex min-w-[4.75rem] flex-1 flex-col items-center gap-1 py-2 text-[10px] font-semibold transition-colors",
                 active ? "text-amber-600" : "text-slate-400"
               )}
             >

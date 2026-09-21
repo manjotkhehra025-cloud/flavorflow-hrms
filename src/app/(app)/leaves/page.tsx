@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { fmtDate } from "@/lib/utils";
 import { Card, PageHeader, Badge, inputCls, btnBrand } from "@/components/ui";
 import { decideLeaveAction, cancelLeaveAction } from "@/actions/leaves";
+import { getLeaveBalances } from "@/lib/balances";
 import { ApplyLeaveForm } from "./ApplyLeaveForm";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function LeavesPage() {
   const me = await requireUser();
   const staff = me.role !== "EMPLOYEE";
 
-  const [leaveTypes, myLeaves, pending] = await Promise.all([
+  const [leaveTypes, myLeaves, pending, balances] = await Promise.all([
     db.leaveType.findMany({ where: { companyId: me.companyId }, orderBy: { name: "asc" } }),
     me.employeeId
       ? db.leaveRequest.findMany({
@@ -34,11 +35,42 @@ export default async function LeavesPage() {
           orderBy: { createdAt: "asc" },
         })
       : Promise.resolve([]),
+    me.employeeId ? getLeaveBalances(me.employeeId, me.companyId) : Promise.resolve([]),
   ]);
 
   return (
     <div>
       <PageHeader title="Leaves" subtitle="Apply for time off and track approvals." />
+
+      {/* My balance chips */}
+      {me.employeeId && balances.length > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {balances.map((b) => (
+            <Card key={b.leaveTypeId} className="p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{b.name}</div>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-2xl font-extrabold text-slate-900">
+                  {b.daysPerYear > 0 ? Math.max(b.daysPerYear - b.used, 0) : b.used}
+                </span>
+                <span className="text-xs text-slate-400">
+                  {b.daysPerYear > 0 ? `/ ${b.daysPerYear} left` : "taken"}
+                </span>
+              </div>
+              {b.daysPerYear > 0 && (
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-amber-500 transition-all"
+                    style={{ width: `${Math.min(100, (b.used / b.daysPerYear) * 100)}%` }}
+                  />
+                </div>
+              )}
+              {b.pending > 0 && (
+                <div className="mt-1.5 text-[11px] font-semibold text-amber-600">{b.pending} day(s) pending</div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {me.employeeId && (

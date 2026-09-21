@@ -5,6 +5,7 @@ import { requireStaff } from "@/lib/auth";
 import { fmtDate, initials, fmtTime, todayDate } from "@/lib/utils";
 import { Card, PageHeader, Badge, btnGhost } from "@/components/ui";
 import { updateEmployeeStatusAction, deleteEmployeeAction } from "@/actions/employees";
+import { getLeaveBalances } from "@/lib/balances";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   if (!employee) notFound();
 
   const monthStart = new Date(Date.UTC(todayDate().getUTCFullYear(), todayDate().getUTCMonth(), 1));
-  const [attendance, leaves] = await Promise.all([
+  const [attendance, leaves, balances] = await Promise.all([
     db.attendance.findMany({
       where: { employeeId: employee.id, date: { gte: monthStart } },
       orderBy: { date: "desc" },
@@ -35,6 +36,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
+    getLeaveBalances(employee.id, me.companyId),
   ]);
 
   const bindToggle = updateEmployeeStatusAction.bind(
@@ -123,7 +125,20 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             </div>
           )}
 
-          <h3 className="mb-4 mt-8 text-sm font-semibold text-slate-900">Recent leave requests</h3>
+          <h3 className="mb-3 mt-8 text-sm font-semibold text-slate-900">Leave balance ({new Date().getFullYear()})</h3>
+          <div className="mb-6 grid grid-cols-2 gap-2">
+            {balances.map((b) => (
+              <div key={b.leaveTypeId} className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-sm">
+                <div className="text-xs text-slate-500">{b.name}</div>
+                <div className="font-bold text-slate-800">
+                  {b.daysPerYear > 0 ? `${Math.max(b.daysPerYear - b.used, 0)} left` : `${b.used} taken`}
+                  {b.pending > 0 && <span className="ml-1.5 text-xs font-medium text-amber-600">+{b.pending} pending</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <h3 className="mb-4 text-sm font-semibold text-slate-900">Recent leave requests</h3>
           {leaves.length === 0 ? (
             <p className="text-sm text-slate-500">No leave requests yet.</p>
           ) : (

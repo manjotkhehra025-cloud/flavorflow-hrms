@@ -13,6 +13,7 @@ export const NAV_ITEMS: { href: string; label: string; icon: IconName; staffOnly
   { href: "/attendance", label: "Attendance", icon: "clock" },
   { href: "/leaves", label: "Leaves", icon: "leaf" },
   { href: "/holidays", label: "Holidays", icon: "calendar" },
+  { href: "/reports", label: "Reports", icon: "chart", staffOnly: true },
 ];
 
 export function navFor(role: string) {
