@@ -6,6 +6,7 @@ import { Card, StatCard, Badge, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { checkInAction, checkOutAction } from "@/actions/attendance";
 import { LiveTimer } from "@/components/LiveTimer";
+import { PresenceBoard } from "@/components/PresenceBoard";
 
 export const dynamic = "force-dynamic";
 
@@ -161,6 +162,9 @@ export default async function DashboardPage() {
           <Link href="/approvals" className="btn-ghost"><Icon name="check" className="h-4 w-4" /> Approvals hub</Link>
         </div>
       )}
+
+      {/* ===== Team presence (staff) ===== */}
+      {staff && <PresenceBoard companyId={me.companyId} today={today} />}
 
       {/* ===== Lower grid ===== */}
       <div className="grid gap-6 lg:grid-cols-2">

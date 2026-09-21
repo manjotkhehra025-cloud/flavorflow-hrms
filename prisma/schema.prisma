@@ -15,6 +15,7 @@ model Company {
   id        String   @id @default(cuid())
   name      String
   code      String   @unique // e.g. "FF"
+  letterSeq Int      @default(0)
   createdAt DateTime @default(now())
 
   users            User[]
@@ -28,6 +29,7 @@ model Company {
   shifts           Shift[]
   gatePasses       GatePass[]
   punchRequests    PunchRequest[]
+  letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
 }
 
@@ -101,6 +103,8 @@ model Employee {
   joinDate       DateTime       @db.Date
   address        String?
   status         EmployeeStatus @default(ACTIVE)
+  photoUrl       String?
+  photoExt       String?
   category       StaffCategory  @default(OFFICIAL)
   weeklyOff      Int            @default(0) // JS getUTCDay(): 0=Sun ... 6=Sat
   bloodGroup     String?
@@ -121,6 +125,7 @@ model Employee {
   leaveRequests    LeaveRequest[]
   gatePasses       GatePass[]
   punchRequests    PunchRequest[]
+  letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
 
   createdAt DateTime @default(now())
@@ -279,4 +284,19 @@ model LeaveAdjustment {
   createdAt   DateTime @default(now())
 
   @@index([employeeId])
+}
+
+model Letter {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  serial     String   @unique // GDF/HR/2026/0007
+  type       String // EXPERIENCE | JOINING | KYC
+  issuedTo   String? // e.g. bank / verifier for KYC
+  createdBy  String?
+  createdAt  DateTime @default(now())
+
+  @@index([companyId, employeeId])
 }

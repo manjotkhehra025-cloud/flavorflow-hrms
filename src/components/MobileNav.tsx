@@ -30,6 +30,7 @@ const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0
   { href: "/holidays", label: "Holidays", icon: "calendar" },
   { href: "/departments", label: "Org Structure", icon: "building", staffOnly: true },
   { href: "/reports", label: "Reports", icon: "report", staffOnly: true },
+  { href: "/tops", label: "TOPS Weekly", icon: "chart", staffOnly: true },
   { href: "/settings", label: "Settings & Shifts", icon: "sliders", staffOnly: true },
 ];
 

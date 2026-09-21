@@ -7,6 +7,9 @@ import { Card, PageHeader, Badge, btnGhost } from "@/components/ui";
 import { updateEmployeeStatusAction, deleteEmployeeAction } from "@/actions/employees";
 import { getLeaveBalances, balanceRemaining } from "@/lib/balances";
 import { ProfileForms } from "./ProfileForms";
+import { LetterSection } from "./LetterSection";
+import { PhotoUpload } from "@/components/PhotoUpload";
+import { AvatarImg } from "@/components/AvatarImg";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +31,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   if (!employee) notFound();
 
   const monthStart = new Date(Date.UTC(todayDate().getUTCFullYear(), todayDate().getUTCMonth(), 1));
-  const [attendance, leaves, balances, shifts, leaveTypes] = await Promise.all([
+  const [attendance, leaves, balances, shifts, leaveTypes, letters] = await Promise.all([
     db.attendance.findMany({
       where: { employeeId: employee.id, date: { gte: monthStart } },
       orderBy: { date: "desc" },
@@ -43,6 +46,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     getLeaveBalances(employee, me.companyId),
     db.shift.findMany({ where: { companyId: me.companyId }, orderBy: { startTime: "asc" } }),
     db.leaveType.findMany({ where: { companyId: me.companyId }, orderBy: { name: "asc" } }),
+    db.letter.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: "desc" } }),
   ]);
 
   const bindToggle = updateEmployeeStatusAction.bind(
@@ -79,9 +83,12 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="p-6">
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0a1628] text-2xl font-black text-emerald-400">
-              {initials(`${employee.firstName} ${employee.lastName}`)}
-            </div>
+            <AvatarImg
+              name={`${employee.firstName} ${employee.lastName}`}
+              photoUrl={employee.photoUrl}
+              size="h-20 w-20"
+              textSize="text-2xl"
+            />
             <h2 className="mt-3 text-lg font-bold text-slate-900">
               {employee.firstName} {employee.lastName}
             </h2>
@@ -89,6 +96,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               <Badge tone={employee.status === "ACTIVE" ? "green" : "slate"}>{employee.status}</Badge>
               <Badge tone={isYellow ? "amber" : "blue"}>{isYellow ? "🟡 Yellow Card" : "🔵 Official"}</Badge>
             </div>
+            <PhotoUpload employeeId={employee.id} hasPhoto={!!employee.photoUrl} />
           </div>
           <dl className="mt-6 space-y-3 text-sm">
             <Row k="Email" v={employee.email ?? "—"} />
@@ -123,6 +131,11 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             shifts={shifts.map((s) => ({ id: s.id, name: s.name }))}
             leaveTypes={leaveTypes.map((t) => ({ id: t.id, name: t.name, quota: t.daysPerYear }))}
             isYellow={isYellow}
+          />
+
+          <LetterSection
+            employeeId={employee.id}
+            letters={letters.map((l) => ({ id: l.id, serial: l.serial, type: l.type, issuedTo: l.issuedTo, createdAt: l.createdAt.toISOString() }))}
           />
         </Card>
 

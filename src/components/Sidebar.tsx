@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: "/holidays", label: "Holidays", icon: "calendar" as const },
   { href: "/departments", label: "Departments", icon: "building" as const, staffOnly: true },
   { href: "/reports", label: "Reports", icon: "report" as const, staffOnly: true },
+  { href: "/tops", label: "TOPS Weekly", icon: "chart" as const, staffOnly: true },
   { href: "/settings", label: "Settings", icon: "sliders" as const, staffOnly: true },
 ];
 

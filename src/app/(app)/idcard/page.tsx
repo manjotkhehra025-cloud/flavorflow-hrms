@@ -110,9 +110,14 @@ export default async function IdCardPage({
               </div>
 
               <div className="mt-4 flex justify-center">
-                <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-3xl font-black text-emerald-300 ring-2 ring-emerald-400/40">
-                  {initials(name)}
-                </div>
+                {employee.photoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={employee.photoUrl} alt={name} className="h-28 w-28 rounded-2xl object-cover ring-2 ring-emerald-400/40" />
+                ) : (
+                  <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-3xl font-black text-emerald-300 ring-2 ring-emerald-400/40">
+                    {initials(name)}
+                  </div>
+                )}
               </div>
 
               <h2 className="mt-4 text-center text-2xl font-black tracking-tight">{name}</h2>
