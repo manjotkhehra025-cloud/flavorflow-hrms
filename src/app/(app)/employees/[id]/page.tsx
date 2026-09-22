@@ -8,6 +8,7 @@ import { Card, PageHeader, Badge, btnGhost } from "@/components/ui";
 import { updateEmployeeStatusAction, deleteEmployeeAction } from "@/actions/employees";
 import { getLeaveBalances, balanceRemaining } from "@/lib/balances";
 import { ProfileForms } from "./ProfileForms";
+import { PaySection } from "./PaySection";
 import { LetterSection } from "./LetterSection";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { AvatarImg } from "@/components/AvatarImg";
@@ -27,6 +28,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       designation: true,
       shift: true,
       users: { select: { email: true, role: true, isActive: true } },
+      advances: { orderBy: { givenDate: "desc" } },
     },
   });
   if (!employee) notFound();
@@ -132,6 +134,25 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             shifts={shifts.map((s) => ({ id: s.id, name: s.name }))}
             leaveTypes={leaveTypes.map((t) => ({ id: t.id, name: t.name, quota: t.daysPerYear }))}
             isYellow={isYellow}
+          />
+
+          <PaySection
+            employee={{
+              id: employee.id,
+              salaryType: employee.salaryType,
+              baseSalary: employee.baseSalary,
+              dailyRate: employee.dailyRate,
+              otRate: employee.otRate,
+              bankAccount: employee.bankAccount,
+              ifsc: employee.ifsc,
+            }}
+            advances={employee.advances.map((a) => ({
+              id: a.id,
+              amount: a.amount,
+              repaid: a.repaid,
+              givenDate: fmtDate(a.givenDate),
+              reason: a.reason,
+            }))}
           />
 
           <LetterSection

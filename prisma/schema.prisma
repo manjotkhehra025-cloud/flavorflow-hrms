@@ -34,6 +34,8 @@ model Company {
   kraCycles        KraCycle[]
   tickets          Ticket[]
   starAwards       StarAward[]
+  advances         Advance[]
+  payrollRuns      PayrollRun[]
 }
 
 enum Role {
@@ -113,6 +115,13 @@ model Employee {
   weeklyOff      Int            @default(0) // JS getUTCDay(): 0=Sun ... 6=Sat
   bloodGroup     String?
   emergencyPhone String?
+  // Phase D: payroll setup
+  salaryType     String         @default("MONTHLY") // MONTHLY | DAILY
+  baseSalary     Int? // ₹ per month (whole rupees)
+  dailyRate      Int? // ₹ per day
+  otRate         Int? // ₹ per hour (null → auto from base / 26 / 9)
+  bankAccount    String?
+  ifsc           String?
   shiftId        String?
   shift          Shift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
 
@@ -134,6 +143,8 @@ model Employee {
   kraGoals         KraGoal[]
   tickets          Ticket[]
   starAwards       StarAward[]
+  advances         Advance[]
+  payrollRows      PayrollRow[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -215,6 +226,78 @@ model Holiday {
   date      DateTime @db.Date
 
   @@unique([companyId, date])
+}
+
+// ---------- Phase D: payroll — advances, runs, rows ----------
+model Advance {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  amount      Int // ₹ given
+  repaid      Int      @default(0) // ₹ recovered so far (monthly PayrollRow deductions)
+  givenDate   DateTime @db.Date
+  reason      String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([companyId, employeeId])
+}
+
+enum PayrollRunStatus {
+  DRAFT
+  APPROVED
+  LOCKED
+}
+
+model PayrollRun {
+  id              String @id @default(cuid())
+  companyId       String
+  company         Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  month           String // "2026-09"
+  status          PayrollRunStatus @default(DRAFT)
+  approvedById    String?
+  approvedAt      DateTime?
+  lockedById      String?
+  lockedAt        DateTime?
+  createdById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  rows            PayrollRow[]
+
+  @@unique([companyId, month])
+}
+
+model PayrollRow {
+  id          String    @id @default(cuid())
+  runId       String
+  run         PayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  payableDays Float @default(0) // present + weekly-off + holiday + approved leave (+ joined mid-month prorate)
+  presentDays Float @default(0)
+  absentDays  Float @default(0)
+  leaveDays   Float @default(0)
+  offDays     Float @default(0)   // weekly-off + holidays
+  lopDays     Float @default(0)
+
+  baseAmount      Int @default(0) // payable base in ₹
+  otHours         Float @default(0)
+  otRate          Int @default(0)   // ₹/hr snapshot
+  otAmount        Int @default(0)
+  deductions      Int @default(0)  // LOP as ₹ (monthly model)
+  advanceRecover  Int @default(0)
+  otherDeduction  Int @default(0)
+  otherDeductionNote String?
+  otherEarning    Int @default(0)
+  otherEarningNote String?
+  netPay          Int @default(0)
+  paymentMode     String @default("BANK") // BANK | CASH
+
+  @@unique([runId, employeeId])
 }
 
 // ---------- HRMate v3: shifts, approvals hub, ID/gate pass ----------
