@@ -146,6 +146,7 @@ export async function updateEmployeeDetailsAction(_prev: ActionState, formData: 
     emergencyPhone: emptyToUndefined(((formData.get("emergencyPhone") as string) ?? "").trim()),
     phone: emptyToUndefined(((formData.get("phone") as string) ?? "").trim()),
     dateOfBirth: formData.get("dateOfBirth") ? toDateOnly(formData.get("dateOfBirth") as string) : null,
+    contractor: emptyToUndefined(((formData.get("contractor") as string) ?? "").trim()),
   };
 
   const res = await db.employee.updateMany({ where: { id, companyId: me.companyId }, data });

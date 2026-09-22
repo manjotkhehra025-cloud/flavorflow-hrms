@@ -7,6 +7,7 @@ import { Card, PageHeader, Badge, btnGhost, btnBrand } from "@/components/ui";
 import { monthName, fmtINR } from "@/lib/utils";
 import { Icon } from "@/components/icons";
 import { computePayrollAction } from "@/actions/payroll";
+import { PayrollDashboard } from "@/components/PayrollDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +25,35 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
   const defaultMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const runs = await db.payrollRun.findMany({
     where: { companyId: me.companyId },
-    include: { rows: { select: { netPay: true } }, _count: { select: { rows: true } } },
+    include: { rows: { select: { netPay: true, pfEmployer: true, esiEmployer: true } }, _count: { select: { rows: true } } },
     orderBy: { month: "desc" },
   });
+  // dashboard data: last 6 runs trend + latest-run dept / contractor split
+  const trend = runs.slice(0, 6).map((r) => ({
+    month: r.month, status: r.status,
+    net: r.rows.reduce((a, x) => a + x.netPay, 0),
+    employer: r.rows.reduce((a, x) => a + x.pfEmployer + x.esiEmployer, 0),
+    staff: r._count.rows,
+  }));
+  const latestFull = runs[0]
+    ? await db.payrollRow.findMany({ where: { runId: runs[0].id }, include: { employee: { include: { department: true } } } })
+    : [];
+  const deptMap = new Map<string, { label: string; net: number; staff: number }>();
+  const conMap = new Map<string, { label: string; net: number; staff: number }>();
+  for (const row of latestFull) {
+    const label = row.employee.department?.name ?? "—";
+    const cur = deptMap.get(label) ?? { label, net: 0, staff: 0 };
+    cur.net += row.netPay; cur.staff++;
+    deptMap.set(label, cur);
+    if (row.employee.contractor) {
+      const cl = row.employee.contractor;
+      const cc = conMap.get(cl) ?? { label: cl, net: 0, staff: 0 };
+      cc.net += row.netPay; cc.staff++;
+      conMap.set(cl, cc);
+    }
+  }
+  const deptSplit = [...deptMap.values()].sort((a, b) => b.net - a.net);
+  const contractorSplit = [...conMap.values()].sort((a, b) => b.net - a.net);
   const shirtsCount = await db.employee.count({ where: { companyId: me.companyId, status: "ACTIVE", salaryType: "MONTHLY" } });
   const dailyCount = await db.employee.count({ where: { companyId: me.companyId, status: "ACTIVE", salaryType: "DAILY" } });
 
@@ -35,6 +62,13 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
       <PageHeader
         title={<Pa>Payroll 🧾</Pa>}
         subtitle={<Pa>Monthly salary & daily-rate payouts — attendance picked up automatically.</Pa>}
+      />
+
+      <PayrollDashboard
+        runs={trend}
+        deptSplit={deptSplit}
+        contractorSplit={contractorSplit}
+        latestMonth={runs[0]?.month ?? null}
       />
 
       {err && (

@@ -41,11 +41,32 @@ export async function updateSalaryAction(_prev: ActionState, formData: FormData)
     return { error: await bt("IFSC looks wrong (e.g. SBIN0123456).") };
   }
 
+  const before = await db.employee.findFirst({ where: { id: employeeId, companyId: me.companyId } });
   const res = await db.employee.updateMany({
     where: { id: employeeId, companyId: me.companyId },
     data: { salaryType, baseSalary: baseSalary ?? null, dailyRate: dailyRate ?? null, otRate: otRate ?? null, bankAccount, ifsc,
             pfEnabled, pfNumber: pfEnabled ? pfNumber : null, esiEnabled, esiNumber: esiEnabled ? esiNumber : null },
   });
+  // Phase E2: pay-audit trail (only when numbers/model actually change)
+  if (before && (before.salaryType !== salaryType || (before.baseSalary ?? null) !== (baseSalary ?? null) || (before.dailyRate ?? null) !== (dailyRate ?? null))) {
+    const oldAmt = before.salaryType === "DAILY" ? before.dailyRate : before.baseSalary;
+    const newAmt = salaryType === "DAILY" ? dailyRate : baseSalary;
+    let changeType = "REVISION";
+    if (oldAmt == null && newAmt != null) changeType = "CREATE";
+    else if (before.salaryType !== salaryType) changeType = "MODEL_SWITCH";
+    else if ((newAmt ?? 0) > (oldAmt ?? 0)) changeType = "RAISE";
+    else if ((newAmt ?? 0) < (oldAmt ?? 0)) changeType = "DEMOTE";
+    await db.salaryRevision.create({
+      data: {
+        employeeId: before.id, companyId: me.companyId,
+        effectiveDate: new Date(),
+        changeType,
+        oldSalaryType: before.salaryType, newSalaryType: salaryType,
+        oldSalary: oldAmt ?? null, newSalary: newAmt ?? null,
+        createdById: me.id,
+      },
+    });
+  }
   if (res.count === 0) return { error: await bt("Employee not found.") };
   revalidatePath(`/employees/${employeeId}`);
   return { success: await bt("Salary setup saved 💾") };

@@ -17,6 +17,29 @@ export const dynamic = "force-dynamic";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+function SalaryHistory({ revisions }: { revisions: { id: string; effectiveDate: string; changeType: string; oldType: string | null; newType: string | null; oldAmt: number | null; newAmt: number | null }[] }) {
+  if (revisions.length === 0) return <Card className="mt-6 p-6 text-xs text-slate-400"><Pa>No salary revisions yet.</Pa></Card>;
+  const chip: Record<string, string> = { RAISE: "bg-emerald-100 text-emerald-700", DEMOTE: "bg-rose-100 text-rose-700", CREATE: "bg-sky-100 text-sky-700", MODEL_SWITCH: "bg-violet-100 text-violet-700", REVISION: "bg-slate-100 text-slate-600" };
+  const label: Record<string, string> = { RAISE: "Raise ↑", DEMOTE: "Demote ↓", CREATE: "Created", MODEL_SWITCH: "Model switch", REVISION: "Edit" };
+  return (
+    <Card className="mt-6 p-6">
+      <h3 className="mb-3 text-sm font-semibold text-slate-900"><Pa>Pay history 📈</Pa></h3>
+      <ul className="space-y-2 text-xs">
+        {revisions.map((r) => (
+          <li key={r.id} className="flex items-center gap-2 rounded-lg border border-slate-100 px-3 py-2">
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${chip[r.changeType] ?? chip.REVISION}`}>{label[r.changeType] ?? r.changeType}</span>
+            <span className="font-semibold text-slate-800">
+              {r.oldAmt != null ? `₹${r.oldAmt.toLocaleString("en-IN")}` : "—"} → <b>₹{(r.newAmt ?? 0).toLocaleString("en-IN")}</b>
+              {r.oldType !== r.newType && <span className="ml-1 text-slate-400">({r.oldType}→{r.newType})</span>}
+            </span>
+            <span className="ml-auto text-[10px] text-slate-400">{r.effectiveDate}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export default async function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireStaff();
   const { id } = await params;
@@ -29,6 +52,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       shift: true,
       users: { select: { email: true, role: true, isActive: true } },
       advances: { orderBy: { givenDate: "desc" } },
+      salaryRevisions: { orderBy: { createdAt: "desc" }, take: 12 },
     },
   });
   if (!employee) notFound();
@@ -130,6 +154,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               emergencyPhone: employee.emergencyPhone,
               phone: employee.phone,
               dateOfBirth: employee.dateOfBirth?.toISOString().slice(0, 10) ?? null,
+              contractor: employee.contractor,
             }}
             shifts={shifts.map((s) => ({ id: s.id, name: s.name }))}
             leaveTypes={leaveTypes.map((t) => ({ id: t.id, name: t.name, quota: t.daysPerYear }))}
@@ -158,6 +183,12 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               reason: a.reason,
             }))}
           />
+
+          <SalaryHistory revisions={employee.salaryRevisions.map((r) => ({
+            id: r.id, effectiveDate: fmtDate(r.effectiveDate), changeType: r.changeType,
+            oldType: r.oldSalaryType, newType: r.newSalaryType,
+            oldAmt: r.oldSalary, newAmt: r.newSalary,
+          }))} />
 
           <LetterSection
             employeeId={employee.id}

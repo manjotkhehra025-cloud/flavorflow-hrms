@@ -28,6 +28,10 @@ model Company {
   holidays         Holiday[]
   shifts           Shift[]
   gatePasses       GatePass[]
+  // Phase E3/E4: pay rules
+  dailyPaidLeaveDays Int @default(0)
+  lateGraceMins      Int @default(15)
+  latesPerCut        Int @default(0)
   punchRequests    PunchRequest[]
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
@@ -36,6 +40,8 @@ model Company {
   starAwards       StarAward[]
   advances         Advance[]
   payrollRuns      PayrollRun[]
+  shiftAssignments ShiftAssignment[]
+  payslipLinks     PayslipLink[]
 }
 
 enum Role {
@@ -112,6 +118,7 @@ model Employee {
   photoUrl       String?
   photoExt       String?
   category       StaffCategory  @default(OFFICIAL)
+  contractor     String? // contractor / thekedari grouping (Phase E5)
   weeklyOff      Int            @default(0) // JS getUTCDay(): 0=Sun ... 6=Sat
   bloodGroup     String?
   emergencyPhone String?
@@ -150,6 +157,8 @@ model Employee {
   starAwards       StarAward[]
   advances         Advance[]
   payrollRows      PayrollRow[]
+  salaryRevisions  SalaryRevision[]
+  shiftAssignments ShiftAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -176,6 +185,7 @@ model Attendance {
   checkIn    DateTime?
   checkOut   DateTime?
   status     AttendanceStatus @default(PRESENT)
+  selfiePath String? // Phase E5: punch selfie (verify person, audit)
   note       String?
 
   @@unique([employeeId, date])
@@ -233,11 +243,63 @@ model Holiday {
   @@unique([companyId, date])
 }
 
+// ---------- Phase E2: salary revision history (pay audit) ----------
+model SalaryRevision {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  companyId     String
+  effectiveDate DateTime @db.Date
+  changeType    String // CREATE | RAISE | DEMOTE | MODEL_SWITCH | REVISION
+  oldSalaryType String?
+  newSalaryType String?
+  oldSalary     Int?
+  newSalary     Int?
+  note          String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  @@index([companyId, employeeId])
+}
+
+// ---------- Phase E3/E4/E5: pay rules & structure ----------
+model ShiftAssignment {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date       DateTime @db.Date
+  shiftId    String?
+  shift      Shift?   @relation(fields: [shiftId], references: [id])
+  isOff      Boolean  @default(false) // explicit duty-off override
+
+  @@unique([employeeId, date])
+  @@index([companyId, date])
+}
+
+model PayslipLink {
+  id        String     @id @default(cuid())
+  token     String     @unique @default(cuid())
+  rowId     String     @unique
+  row       PayrollRow @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  companyId String
+  expiresAt DateTime?
+  createdAt DateTime   @default(now())
+  Company   Company    @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+}
+
 // ---------- Phase D: payroll — advances, runs, rows ----------
+// ---------- Phase E pay rules (Company columns) ----------
+// dailyPaidLeaveDays: annual paid-leave quota for DAILY-rate workers (0 = not paid)
+// lateGraceMins/latesPerCut: monthly staff — every N late-ins beyond grace = 1 LOP day (0 = rule off)
+
 model Advance {
   id          String   @id @default(cuid())
   companyId   String
-  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   employeeId  String
   employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   amount      Int // ₹ given
@@ -257,54 +319,55 @@ enum PayrollRunStatus {
 }
 
 model PayrollRun {
-  id              String @id @default(cuid())
-  companyId       String
-  company         Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  month           String // "2026-09"
-  status          PayrollRunStatus @default(DRAFT)
-  approvedById    String?
-  approvedAt      DateTime?
-  lockedById      String?
-  lockedAt        DateTime?
-  createdById     String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id           String           @id @default(cuid())
+  companyId    String
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  month        String // "2026-09"
+  status       PayrollRunStatus @default(DRAFT)
+  approvedById String?
+  approvedAt   DateTime?
+  lockedById   String?
+  lockedAt     DateTime?
+  createdById  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
-  rows            PayrollRow[]
+  rows PayrollRow[]
 
   @@unique([companyId, month])
 }
 
 model PayrollRow {
-  id          String    @id @default(cuid())
-  runId       String
-  run         PayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id         String     @id @default(cuid())
+  runId      String
+  run        PayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   payableDays Float @default(0) // present + weekly-off + holiday + approved leave (+ joined mid-month prorate)
   presentDays Float @default(0)
   absentDays  Float @default(0)
   leaveDays   Float @default(0)
-  offDays     Float @default(0)   // weekly-off + holidays
+  offDays     Float @default(0) // weekly-off + holidays
   lopDays     Float @default(0)
 
-  baseAmount      Int @default(0) // payable base in ₹
-  otHours         Float @default(0)
-  otRate          Int @default(0)   // ₹/hr snapshot
-  otAmount        Int @default(0)
-  deductions      Int @default(0)  // LOP as ₹ (monthly model)
-  advanceRecover  Int @default(0)
-  otherDeduction  Int @default(0)
+  baseAmount         Int          @default(0) // payable base in ₹
+  otHours            Float        @default(0)
+  otRate             Int          @default(0) // ₹/hr snapshot
+  otAmount           Int          @default(0)
+  deductions         Int          @default(0) // LOP as ₹ (monthly model)
+  advanceRecover     Int          @default(0)
+  otherDeduction     Int          @default(0)
   otherDeductionNote String?
-  otherEarning    Int @default(0)
-  otherEarningNote String?
-  pfEmployee      Int @default(0)  // 12% of min(earned basic, 15000)
-  pfEmployer      Int @default(0)  // employer share (company cost)
-  esiEmployee     Int @default(0)  // 0.75% of gross (ex-OT)
-  esiEmployer     Int @default(0)  // 3.25% (company cost)
-  netPay          Int @default(0)
-  paymentMode     String @default("BANK") // BANK | CASH
+  otherEarning       Int          @default(0)
+  otherEarningNote   String?
+  pfEmployee         Int          @default(0) // 12% of min(earned basic, 15000)
+  pfEmployer         Int          @default(0) // employer share (company cost)
+  esiEmployee        Int          @default(0) // 0.75% of gross (ex-OT)
+  esiEmployer        Int          @default(0) // 3.25% (company cost)
+  netPay             Int          @default(0)
+  paymentMode        String       @default("BANK") // BANK | CASH
+  shareLink          PayslipLink?
 
   @@unique([runId, employeeId])
 }
@@ -319,7 +382,8 @@ model Shift {
   startTime String // "08:00" (factory local, Asia/Kolkata)
   durationH Float   @default(9)
 
-  employees Employee[]
+  employees       Employee[]
+  ShiftAssignment ShiftAssignment[]
 
   @@unique([companyId, name])
 }

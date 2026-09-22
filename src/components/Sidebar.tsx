@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/leaves", label: "Leaves", icon: "leaf" as const },
   { href: "/approvals", label: "Approvals", icon: "check" as const, staffOnly: true },
   { href: "/payroll", label: "Payroll", icon: "wallet" as const, staffOnly: true },
+  { href: "/roster", label: "Roster", icon: "calendar" as const, staffOnly: true },
   { href: "/idcard", label: "ID Card & Gate Pass", icon: "badge" as const },
   { href: "/holidays", label: "Holidays", icon: "calendar" as const },
   { href: "/departments", label: "Departments", icon: "building" as const, staffOnly: true },

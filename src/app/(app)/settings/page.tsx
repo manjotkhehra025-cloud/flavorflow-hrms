@@ -1,5 +1,6 @@
 import { pht } from "@/lib/i18n";
 import { Pa } from "@/components/Pa";
+import { savePayRulesAction } from "@/actions/config";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { fmtTime } from "@/lib/utils";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const me = await requireStaff();
 
+  const companyRules = await db.company.findUnique({ where: { id: me.companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true } });
   const [shifts, leaveTypes, empCounts] = await Promise.all([
     db.shift.findMany({
       where: { companyId: me.companyId },
@@ -28,6 +30,30 @@ export default async function SettingsPage() {
   return (
     <div>
       <PageHeader title={<Pa>Settings & Shifts</Pa>} subtitle={<Pa>Factory policy configuration — shifts, leave quotas & staff categories.</Pa>} />
+
+      {/* Pay rules (payroll engine) */}
+      <Card className="mb-6 p-5">
+        <div className="mb-3">
+          <h3 className="text-sm font-bold text-slate-900"><Pa>Pay rules ⚖️</Pa> <span className="text-[10px] font-semibold text-slate-400">(<Pa>used by payroll</Pa>)</span></h3>
+        </div>
+        <form action={async (fd: FormData) => { "use server"; await savePayRulesAction({}, fd); }} className="flex flex-wrap items-end gap-3">
+          <label>
+            <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Pa>Paid leave / year — daily-rate workers</Pa></span>
+            <input type="number" name="dailyPaidLeaveDays" min={0} max={30} defaultValue={companyRules?.dailyPaidLeaveDays ?? 0} className="input w-28" />
+            <p className="mt-1 text-[10px] text-slate-400"><Pa>0 = leave without pay (default)</Pa></p>
+          </label>
+          <label>
+            <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Pa>Late-grace (minutes)</Pa></span>
+            <input type="number" name="lateGraceMins" min={0} max={60} defaultValue={companyRules?.lateGraceMins ?? 15} className="input w-24" />
+          </label>
+          <label>
+            <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Pa>Every N lates = 1 LOP</Pa></span>
+            <input type="number" name="latesPerCut" min={0} max={20} defaultValue={companyRules?.latesPerCut ?? 0} className="input w-24" />
+            <p className="mt-1 text-[10px] text-slate-400"><Pa>0 = off</Pa></p>
+          </label>
+          <button type="submit" className={btnBrand}>💾 <Pa>Save rules</Pa></button>
+        </form>
+      </Card>
 
       {/* Company snapshot */}
       <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 border-l-4! border-l-emerald-500! p-5">

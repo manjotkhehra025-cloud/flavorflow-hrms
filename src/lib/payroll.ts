@@ -50,6 +50,10 @@ export type CalcRow = {
 
 export type Statutory = { pfEmployee: number; pfEmployer: number; esiEmployee: number; esiEmployer: number; pfWage: number; esiGross: number };
 
+function quotaEnabled(v: number | null | undefined): boolean {
+  return (v ?? 0) > 0;
+}
+
 /**
  * Indian statutory deductions:
  * - PF: 12% employee + 12% employer of PF-wage = min(earned basic, ₹15,000 cap). Only when employee.pfEnabled and basic > 0.
@@ -95,13 +99,14 @@ export async function calculatePayroll(companyId: string, month: string): Promis
   const dim = daysInMonth(month);
   const endPlus = new Date(Date.UTC(y, m - 1, dim + 1)); // exclusive
 
+  const rules = await db.company.findUnique({ where: { id: companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true } });
   const [employees, attendance, leaves, holidays, advances, shifts] = await Promise.all([
     db.employee.findMany({
       where: { companyId, status: "ACTIVE" },
       include: { department: true, shift: true },
       orderBy: [{ department: { name: "asc" } }, { code: "asc" }],
     }),
-    db.attendance.findMany({ where: { companyId, date: { gte: start, lt: endPlus }, checkIn: { not: null } }, select: { employeeId: true, date: true } }),
+    db.attendance.findMany({ where: { companyId, date: { gte: start, lt: endPlus }, checkIn: { not: null } }, select: { employeeId: true, date: true, checkIn: true } }),
     db.leaveRequest.findMany({
       where: { companyId, status: "APPROVED", fromDate: { lt: endPlus }, toDate: { gte: start } },
       select: { employeeId: true, fromDate: true, toDate: true },
@@ -110,13 +115,49 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     db.advance.findMany({ where: { companyId }, select: { employeeId: true, amount: true, repaid: true } }),
     db.shift.findMany({ where: { companyId } }),
   ]);
+  const roster = await db.shiftAssignment.findMany({
+    where: { companyId, date: { gte: start, lt: endPlus } },
+    include: { shift: { select: { startTime: true } } },
+  });
+  const rosterMap = new Map<string, { isOff: boolean; startTime: string | null }>();
+  for (const a of roster) {
+    rosterMap.set(a.employeeId + "|" + dstr(a.date), { isOff: a.isOff, startTime: a.shift?.startTime ?? null });
+  }
+  const yearStart = new Date(Date.UTC(y, 0, 1));
+  const leavesEarlier = quotaEnabled(rules?.dailyPaidLeaveDays)
+    ? await db.leaveRequest.findMany({
+        where: { companyId, status: "APPROVED", fromDate: { lt: start }, toDate: { gte: yearStart } },
+        select: { employeeId: true, fromDate: true, toDate: true },
+      })
+    : [];
+  const usedBeforeMap = new Map<string, number>();
+  for (const lv of leavesEarlier) {
+    let cur = new Date(Math.max(lv.fromDate.getTime(), yearStart.getTime()));
+    const to = new Date(Math.min(lv.toDate.getTime(), start.getTime() - 1));
+    for (; cur <= to; cur = new Date(cur.getTime() + DAY)) {
+      usedBeforeMap.set(lv.employeeId, (usedBeforeMap.get(lv.employeeId) ?? 0) + 1);
+    }
+  }
+
+  // earliest check-in per employee+day (for the late-mark rule)
+  const earliestIn = new Map<string, Date>();
+  for (const a of attendance) {
+    if (!a.checkIn) continue;
+    const key = a.employeeId + "|" + dstr(a.date);
+    const prev = earliestIn.get(key);
+    if (!prev || a.checkIn < prev) earliestIn.set(key, a.checkIn);
+  }
 
   // per-employee maps
+  const rulesLatesPerCut = rules?.latesPerCut ?? 0;
+  const rulesGrace = rules?.lateGraceMins ?? 15;
   const attMap = new Map<string, Set<string>>();
+  const lateCount = new Map<string, number>();
   for (const a of attendance) {
     const k = dstr(a.date);
     if (!attMap.has(a.employeeId)) attMap.set(a.employeeId, new Set());
     attMap.get(a.employeeId)!.add(k);
+    void a.checkIn; // late-check needs the shift start — computed per-employee below
   }
   const leaveMap = new Map<string, Set<string>>();
   const totalLeaveDays = new Map<string, number>();
@@ -158,6 +199,8 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       const k = dstr(day);
       if (k < joinD || k > dstr(new Date())) { continue; } // before joining or future: ignore
       const dow = day.getUTCDay();
+      const rosterCell = rosterMap.get(emp.id + "|" + k);
+      if (rosterCell?.isOff) { off++; continue; } // explicit roster off beats attendance
       if (att.has(k)) { present++; continue; }
       if (lvs.has(k)) { leave++; continue; }
       if (dow === emp.weeklyOff || holidaySet.has(k)) { off++; continue; }
@@ -165,6 +208,29 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     }
 
     const monthly = emp.salaryType !== "DAILY";
+
+    // E4 late-mark rule (monthly staff): every N late-ins (past shift-start + grace) → 1 LOP day
+    if (monthly && rulesLatesPerCut > 0) {
+      const shiftStart = (emp.shift ?? defaultShift)?.startTime ?? "09:00";
+      const [sh, sm] = shiftStart.split(":").map(Number);
+      let lates = 0;
+      for (const k of att) {
+        const shiftStartDay = rosterMap.get(emp.id + "|" + k)?.startTime ?? shiftStart;
+        const [dsh, dsm] = shiftStartDay.split(":").map(Number);
+        const ci = earliestIn.get(emp.id + "|" + k);
+        if (!ci) continue;
+        const dayY = ci.getUTCFullYear(), dayM = ci.getUTCMonth(), dayD = ci.getUTCDate();
+        const cutoff = new Date(Date.UTC(dayY, dayM, dayD, dsh, dsm + rulesGrace));
+        if (ci >= cutoff) lates++;
+      }
+      const lateLop = Math.floor(lates / rulesLatesPerCut);
+      if (lateLop > 0) {
+        absent += lateLop;
+        present = Math.max(0, present - lateLop);
+      }
+      lateCount.set(emp.id, lates);
+    }
+
     const workedDays = present + leave + off; // days eligible for pay before LOP
     const lopDays = absent;
     let payableDays: number, baseAmount: number, lopAmount: number;
@@ -175,9 +241,14 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       baseAmount = emp.baseSalary ?? 0;
       lopAmount = dim > 0 ? Math.round((baseAmount / dim) * lopDays) : 0;
     } else {
-      // daily-rate pays only days on duty (present + approved leave-with-pay? No — present only)
-      payableDays = present;
-      baseAmount = (emp.dailyRate ?? 0) * present;
+      // E3: daily-rate — present days + paid approved-leave (up to company annual quota)
+      const quota = rules?.dailyPaidLeaveDays ?? 0;
+      let paidLeave = 0;
+      if (quota > 0 && leave > 0) {
+        paidLeave = Math.min(leave, Math.max(0, quota - (usedBeforeMap.get(emp.id) ?? 0)));
+      }
+      payableDays = present + paidLeave;
+      baseAmount = (emp.dailyRate ?? 0) * payableDays;
       lopAmount = 0;
     }
 

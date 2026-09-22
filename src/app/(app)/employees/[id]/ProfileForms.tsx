@@ -19,6 +19,7 @@ type Emp = {
   emergencyPhone: string | null;
   phone: string | null;
   dateOfBirth: string | null;
+  contractor: string | null;
 };
 
 export function ProfileForms({
@@ -91,6 +92,10 @@ export function ProfileForms({
             <label className="block text-xs font-semibold text-slate-600">
               Date of birth
               <input type="date" name="dateOfBirth" defaultValue={employee.dateOfBirth ?? ""} className={inputCls + " mt-1"} />
+            </label>
+            <label className="col-span-2">
+              <span className="text-xs font-semibold text-slate-600"><Tt>Contractor / thekedari (optional, paid-via-labour staff)</Tt></span>
+              <input name="contractor" defaultValue={employee.contractor ?? ""} placeholder={ph("e.g. Verma Labour Contractor")} className={inputCls + " mt-1"} />
             </label>
           </div>
           <button disabled={editPending} className={btnBrand + " w-full justify-center"}>{editPending ? "Saving…" : "Save details"}</button>
