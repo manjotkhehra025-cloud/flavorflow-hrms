@@ -605,4 +605,15 @@ export const PA: Record<string, string> = {
   "Other deduction": "ਹੋਰ ਕਟੌਤੀ",
   "NET PAY": "ਨੈੱਟ ਅਦਾਇਗੀ",
   "This is a system-generated salary slip and does not require a signature.": "ਇਹ ਸਿਸਟਮ-ਬਣੀ ਤਨਖ਼ਾਹ-ਸਲਿੱਪ ਹੈ — ਦਸਤਖ਼ਤ ਦੀ ਲੋੜ ਨਹੀਂ।",
+
+  // ---------- Phase D3: employee payslips ----------
+  "My payslips 🧾": "ਮੇਰੀਆਂ ਪੇ-ਸਲਿੱਪਾਂ 🧾",
+  "Your salary slips appear here after payroll is approved & locked.": "ਤਨਖ਼ਾਹ ਆਉਣ 'ਤੇ (ਲੌਕ ਤੋਂ ਬਾਅਦ) ਤੁਹਾਡੀਆਂ ਸਲਿੱਪਾਂ ਇੱਥੇ ਦਿਖਦੀਆਂ ਹਨ।",
+  "Your login is not linked to an employee profile yet — ask HR.": "ਤੁਹਾਡਾ ਲੌਗਿਨ ਅਜੇ ਕਿਸੇ ਕਰਮਚਾਰੀ-ਪ੍ਰੋਫ਼ਾਈਲ ਨਾਲ ਜੁੜਿਆ ਨਹੀਂ — HR ਨੂੰ ਕਹੋ।",
+  "Salary slips become visible here once payroll is locked.": "ਪੇਰੋਲ ਲੌਕ ਹੁੰਦੇ ਹੀ ਸਲਿੱਪਾਂ ਇੱਥੇ ਦਿਖਣ ਲੱਗਦੀਆਂ ਹਨ।",
+  "No payslips yet — they appear after your first locked payroll.": "ਹਾਲੇ ਕੋਈ ਪੇ-ਸਲਿੱਪ ਨਹੀਂ — ਪਹਿਲੀ ਤਨਖ਼ਾਹ ਲੌਕ ਹੁੰਦੇ ਹੀ ਆ ਜਾਵੇਗੀ।",
+  "net pay": "ਨੈੱਟ ਅਦਾਇਗੀ",
+  "Open / print": "ਖੋਲ੍ਹੋ / ਪ੍ਰਿੰਟ",
+  "All payslips": "ਸਾਰੀਆਂ ਸਲਿੱਪਾਂ",
+  "Payslips": "ਪੇ-ਸਲਿੱਪਾਂ",
 };

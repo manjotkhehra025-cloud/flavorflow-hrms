@@ -57,3 +57,11 @@ export function fmtINR(n: number): string {
 export function shortDate(d: string): string {
   return new Date(d).toLocaleString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
 }
+
+const PA_MONTHS = ["ਜਨਵਰੀ", "ਫ਼ਰਵਰੀ", "ਮਾਰਚ", "ਅਪ੍ਰੈਲ", "ਮਈ", "ਜੂਨ", "ਜੁਲਾਈ", "ਅਗਸਤ", "ਸਤੰਬਰ", "ਅਕਤੂਬਰ", "ਨਵੰਬਰ", "ਦਸੰਬਰ"];
+/** "2026-09" → "ਸਤੰਬਰ 2026" */
+export function monthNamePa(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  if (!y || !m || m < 1 || m > 12) return month;
+  return PA_MONTHS[m - 1] + " " + y;
+}

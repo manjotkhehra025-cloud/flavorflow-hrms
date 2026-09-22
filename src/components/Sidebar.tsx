@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/tops", label: "TOPS Weekly", icon: "chart" as const, staffOnly: true },
   { href: "/kra", label: "KRA", icon: "target" as const },
   { href: "/helpdesk", label: "Helpdesk", icon: "chat" as const },
+  { href: "/payslips", label: "Payslips", icon: "wallet" as const },
   { href: "/star", label: "Star ⭐", icon: "star" as const, staffOnly: true },
   { href: "/settings", label: "Settings", icon: "sliders" as const, staffOnly: true },
 ];
