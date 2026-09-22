@@ -147,7 +147,12 @@ export default async function LeavesPage() {
                       </div>
                       {l.status === "PENDING" && (
                         <div className="mt-2 flex gap-2">
-                          <form action={() => cancelLeaveAction(l.id)}>
+                          <form
+                            action={async () => {
+                              "use server";
+                              await cancelLeaveAction(l.id);
+                            }}
+                          >
                             <button className="text-xs font-semibold text-red-500 hover:underline">Withdraw</button>
                           </form>
                         </div>
@@ -186,10 +191,20 @@ export default async function LeavesPage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <form action={() => decideLeaveAction(l.id, "APPROVED")}>
+                        <form
+                          action={async () => {
+                            "use server";
+                            await decideLeaveAction(l.id, "APPROVED");
+                          }}
+                        >
                           <button className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 active:scale-95">Approve</button>
                         </form>
-                        <form action={() => decideLeaveAction(l.id, "REJECTED")}>
+                        <form
+                          action={async () => {
+                            "use server";
+                            await decideLeaveAction(l.id, "REJECTED");
+                          }}
+                        >
                           <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 active:scale-95">Reject</button>
                         </form>
                       </div>

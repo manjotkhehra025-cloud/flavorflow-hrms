@@ -92,7 +92,16 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
                       {l.leaveType.name} · {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} ({l.days}d){l.reason ? ` · "${l.reason}"` : ""}
                     </div>
                   </div>
-                  <Actions approve={() => decideLeaveAction(l.id, "APPROVED")} reject={() => decideLeaveAction(l.id, "REJECTED")} />
+                  <Actions
+                    approve={async () => {
+                      "use server";
+                      await decideLeaveAction(l.id, "APPROVED");
+                    }}
+                    reject={async () => {
+                      "use server";
+                      await decideLeaveAction(l.id, "REJECTED");
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -116,7 +125,16 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
                       {fmtDate(p.date)} at {p.time}{p.reason ? ` · "${p.reason}"` : ""}
                     </div>
                   </div>
-                  <Actions approve={() => decidePunchRequestAction(p.id, true)} reject={() => decidePunchRequestAction(p.id, false)} />
+                  <Actions
+                    approve={async () => {
+                      "use server";
+                      await decidePunchRequestAction(p.id, true);
+                    }}
+                    reject={async () => {
+                      "use server";
+                      await decidePunchRequestAction(p.id, false);
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -138,7 +156,16 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
                     </div>
                     <div className="text-xs text-slate-500">{fmtDate(p.date)}{p.reason ? ` · "${p.reason}"` : ""}</div>
                   </div>
-                  <Actions approve={() => decidePunchRequestAction(p.id, true)} reject={() => decidePunchRequestAction(p.id, false)} />
+                  <Actions
+                    approve={async () => {
+                      "use server";
+                      await decidePunchRequestAction(p.id, true);
+                    }}
+                    reject={async () => {
+                      "use server";
+                      await decidePunchRequestAction(p.id, false);
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -163,9 +190,23 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
                     </div>
                   </div>
                   {g.status === "PENDING" ? (
-                    <Actions approve={() => decideGatePassAction(g.id, true)} reject={() => decideGatePassAction(g.id, false)} />
+                    <Actions
+                      approve={async () => {
+                        "use server";
+                        await decideGatePassAction(g.id, true);
+                      }}
+                      reject={async () => {
+                        "use server";
+                        await decideGatePassAction(g.id, false);
+                      }}
+                    />
                   ) : (
-                    <form action={() => verifyGatePassAction(g.id)}>
+                    <form
+                      action={async () => {
+                        "use server";
+                        await verifyGatePassAction(g.id);
+                      }}
+                    >
                       <button className="flex items-center gap-1.5 rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-sky-600 active:scale-95">
                         <Icon name="check" className="h-3.5 w-3.5" /> Mark Entry Verified
                       </button>

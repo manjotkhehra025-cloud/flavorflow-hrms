@@ -21,7 +21,9 @@ export type IconName =
   | "gate"
   | "bell"
   | "download"
-  | "chart";
+  | "chart"
+  | "link"
+  | "chevron-down";
 
 export function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -71,6 +73,17 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName; classNam
         <line x1="11" y1="20" x2="11" y2="6" />
         <line x1="17" y1="20" x2="17" y2="10" />
         <line x1="3" y1="20" x2="21" y2="20" />
+      </>
+    ),
+    link: (
+      <>
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </>
+    ),
+    "chevron-down": (
+      <>
+        <polyline points="6 9 12 15 18 9" />
       </>
     ),
     plus: (

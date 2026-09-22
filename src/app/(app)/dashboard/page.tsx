@@ -7,6 +7,7 @@ import { Icon } from "@/components/icons";
 import { checkInAction, checkOutAction } from "@/actions/attendance";
 import { LiveTimer } from "@/components/LiveTimer";
 import { PresenceBoard } from "@/components/PresenceBoard";
+import { LinkAccountCard } from "@/components/LinkAccountCard";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,15 @@ export default async function DashboardPage() {
       take: 4,
     }),
   ]);
+
+  // Staff login without an employee link can't punch — offer a one-time self-link.
+  const linkableEmployees = staff && !me.employeeId
+    ? await db.employee.findMany({
+        where: { companyId: me.companyId, status: "ACTIVE", users: { none: {} } },
+        orderBy: { firstName: "asc" },
+        select: { id: true, firstName: true, lastName: true, code: true },
+      })
+    : [];
 
   const teamWorking = staff ? presentToday : 0;
   const shiftName = myEmployee?.shift?.name ?? "General Day Shift";
@@ -85,6 +95,14 @@ export default async function DashboardPage() {
       </div>
 
       {/* ===== Punch 2.0 ===== */}
+      {staff && !me.employeeId && (
+        <LinkAccountCard
+          employees={linkableEmployees.map((e) => ({
+            id: e.id,
+            label: `${e.firstName} ${e.lastName} · ${e.code}`,
+          }))}
+        />
+      )}
       {me.employeeId && myEmployee && (
         <div className="relative overflow-hidden rounded-3xl bg-[#0a1628] p-6 text-white shadow-[var(--shadow-pop)]">
           <div className="pointer-events-none absolute -left-20 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
