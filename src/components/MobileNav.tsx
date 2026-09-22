@@ -30,6 +30,7 @@ const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0
   { href: "/employees", label: "Team", icon: "users", staffOnly: true },
   { href: "/idcard", label: "ID Card & Gate Pass", icon: "badge" },
   { href: "/approvals", label: "Approvals", icon: "check", staffOnly: true },
+  { href: "/payroll", label: "Payroll", icon: "wallet", staffOnly: true },
   { href: "/holidays", label: "Holidays", icon: "calendar" },
   { href: "/departments", label: "Org Structure", icon: "building", staffOnly: true },
   { href: "/reports", label: "Reports", icon: "report", staffOnly: true },

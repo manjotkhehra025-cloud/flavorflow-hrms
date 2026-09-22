@@ -26,7 +26,8 @@ export type IconName =
   | "chevron-down"
   | "target"
   | "chat"
-  | "star";
+  | "star"
+  | "wallet";
 
 export function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -102,6 +103,13 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName; classNam
         <circle cx="9" cy="10" r="0.5" fill="currentColor" />
         <circle cx="12" cy="10" r="0.5" fill="currentColor" />
         <circle cx="15" cy="10" r="0.5" fill="currentColor" />
+      </>
+    ),
+    wallet: (
+      <>
+        <path d="M6 3h12a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z" />
+        <path d="M21 9h-5a3 3 0 0 0 0 6h5" />
+        <circle cx="16" cy="12" r="1" fill="currentColor" stroke="none" />
       </>
     ),
     star: (

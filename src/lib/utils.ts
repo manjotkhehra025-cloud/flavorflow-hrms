@@ -40,3 +40,20 @@ export function dayDiffInclusive(from: Date, to: Date): number {
 export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
 }
+
+/** "2026-09" → "September 2026" */
+export function monthName(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  if (!y || !m) return month;
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+/** 12345 → "₹12,345" */
+export function fmtINR(n: number): string {
+  return "₹" + Math.round(n).toLocaleString("en-IN");
+}
+
+/** "2026-09-12"→"12 Sep" relative display for date-only strings */
+export function shortDate(d: string): string {
+  return new Date(d).toLocaleString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
+}
