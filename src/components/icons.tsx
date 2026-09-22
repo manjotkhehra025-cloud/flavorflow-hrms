@@ -24,7 +24,9 @@ export type IconName =
   | "chart"
   | "link"
   | "chevron-down"
-  | "target";
+  | "target"
+  | "chat"
+  | "star";
 
 export function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -92,6 +94,19 @@ export function Icon({ name, className = "h-5 w-5" }: { name: IconName; classNam
         <circle cx="12" cy="12" r="10" />
         <circle cx="12" cy="12" r="6" />
         <circle cx="12" cy="12" r="2" />
+      </>
+    ),
+    chat: (
+      <>
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        <circle cx="9" cy="10" r="0.5" fill="currentColor" />
+        <circle cx="12" cy="10" r="0.5" fill="currentColor" />
+        <circle cx="15" cy="10" r="0.5" fill="currentColor" />
+      </>
+    ),
+    star: (
+      <>
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
       </>
     ),
     plus: (

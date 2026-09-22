@@ -32,6 +32,8 @@ model Company {
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
   kraCycles        KraCycle[]
+  tickets          Ticket[]
+  starAwards       StarAward[]
 }
 
 enum Role {
@@ -129,6 +131,8 @@ model Employee {
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
   kraGoals         KraGoal[]
+  tickets          Ticket[]
+  starAwards       StarAward[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -343,5 +347,70 @@ model KraGoal {
   updatedAt  DateTime @updatedAt
 
   @@index([cycleId])
+  @@index([employeeId])
+}
+
+// ---------- Phase C2: Helpdesk tickets + Star of the Month ----------
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  MACHINE
+  SALARY
+  UNIFORM
+  CANTEEN
+  SAFETY
+  OTHER
+}
+
+model Ticket {
+  id             String         @id @default(cuid())
+  companyId      String
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId     String
+  employee       Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  category       TicketCategory
+  subject        String
+  status         TicketStatus   @default(OPEN)
+  employeeSeenAt DateTime?
+  staffSeenAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  replies TicketReply[]
+
+  @@index([companyId, status])
+  @@index([employeeId])
+}
+
+model TicketReply {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  isStaff    Boolean
+  authorName String
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model StarAward {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month      String // "2026-09"
+  note       String?
+  createdBy  String?
+  createdAt  DateTime @default(now())
+
+  @@unique([companyId, month])
   @@index([employeeId])
 }

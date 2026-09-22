@@ -8,6 +8,7 @@ import { checkInAction, checkOutAction } from "@/actions/attendance";
 import { LiveTimer } from "@/components/LiveTimer";
 import { PresenceBoard } from "@/components/PresenceBoard";
 import { LinkAccountCard } from "@/components/LinkAccountCard";
+import { AvatarImg } from "@/components/AvatarImg";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,29 @@ export default async function DashboardPage() {
       take: 4,
     }),
   ]);
+
+  // Star of the Month (all users) + helpdesk signals
+  const [latestStar, openTickets, myTicketsForUnread] = await Promise.all([
+    db.starAward.findFirst({
+      where: { companyId: me.companyId },
+      include: { employee: true },
+      orderBy: { month: "desc" },
+    }),
+    staff ? db.ticket.count({ where: { companyId: me.companyId, status: "OPEN" } }) : Promise.resolve(0),
+    me.employeeId
+      ? db.ticket.findMany({
+          where: { companyId: me.companyId, employeeId: me.employeeId },
+          select: {
+            id: true,
+            employeeSeenAt: true,
+            replies: { where: { isStaff: true }, orderBy: { createdAt: "desc" }, take: 1 },
+          },
+        })
+      : Promise.resolve([]),
+  ]);
+  const myUnreadReplies = myTicketsForUnread.filter(
+    (t) => t.replies[0] && (!t.employeeSeenAt || t.replies[0].createdAt > t.employeeSeenAt)
+  ).length;
 
   // Staff login without an employee link can't punch — offer a one-time self-link.
   const linkableEmployees = staff && !me.employeeId
@@ -93,6 +117,53 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ===== Star of the Month shine ===== */}
+      {latestStar && (
+        <div className="relative overflow-hidden rounded-3xl bg-[#0a1628] p-5 text-white shadow-[var(--shadow-pop)]">
+          <div className="pointer-events-none absolute -right-12 -top-14 h-40 w-40 rounded-full bg-amber-400/25 blur-3xl" />
+          <div className="relative flex items-center gap-4">
+            <div className="rounded-2xl bg-white/5 p-1 ring-1 ring-amber-300/30">
+              <AvatarImg
+                name={`${latestStar.employee.firstName} ${latestStar.employee.lastName}`}
+                photoUrl={latestStar.employee.photoUrl}
+                size="h-12 w-12"
+                textSize="text-sm"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-amber-300">
+                ⭐ Star of the Month · {(() => { const [y, m] = latestStar.month.split("-").map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-IN", { month: "short", year: "numeric" }); })()}
+              </p>
+              <p className="mt-0.5 truncate text-base font-extrabold">
+                {latestStar.employee.firstName} {latestStar.employee.lastName}
+              </p>
+              {latestStar.note && <p className="mt-0.5 truncate text-xs text-slate-400">{latestStar.note} 🏆</p>}
+            </div>
+            {staff && (
+              <Link href="/star" className="shrink-0 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-amber-200 ring-1 ring-amber-300/25 transition hover:bg-white/15 active:scale-95">
+                Manage →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== Helpdesk strip ===== */}
+      {staff && openTickets > 0 && (
+        <Link href="/helpdesk?tab=inbox" className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 transition hover:bg-amber-100/70 active:scale-[0.99]">
+          <span className="text-lg">💬</span>
+          <span className="text-sm font-bold text-amber-800">{openTickets} helpdesk ticket{openTickets > 1 ? "s" : ""} OPEN — team wait kar rahi</span>
+          <span className="ml-auto text-xs font-bold text-amber-600">Vekho →</span>
+        </Link>
+      )}
+      {!staff && myUnreadReplies > 0 && (
+        <Link href="/helpdesk" className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 transition hover:bg-emerald-100/70 active:scale-[0.99]">
+          <span className="text-lg">💬</span>
+          <span className="text-sm font-bold text-emerald-800">Tuhade {myUnreadReplies} ticket{myUnreadReplies > 1 ? "s" : ""} ch navian HR replies!</span>
+          <span className="ml-auto text-xs font-bold text-emerald-600">Vekho →</span>
+        </Link>
+      )}
 
       {/* ===== Punch 2.0 ===== */}
       {staff && !me.employeeId && (

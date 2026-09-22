@@ -32,6 +32,8 @@ const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0
   { href: "/reports", label: "Reports", icon: "report", staffOnly: true },
   { href: "/tops", label: "TOPS Weekly", icon: "chart", staffOnly: true },
   { href: "/kra", label: "KRA", icon: "target" },
+  { href: "/helpdesk", label: "Helpdesk", icon: "chat" },
+  { href: "/star", label: "Star ⭐", icon: "star", staffOnly: true },
   { href: "/settings", label: "Settings & Shifts", icon: "sliders", staffOnly: true },
 ];
 
