@@ -13,7 +13,7 @@ export function KraSelfUpdate({ goalId, achieved, unit }: { goalId: string; achi
   function save() {
     const v = Number(inputRef.current?.value);
     if (Number.isNaN(v) || v < 0) {
-      setMsg({ text: "Sahi number likho (0 ya vadda)." });
+      setMsg({ text: "Please enter a valid number (0 or more)." });
       return;
     }
     setMsg(null);
