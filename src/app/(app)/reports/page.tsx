@@ -1,10 +1,69 @@
 import Link from "next/link";
 import { requireStaff } from "@/lib/auth";
-import { buildMonthlyAttendance, monthRange, currentMonth, shiftMonth, fmtAvgTime } from "@/lib/reports";
-import { Card, PageHeader, EmptyState } from "@/components/ui";
-import { Icon } from "@/components/icons";
+import { db } from "@/lib/db";
+import { currentMonth, shiftMonth, monthRange } from "@/lib/reports";
+import {
+  buildRegisterGrid,
+  buildLateIn,
+  buildOt,
+  buildLeaveBalanceRegister,
+  buildGatePassLog,
+  hoursFmt,
+  LATE_GRACE_MINS,
+} from "@/lib/reports2";
+import { RegisterGrid } from "@/components/RegisterGrid";
+import { Card, PageHeader } from "@/components/ui";
+import { Icon, type IconName } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
+
+function Legend() {
+  const items = [
+    ["P", "Present", "bg-emerald-100 text-emerald-700"],
+    ["A", "Absent", "bg-red-100 text-red-600"],
+    ["L", "Leave", "bg-amber-100 text-amber-700"],
+    ["W", "Weekly off", "bg-blue-100 text-blue-700"],
+    ["H", "Holiday", "bg-violet-100 text-violet-700"],
+  ] as const;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {items.map(([c, label, tone]) => (
+        <span key={c} className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold ${tone}`}>
+          {c} <span className="font-semibold opacity-80">= {label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ReportRow(props: {
+  icon: IconName;
+  tone: string;
+  title: string;
+  stat: string;
+  viewHref: string;
+  xlsHref: string;
+}) {
+  return (
+    <Card className="flex items-center gap-3 p-3.5 transition-shadow hover:shadow-md">
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${props.tone}`}>
+        <Icon name={props.icon} className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <Link href={props.viewHref} className="text-[13px] font-bold text-slate-900 hover:text-emerald-700 hover:underline">
+          {props.title}
+        </Link>
+        <p className="truncate text-[11px] font-medium text-slate-500">{props.stat}</p>
+      </div>
+      <a
+        href={props.xlsHref}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
+      >
+        <Icon name="download" className="h-3.5 w-3.5" /> Excel
+      </a>
+    </Card>
+  );
+}
 
 export default async function ReportsPage({
   searchParams,
@@ -13,97 +72,85 @@ export default async function ReportsPage({
 }) {
   const me = await requireStaff();
   const { month = currentMonth() } = await searchParams;
-  const rows = await buildMonthlyAttendance(me.companyId, month);
   const { label } = monthRange(month);
 
-  const totalPresentDays = rows.reduce((s, r) => s + r.present, 0);
-  const totalHours = rows.reduce((s, r) => s + r.totalHours, 0);
-  const onLeave = rows.reduce((s, r) => s + r.leaveDays, 0);
+  const [grid, late, ot, lbr, gp, shiftCount] = await Promise.all([
+    buildRegisterGrid(me.companyId, month),
+    buildLateIn(me.companyId, month),
+    buildOt(me.companyId, month),
+    buildLeaveBalanceRegister(me.companyId),
+    buildGatePassLog(me.companyId, month),
+    db.shift.count({ where: { companyId: me.companyId } }),
+  ]);
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Attendance report" subtitle="Monthly summary for payroll & records" />
+      <PageHeader title="Reports" subtitle="Registers, summaries & Excel downloads for payroll" />
 
-      {/* Month picker + export */}
-      <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="flex items-center gap-2">
-          <Link href={`/reports?month=${shiftMonth(month, -1)}`} className="btn-ghost px-3!" aria-label="Previous month">←</Link>
-          <div className="min-w-36 text-center">
-            <div className="text-base font-bold text-slate-900">{label}</div>
+      {/* Month picker */}
+      <Card className="flex items-center justify-between gap-3 p-4">
+        <Link href={`/reports?month=${shiftMonth(month, -1)}`} className="btn-ghost px-3!" aria-label="Previous month">←</Link>
+        <div className="text-center">
+          <div className="text-base font-bold text-slate-900">{label}</div>
+          <div className="text-[10.5px] font-medium text-slate-400">All monthly reports below use this month</div>
+        </div>
+        <Link href={`/reports?month=${shiftMonth(month, 1)}`} className="btn-ghost px-3!" aria-label="Next month">→</Link>
+      </Card>
+
+      {/* 1 · Monthly register */}
+      <Card className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[14px] font-extrabold text-slate-900">Monthly attendance register</div>
+            <p className="text-[11px] text-slate-400">{label} · days × employees grid · tap a cell title for in-time</p>
           </div>
-          <Link href={`/reports?month=${shiftMonth(month, 1)}`} className="btn-ghost px-3!" aria-label="Next month">→</Link>
+          <a href={`/api/reports/register?month=${month}`} className="btn-dark shrink-0 px-3! py-2! text-xs!">
+            <Icon name="download" className="h-4 w-4" /> Excel
+          </a>
         </div>
-        <a href={`/api/reports/attendance?month=${month}`} className="btn-dark">
-          <Icon name="download" className="h-4 w-4" /> Download CSV
-        </a>
+        <Legend />
+        <RegisterGrid grid={grid} />
       </Card>
 
-      {/* Summary chips */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4">
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-extrabold text-slate-900">{rows.length}</div>
-          <div className="mt-0.5 text-xs font-medium text-slate-500">Employees</div>
-        </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-extrabold text-emerald-600">{totalPresentDays}</div>
-          <div className="mt-0.5 text-xs font-medium text-slate-500">Total present days</div>
-        </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-extrabold text-amber-600">{onLeave}</div>
-          <div className="mt-0.5 text-xs font-medium text-slate-500">Total leave days</div>
-        </Card>
+      {/* 2–5 · Other reports */}
+      <div className="space-y-3">
+        <div className="px-1 text-[11px] font-extrabold uppercase tracking-[0.15em] text-slate-400">More reports</div>
+
+        <ReportRow
+          icon="clock"
+          tone="bg-red-50 text-red-500"
+          title="Late-in report"
+          stat={shiftCount === 0
+            ? "Activate with one step: add a shift in Settings →"
+            : `${late.rows.length} late check-in${late.rows.length === 1 ? "" : "s"} in ${label} · ${LATE_GRACE_MINS}-min grace`}
+          viewHref={shiftCount === 0 ? "/settings" : `/reports/late?month=${month}`}
+          xlsHref={`/api/reports/late?month=${month}`}
+        />
+        <ReportRow
+          icon="chart"
+          tone="bg-amber-50 text-amber-600"
+          title="Overtime report"
+          stat={`${hoursFmt(ot.totalOt)} total OT hrs in ${label} · beyond shift length + approved OT`}
+          viewHref={`/reports/ot?month=${month}`}
+          xlsHref={`/api/reports/ot?month=${month}`}
+        />
+        <ReportRow
+          icon="calendar"
+          tone="bg-violet-50 text-violet-600"
+          title="Leave balance register"
+          stat={`${lbr.rows.length} employees · ${lbr.types.length} leave types · year-to-date snapshot`}
+          viewHref="/reports/leave-balance"
+          xlsHref="/api/reports/leave-balance"
+        />
+        <ReportRow
+          icon="gate"
+          tone="bg-blue-50 text-blue-600"
+          title="Gate pass log"
+          stat={`${gp.rows.length} passes in ${label} · guards & payroll audit trail`}
+          viewHref={`/reports/gate-pass?month=${month}`}
+          xlsHref={`/api/reports/gate-pass?month=${month}`}
+        />
       </div>
-
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/80">
-                <th className="th">Employee</th>
-                <th className="th text-right">Present</th>
-                <th className="th text-right">Leave</th>
-                <th className="th text-right">Hours</th>
-                <th className="th text-right">Avg in-time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr><td colSpan={5}><EmptyState icon="chart" title="No employees yet" hint="Add employees to see their monthly report" /></td></tr>
-              )}
-              {rows.map((r) => (
-                <tr key={r.code} className="border-b border-slate-50 transition-colors last:border-0 hover:bg-amber-50/40">
-                  <td className="td">
-                    <div className="font-semibold text-slate-800">{r.name}</div>
-                    <div className="text-xs text-slate-400">{r.code}{r.department ? ` · ${r.department}` : ""}</div>
-                  </td>
-                  <td className="td text-right">
-                    <span className="font-bold text-emerald-600">{r.present}</span>
-                    {r.fullDays < r.present && r.fullDays > 0 && (
-                      <span className="block text-[10px] text-slate-400">({r.fullDays} full)</span>
-                    )}
-                  </td>
-                  <td className="td text-right font-semibold text-amber-600">{r.leaveDays || "—"}</td>
-                  <td className="td text-right font-semibold text-slate-700">{r.totalHours > 0 ? r.totalHours.toFixed(1) : "—"}</td>
-                  <td className="td text-right text-slate-600">{fmtAvgTime(r.avgInMins)}</td>
-                </tr>
-              ))}
-              {rows.length > 0 && (
-                <tr className="bg-slate-50/80 font-bold">
-                  <td className="td text-slate-900">Total</td>
-                  <td className="td text-right text-emerald-700">{totalPresentDays}</td>
-                  <td className="td text-right text-amber-700">{onLeave}</td>
-                  <td className="td text-right text-slate-900">{totalHours.toFixed(1)}</td>
-                  <td className="td"></td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <p className="text-xs text-slate-400">
-        Hours = check-out minus check-in dono hohan wale dinan de. Leaves = approved requests overlapping the month.
-      </p>
     </div>
   );
 }
