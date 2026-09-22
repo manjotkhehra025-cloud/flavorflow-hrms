@@ -26,9 +26,9 @@ export function LinkAccountCard({ employees }: { employees: Option[] }) {
             <p className="mt-1 text-xs leading-relaxed text-slate-400">
               Your login isn&apos;t linked to any employee profile, and every existing profile already has a login.
               <br />
-              <b className="text-slate-200">Karne layi:</b> Employees → Add New → bas apni details bharo
-              (<b className="text-amber-200">&quot;Has login account&quot; tick NAHI karna</b> — tuhada login pehlaan hi hai) →
-              save. Fer es thaan card ch tuhadi profile dikhegi, &quot;Link &amp; Continue&quot; dabao — punch turant chal pauga.
+              <b className="text-slate-200">How to fix:</b> Employees → Add New → just fill in your details
+              (<b className="text-amber-200">do NOT tick &quot;Has login account&quot;</b> — you already have one) →
+              save. Your profile will then show up in this card — tap &quot;Link &amp; Continue&quot; and punch starts working.
             </p>
           </div>
         </div>
@@ -59,8 +59,8 @@ export function LinkAccountCard({ employees }: { employees: Option[] }) {
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-400/90">One-time setup</p>
             <p className="mt-0.5 text-sm font-extrabold tracking-tight">Link your login to your employee profile</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-400">
-              Punch, attendance, leave balance &amp; TOPS sab es link ton bina nahi chalda. Pick your own profile below —
-              sirf ek wari karna hai.
+              Punch, attendance, leave balance &amp; TOPS all need this link. Pick your own profile below —
+              one-time setup.
             </p>
           </div>
         </div>

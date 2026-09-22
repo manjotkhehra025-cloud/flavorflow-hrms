@@ -54,11 +54,11 @@ export function PhotoUpload({ employeeId, hasPhoto }: { employeeId: string; hasP
             const f = input.files?.[0];
             if (!f) return;
             setBusy(true);
-            setLocalMsg(f.size > 1024 * 1024 ? "Photo compress ho rahi… ⏳" : null);
+            setLocalMsg(f.size > 1024 * 1024 ? "Compressing photo… ⏳" : null);
             try {
               const small = await compressImage(f);
               if (small.size > 4 * 1024 * 1024) {
-                setLocalMsg("Photo 4 MB ton vaddi hai — doosri photo try karo 📦");
+                setLocalMsg("Even after compressing this photo is over 4 MB — try another one 📦");
                 input.value = "";
                 return;
               }

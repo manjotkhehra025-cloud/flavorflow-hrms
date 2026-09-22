@@ -224,7 +224,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
 
 function Blank() {
   return (
-    <EmptyState icon="check" title="No pending requests" hint="Sab clear — koi waiting request nahi ✨" />
+    <EmptyState icon="check" title="No pending requests" hint="All clear — no waiting requests ✨" />
   );
 }
 

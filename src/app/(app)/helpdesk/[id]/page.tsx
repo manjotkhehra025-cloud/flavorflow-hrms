@@ -96,7 +96,7 @@ export default async function TicketThreadPage({ params }: { params: Promise<{ i
 
       {t.status === "CLOSED" ? (
         <p className="rounded-2xl bg-slate-100 px-4 py-3 text-center text-xs font-semibold text-slate-500">
-          🔒 Eh ticket close ho chukka — nava mudda howe taan nava ticket banao.
+          🔒 This ticket is closed — raise a new ticket for any new issue.
         </p>
       ) : (
         <ReplyBox ticketId={t.id} />

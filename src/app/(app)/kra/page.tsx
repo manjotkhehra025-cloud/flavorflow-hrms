@@ -24,7 +24,7 @@ export default async function MyKraPage() {
       <div>
         <PageHeader title="My KRA 🎯" subtitle="Quarterly targets & auto-score" />
         <Card className="p-5">
-          <EmptyState icon="chart" title="Account link nahi hai" hint="Apna login employee profile naal link karo — dashboard de 'Link account' card ton. Fer KRA es thaan dikhega." />
+          <EmptyState icon="chart" title="Account not linked" hint="Link your login to an employee profile via the dashboard 'Link account' card — your KRA will show up here." />
         </Card>
       </div>
     );
@@ -51,12 +51,12 @@ export default async function MyKraPage() {
     <div className="space-y-6">
       <PageHeader
         title="My KRA 🎯"
-        subtitle="Quarter de weightage targets — HR publish kare, tu update karein, score auto bane"
+        subtitle="Quarterly weightage targets — HR publishes them, you update progress, the score is automatic"
       />
 
       {cycles.length === 0 && (
         <Card className="p-5">
-          <EmptyState icon="chart" title="KRA hale set nahi hoya" hint="HR quarter cycle publish karegi te tuhade goals es thaan dikhan ge 🎯" />
+          <EmptyState icon="chart" title="No KRA assigned yet" hint="Once HR publishes the quarter cycle, your goals will appear here 🎯" />
         </Card>
       )}
 
@@ -90,7 +90,7 @@ export default async function MyKraPage() {
 
       {me.role !== "EMPLOYEE" && (
         <p className="text-center text-xs text-slate-400">
-          HR/Admin? <Link href="/kra/manage" className="font-semibold text-emerald-600 hover:underline">KRA manage karo →</Link>
+          HR/Admin? <Link href="/kra/manage" className="font-semibold text-emerald-600 hover:underline">Manage KRA →</Link>
         </p>
       )}
     </div>
@@ -123,8 +123,8 @@ function KraView({ bucket, canEdit }: { bucket: { cycle: { year: number; quarter
             </div>
           </div>
           <p className="mt-3 text-xs text-slate-400">
-            {cycle.status === "OPEN" && "Apni progress update karo — quarter end te HR final score karegi"}
-            {cycle.status === "SCORING" && "⏳ HR review chal rahi — edits filhaal band ne"}
+            {cycle.status === "OPEN" && "Update your progress — HR finalizes the score at quarter end"}
+            {cycle.status === "SCORING" && "⏳ HR review in progress — edits are frozen"}
           </p>
         </div>
       </div>

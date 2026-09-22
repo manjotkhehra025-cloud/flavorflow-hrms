@@ -19,7 +19,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
       <div>
         <PageHeader title="Helpdesk 💬" subtitle="Complaint ya suggestion — HR tak seedha" />
         <Card className="p-5">
-          <EmptyState icon="chat" title="Account link nahi hai" hint="Pehlaan dashboard de 'Link your login' card naal employee profile judo — fer helpdesk khulega." />
+          <EmptyState icon="chat" title="Account not linked" hint="First link your login to an employee profile using the dashboard 'Link your login' card — then Helpdesk will open." />
         </Card>
       </div>
     );
@@ -51,7 +51,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Helpdesk 💬" subtitle={staff ? "Team di complaints & suggestions — reply te resolve karo" : "Complaint ya suggestion — HR tak seedha pahunch"} />
+      <PageHeader title="Helpdesk 💬" subtitle={staff ? "Team complaints & suggestions — reply and resolve" : "Complaints & suggestions — straight to HR"} />
 
       {staff && (
         <div className="flex gap-1 rounded-2xl bg-slate-200/60 p-1">
@@ -60,7 +60,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
             {countOf("OPEN") > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-white">{countOf("OPEN")}</span>}
           </Link>
           <Link href="/helpdesk?tab=mine" className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeTab === "mine" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
-            💬 Mere tickets
+            💬 My tickets
           </Link>
         </div>
       )}
@@ -69,9 +69,9 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
         <>
           <RaiseTicketForm />
           <Card className="p-5">
-            <h3 className="mb-4 text-sm font-bold text-slate-900">Mere tickets ({myTickets.length})</h3>
+            <h3 className="mb-4 text-sm font-bold text-slate-900">My tickets ({myTickets.length})</h3>
             {myTickets.length === 0 ? (
-              <EmptyState icon="chat" title="Koi ticket nahi" hint="Machine, salary, uniform, canteen ya safety — upar form ton raise karo 💬" />
+              <EmptyState icon="chat" title="No tickets yet" hint="Machine, salary, uniform, canteen or safety — raise one with the form above 💬" />
             ) : (
               <ul className="space-y-2.5">
                 {myTickets.map((t) => {
@@ -89,7 +89,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
                           </div>
                           <div className="text-xs text-slate-500">
                             {c.label} · {fmtDate(t.createdAt)}
-                            {lp ? ` · Last: ${lp.isStaff ? "HR" : "Tusi"}` : ""}
+                            {lp ? ` · Last: ${lp.isStaff ? "HR" : "You"}` : ""}
                           </div>
                         </div>
                         <Badge tone={TICKET_TONE[t.status]}>{t.status === "IN_PROGRESS" ? "IN PROGRESS" : t.status}</Badge>
@@ -118,7 +118,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
             ))}
           </div>
           {inboxTickets.length === 0 ? (
-            <EmptyState icon="check" title="Sab clear 🎉" hint="Es filter ch koi ticket nahi." />
+            <EmptyState icon="check" title="All clear 🎉" hint="No tickets in this filter." />
           ) : (
             <ul className="space-y-2.5">
               {inboxTickets.map((t) => {

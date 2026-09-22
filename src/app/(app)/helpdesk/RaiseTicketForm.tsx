@@ -45,7 +45,7 @@ export function RaiseTicketForm() {
         onClick={() => setOpen(true)}
         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3.5 text-sm font-bold text-white shadow-[0_10px_30px_-6px_rgb(16_185_129_/_60%)] transition hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.98]"
       >
-        ＋ New ticket — complaint ya suggestion
+        ＋ New ticket — complaint or suggestion
       </button>
     );
   }
@@ -53,7 +53,7 @@ export function RaiseTicketForm() {
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/60">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-bold text-slate-800">Nava ticket ✍️</p>
+        <p className="text-sm font-bold text-slate-800">New ticket ✍️</p>
         <button onClick={() => setOpen(false)} className="text-xs font-semibold text-slate-400 hover:text-slate-600">Cancel ✕</button>
       </div>
 
@@ -73,13 +73,13 @@ export function RaiseTicketForm() {
 
       <input
         ref={subjectRef}
-        placeholder="Subject — ik line ch (e.g. Mixer #2 vibration loud)"
+        placeholder="Subject — one short line (e.g. Mixer #2 vibration loud)"
         className="mb-2 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
       />
       <textarea
         ref={bodyRef}
         rows={3}
-        placeholder="Details likho — ki, kidhaan, kadon…"
+        placeholder="Add details — what, where, since when…"
         className="mb-3 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
       />
 

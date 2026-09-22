@@ -72,7 +72,7 @@ export function GoalEditor({
           <div>
             <div className="text-sm font-bold text-slate-800">{employeeName} <span className="font-mono text-[10px] font-normal text-slate-400">{employeeCode}</span></div>
             <div className="text-[11px] text-slate-500">
-              {goals.length} goals · weight {wsum}%{goals.length > 0 && !weightOk && <b className="text-rose-500"> (100% nahi!)</b>}
+              {goals.length} goals · weight {wsum}%{goals.length > 0 && !weightOk && <b className="text-rose-500"> (not 100%!)</b>}
             </div>
           </div>
         </div>
@@ -152,7 +152,7 @@ export function GoalEditor({
             </div>
           )}
           {cycleStatus === "CLOSED" && (
-            <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-medium text-slate-500">🔒 Cycle lock ho chukka — read-only.</p>
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-medium text-slate-500">🔒 This cycle is locked — read-only.</p>
           )}
         </div>
       )}

@@ -174,7 +174,7 @@ export default async function LeavesPage() {
                 <Link href="/approvals" className="text-xs font-semibold text-emerald-600 hover:underline">Approvals hub →</Link>
               </div>
               {pending.length === 0 ? (
-                <EmptyState icon="check" title="Sab clear!" hint="New leave requests will appear here" />
+                <EmptyState icon="check" title="All clear!" hint="New leave requests will appear here" />
               ) : (
                 <ul className="space-y-2.5">
                   {pending.map((l) => (

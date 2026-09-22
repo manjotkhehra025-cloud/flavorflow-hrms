@@ -13,7 +13,7 @@ export function ReplyBox({ ticketId }: { ticketId: string }) {
   function send() {
     const body = ref.current?.value ?? "";
     if (!body.trim()) {
-      setErr("Reply likho.");
+      setErr("Write a reply first.");
       return;
     }
     setErr(null);
@@ -34,7 +34,7 @@ export function ReplyBox({ ticketId }: { ticketId: string }) {
         <input
           ref={ref}
           onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder="Reply likho…"
+          placeholder="Write a reply…"
           className="flex-1 rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
         />
         <button

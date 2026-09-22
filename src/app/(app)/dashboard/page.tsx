@@ -153,15 +153,15 @@ export default async function DashboardPage() {
       {staff && openTickets > 0 && (
         <Link href="/helpdesk?tab=inbox" className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 transition hover:bg-amber-100/70 active:scale-[0.99]">
           <span className="text-lg">💬</span>
-          <span className="text-sm font-bold text-amber-800">{openTickets} helpdesk ticket{openTickets > 1 ? "s" : ""} OPEN — team wait kar rahi</span>
-          <span className="ml-auto text-xs font-bold text-amber-600">Vekho →</span>
+          <span className="text-sm font-bold text-amber-800">{openTickets} open helpdesk ticket{openTickets > 1 ? "s" : ""} — your team is waiting</span>
+          <span className="ml-auto text-xs font-bold text-amber-600">View →</span>
         </Link>
       )}
       {!staff && myUnreadReplies > 0 && (
         <Link href="/helpdesk" className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 transition hover:bg-emerald-100/70 active:scale-[0.99]">
           <span className="text-lg">💬</span>
-          <span className="text-sm font-bold text-emerald-800">Tuhade {myUnreadReplies} ticket{myUnreadReplies > 1 ? "s" : ""} ch navian HR replies!</span>
-          <span className="ml-auto text-xs font-bold text-emerald-600">Vekho →</span>
+          <span className="text-sm font-bold text-emerald-800">You have {myUnreadReplies} helpdesk ticket{myUnreadReplies > 1 ? "s" : ""} with new HR replies!</span>
+          <span className="ml-auto text-xs font-bold text-emerald-600">View →</span>
         </Link>
       )}
 

@@ -72,7 +72,7 @@ export default async function StarPage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="space-y-6">
-      <PageHeader title="⭐ Star of the Month" subtitle="Auto-shortlist (attendance + KRA) — final pick tuhada" />
+      <PageHeader title="⭐ Star of the Month" subtitle="Auto-shortlist (attendance + KRA) — the final pick is yours" />
 
       {/* Month picker */}
       <div className="flex flex-wrap items-center gap-2">
@@ -94,7 +94,7 @@ export default async function StarPage({ searchParams }: { searchParams: Promise
 
       {picked && (
         <Card className="border-l-4! border-l-amber-400! p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-amber-600">⭐ {monthLabel(key)} da star pehlaan declare</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-amber-600">⭐ Star already declared for {monthLabel(key)}</p>
           <p className="mt-1.5 text-sm font-extrabold text-slate-900">
             {picked.employee.firstName} {picked.employee.lastName}
             {picked.note && <span className="ml-2 text-xs font-medium text-slate-500">· {picked.note}</span>}
@@ -106,7 +106,7 @@ export default async function StarPage({ searchParams }: { searchParams: Promise
       {!picked && (
         <Card className="p-5">
           <h3 className="text-sm font-bold text-slate-900">Auto shortlist — {monthLabel(key)}</h3>
-          <p className="mb-4 text-xs text-slate-400">Attendance (×4) + KRA score — complaints. Pick ⭐ dabao, note chaho taan likho.</p>
+          <p className="mb-4 text-xs text-slate-400">Attendance (×4) + KRA score — complaints. Tap Pick ⭐ — add a note if you like.</p>
           <ul className="divide-y divide-slate-100">
             {candidates.slice(0, 6).map((c, i) => (
               <li key={c.e.id} className="flex flex-wrap items-center gap-3 py-3">
@@ -148,7 +148,7 @@ export default async function StarPage({ searchParams }: { searchParams: Promise
       <Card className="p-5">
         <h3 className="mb-4 text-sm font-bold text-slate-900">Hall of Fame 🏆</h3>
         {awards.length === 0 ? (
-          <EmptyState icon="badge" title="Hale koi star nahi" hint="Pehla star declare karo — sab ke dashboard te shine hovega!" />
+          <EmptyState icon="badge" title="No stars yet" hint="Declare the first star — it will shine on everyone's dashboard!" />
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-2">
             {awards.map((a) => (

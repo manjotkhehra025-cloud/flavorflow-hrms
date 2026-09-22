@@ -73,7 +73,7 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
     if (taken)
       return {
         error:
-          "Eh email pehlaan ton ek login naal juddi hai. Agar eh tuhada AAP da account hai: checkbox HATAO → employee save karo → fer dashboard de 'Link your login' card naal judo (punch turant chal pauga).",
+          "This email is already linked to a login account. If it is your OWN account: untick the checkbox, save the employee, then link your login from the dashboard 'Link your login' card (punch works right away).",
       };
   }
 
@@ -123,7 +123,7 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
     });
   } catch (e) {
     console.error("createEmployeeAction failed:", e);
-    return { error: "Employee save nahi hoya — email duplicate ya data ghalat lagda hai. Fields check kar ke dubara try karo." };
+    return { error: "Could not save employee — duplicate email or invalid data. Check the fields and try again." };
   }
 
   revalidatePath("/employees");

@@ -46,7 +46,7 @@ export function LetterSection({ employeeId, letters }: { employeeId: string; let
       )}
 
       {letters.length === 0 ? (
-        <p className="rounded-xl bg-slate-50 px-3.5 py-4 text-center text-xs text-slate-400">Koi letter issue nahi hoya abhi tak</p>
+        <p className="rounded-xl bg-slate-50 px-3.5 py-4 text-center text-xs text-slate-400">No letters issued yet</p>
       ) : (
         <ul className="space-y-1.5">
           {letters.map((l) => (

@@ -80,7 +80,7 @@ export default async function KraManagePage({ searchParams }: { searchParams: Pr
 
       {!cycle ? (
         <Card className="p-5">
-          <EmptyState icon="chart" title="Koi cycle nahi" hint="Upar 'New cycle' ton shuru karo — goals add karke publish." />
+          <EmptyState icon="chart" title="No cycles yet" hint="Start with 'New cycle' above — add goals, then publish." />
         </Card>
       ) : (
         <>
@@ -136,7 +136,7 @@ export default async function KraManagePage({ searchParams }: { searchParams: Pr
             </div>
             {cycle.status === "DRAFT" && invalid.length > 0 && (
               <p className="relative mt-3 rounded-xl bg-amber-500/15 px-3.5 py-2 text-xs font-semibold text-amber-300 ring-1 ring-amber-400/20">
-                ⚠ Publish ton pehlaan: har employee da weight total <b>100%</b> hona zaroori — {invalid.length} employees da total ghalat (red chip vekho).
+                ⚠ Before publishing: every employee weight must total exactly 100% — fix the {invalid.length} employee(s) shown in red.
               </p>
             )}
           </div>
@@ -144,7 +144,7 @@ export default async function KraManagePage({ searchParams }: { searchParams: Pr
           {/* Employee editors */}
           {rows.length === 0 && (
             <Card className="p-5">
-              <EmptyState icon="users" title="Goals add karo" hint="Har employee layi 3-5 weightage goals (total 100%)." />
+              <EmptyState icon="users" title="Add goals first" hint="3–5 weightage goals per employee (total must be 100%)." />
             </Card>
           )}
           <div className="space-y-4">

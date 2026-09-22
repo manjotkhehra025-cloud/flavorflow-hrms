@@ -89,7 +89,7 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
           />
           <label htmlFor="hs-login" className="cursor-pointer select-none">
             <span className="text-sm font-bold text-slate-800">Has login account</span>
-            <span className="block text-xs text-slate-500">Self punch-in, leave requests &amp; gate pass layi innu login chahida</span>
+            <span className="block text-xs text-slate-500">Needed for self punch-in, leave requests &amp; gate pass</span>
           </label>
         </div>
 
@@ -106,7 +106,7 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
               <input name="tempPassword" type="text" minLength={8} className={inputCls} placeholder="Share with the employee" />
             </Field>
             <p className="text-xs text-slate-500 sm:col-span-2">
-              📧 Login email = <b>Email field upar</b> (mandatory hai jad login bana rahe ho). Save ton baad employees list ch <b className="text-emerald-600">✓ Login</b> chip dikhegi.
+              📧 Login email = <b>the Email field above</b> (required when creating a login). After saving, the employees list shows a <b className="text-emerald-600">✓ Login</b> chip.
             </p>
           </div>
         </div>
