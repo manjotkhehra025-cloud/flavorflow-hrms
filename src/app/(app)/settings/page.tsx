@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const me = await requireStaff();
 
-  const companyRules = await db.company.findUnique({ where: { id: me.companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true } });
+  const companyRules = await db.company.findUnique({ where: { id: me.companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true, punchSelfieRequired: true } });
   const [shifts, leaveTypes, empCounts] = await Promise.all([
     db.shift.findMany({
       where: { companyId: me.companyId },
@@ -50,6 +50,10 @@ export default async function SettingsPage() {
             <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Pa>Every N lates = 1 LOP</Pa></span>
             <input type="number" name="latesPerCut" min={0} max={20} defaultValue={companyRules?.latesPerCut ?? 0} className="input w-24" />
             <p className="mt-1 text-[10px] text-slate-400"><Pa>0 = off</Pa></p>
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
+            <input type="checkbox" name="punchSelfieRequired" defaultChecked={companyRules?.punchSelfieRequired ?? false} />
+            📸 <Pa>Selfie punch camera (every punch needs a photo)</Pa>
           </label>
           <button type="submit" className={btnBrand}>💾 <Pa>Save rules</Pa></button>
         </form>

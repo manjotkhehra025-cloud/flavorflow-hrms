@@ -154,3 +154,27 @@ export async function approveLockPayrollAction(_prev: ActionState, formData: For
   revalidatePath(`/payroll/${run.id}`);
   return { success: await bt("Payroll approved & locked — payslips are now visible to employees ✔") };
 }
+
+/** Staff or the owning employee: mint (or reuse) a public share token for a LOCKED payslip. */
+export async function createPayslipLinkAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireStaffOrSelf();
+  const rowId = String(formData.get("rowId") ?? "");
+  const row = await db.payrollRow.findFirst({
+    where: { id: rowId, run: { companyId: me.companyId, status: "LOCKED" } },
+  });
+  if (!row) return { error: await bt("Payslip not found (or payroll not locked yet).") };
+  if (me.role === "EMPLOYEE" && row.employeeId !== me.employeeId) {
+    return { error: await bt("You can only share your own slip.") };
+  }
+  const link = await db.payslipLink.upsert({
+    where: { rowId: row.id },
+    update: {},
+    create: { rowId: row.id, companyId: me.companyId },
+  });
+  return { success: `/share/payslip/${link.token}` };
+}
+
+async function requireStaffOrSelf() {
+  const { requireUser } = await import("@/lib/auth");
+  return requireUser();
+}

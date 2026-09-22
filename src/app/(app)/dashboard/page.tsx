@@ -7,6 +7,7 @@ import { todayDate, fmtDate, fmtTime, initials } from "@/lib/utils";
 import { Card, StatCard, Badge, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { checkInAction, checkOutAction } from "@/actions/attendance";
+import { PunchWithSelfie } from "@/components/PunchWithSelfie";
 import { LiveTimer } from "@/components/LiveTimer";
 import { PresenceBoard } from "@/components/PresenceBoard";
 import { LinkAccountCard } from "@/components/LinkAccountCard";
@@ -25,6 +26,7 @@ function greeting(): string {
 
 export default async function DashboardPage() {
   const me = await requireUser();
+  const company = await db.company.findUnique({ where: { id: me.companyId }, select: { punchSelfieRequired: true } });
   const today = todayDate();
   const staff = me.role !== "EMPLOYEE";
 
@@ -214,22 +216,33 @@ export default async function DashboardPage() {
               )}
             </div>
 
-            <div className="mx-auto mt-6 max-w-xs">
-              {!myAttendance?.checkIn && (
+            <div className={company?.punchSelfieRequired ? "" : "mx-auto mt-6 max-w-xs"}>
+              {company?.punchSelfieRequired && !myAttendance?.checkIn && (
+                <PunchWithSelfie mode="in" selfieRequired={true} />
+              )}
+              {company?.punchSelfieRequired && myAttendance?.checkIn && !myAttendance.checkOut && (
+                <PunchWithSelfie mode="out" selfieRequired={true} />
+              )}
+              {company?.punchSelfieRequired && myAttendance?.checkIn && myAttendance.checkOut && (
+                <div className="mx-auto mt-6 max-w-xs rounded-2xl bg-emerald-500/10 py-3.5 text-center text-sm font-bold text-emerald-300 ring-1 ring-emerald-400/25">
+                  ✓ Shift completed — great work today!
+                </div>
+              )}
+              {!company?.punchSelfieRequired && !myAttendance?.checkIn && (
                 <form action={checkInAction}>
                   <button className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-4 text-base font-bold text-white shadow-[0_10px_30px_-6px_rgb(16_185_129_/_60%)] transition hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.98]">
                     <Icon name="fingerprint" className="h-6 w-6" /> Punch In
                   </button>
                 </form>
               )}
-              {myAttendance?.checkIn && !myAttendance.checkOut && (
+              {!company?.punchSelfieRequired && myAttendance?.checkIn && !myAttendance.checkOut && (
                 <form action={checkOutAction}>
                   <button className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-4 text-base font-bold text-white shadow-[0_10px_30px_-6px_rgb(16_185_129_/_60%)] transition hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.98]">
                     <Icon name="fingerprint" className="h-6 w-6" /> Punch Out
                   </button>
                 </form>
               )}
-              {myAttendance?.checkIn && myAttendance.checkOut && (
+              {!company?.punchSelfieRequired && myAttendance?.checkIn && myAttendance.checkOut && (
                 <div className="rounded-2xl bg-emerald-500/10 py-3.5 text-center text-sm font-bold text-emerald-300 ring-1 ring-emerald-400/25">
                   ✓ Shift completed — great work today!
                 </div>

@@ -7,15 +7,11 @@ import { requireStaff } from "@/lib/auth";
 import { btnGhost } from "@/components/ui";
 import { monthName } from "@/lib/utils";
 import { Icon } from "@/components/icons";
-import { Payslip, type PayslipData } from "@/components/Payslip";
+import { Payslip } from "@/components/Payslip";
+import { buildPayslipData } from "@/lib/payslipData";
 import { PrintButton } from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
-
-function daysInMonth(month: string): number {
-  const [y, m] = month.split("-").map(Number);
-  return new Date(Date.UTC(y, m, 0)).getUTCDate();
-}
 
 export default async function PayslipPage({ params }: { params: Promise<{ id: string; rowId: string }> }) {
   const me = await requireStaff();
@@ -30,32 +26,7 @@ export default async function PayslipPage({ params }: { params: Promise<{ id: st
   });
   if (!row || row.run.companyId !== me.companyId || row.run.status === "DRAFT") notFound();
 
-  const e = row.employee;
-  const monthly = e.salaryType !== "DAILY";
-  const dim = daysInMonth(row.run.month);
-  const fullBase = monthly ? row.baseAmount + row.deductions : row.baseAmount;
-  const name = e.firstName + (e.lastName ? " " + e.lastName : "");
-
-  const data: PayslipData = {
-    month: row.run.month,
-    monthLabel: monthName(row.run.month),
-    companyName: e.company.name,
-    code: e.code, name, dept: e.department?.name ?? "—",
-    salaryType: e.salaryType,
-    fullBase,
-    baseHint: monthly ? `₹ ${fullBase.toLocaleString("en-IN")} / ${dim} days` : `${row.presentDays} days × ₹${e.dailyRate ?? 0}`,
-    otHours: row.otHours, otRate: row.otRate, otAmount: row.otAmount,
-    otherEarning: row.otherEarning, otherEarningNote: row.otherEarningNote,
-    lopDays: row.lopDays, lopPerDay: monthly && dim > 0 ? Math.round((e.baseSalary ?? 0) / dim) : 0, lopAmount: row.deductions,
-    pfEmployee: row.pfEmployee, pfEmployer: row.pfEmployer,
-    esiEmployee: row.esiEmployee, esiEmployer: row.esiEmployer,
-    advanceRecover: row.advanceRecover,
-    otherDeduction: row.otherDeduction, otherDeductionNote: row.otherDeductionNote,
-    netPay: row.netPay,
-    paymentMode: row.paymentMode,
-    bank: e.bankAccount ? "••" + e.bankAccount.slice(-4) : null,
-    presentDays: row.presentDays, leaveDays: row.leaveDays, offDays: row.offDays, absentDays: row.absentDays,
-  };
+  const data = buildPayslipData(row, "en");
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 print:space-y-0">

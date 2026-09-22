@@ -32,6 +32,7 @@ model Company {
   dailyPaidLeaveDays Int @default(0)
   lateGraceMins      Int @default(15)
   latesPerCut        Int @default(0)
+  punchSelfieRequired Boolean @default(false)
   punchRequests    PunchRequest[]
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]

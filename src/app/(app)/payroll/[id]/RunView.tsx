@@ -1,6 +1,7 @@
 import { Pa } from "@/components/Pa";
 
 import Link from "next/link";
+import { PayslipShareButtons } from "@/components/PayslipShareButtons";
 import { Card, btnGhost } from "@/components/ui";
 import { fmtINR } from "@/lib/utils";
 import { Icon } from "@/components/icons";
@@ -53,10 +54,13 @@ export function RunView({ runId, rows }: { runId: string; month: string; rows: E
                     {(r.pfEmployee > 0 || r.esiEmployee > 0) && <div className="text-[9.5px] text-rose-400">{[r.pfEmployee > 0 ? `PF ${fmtINR(r.pfEmployee)}` : "", r.esiEmployee > 0 ? `ESI ${fmtINR(r.esiEmployee)}` : ""].filter(Boolean).join(" ")}</div>}</td>
                   <td className="px-2 py-2.5 text-right text-rose-600">{r.advanceRecover > 0 ? "−" + fmtINR(r.advanceRecover) : "—"}</td>
                   <td className="px-2 py-2.5 text-right font-black text-emerald-700">{fmtINR(r.netPay)}</td>
-                  <td className="px-2 py-2.5 text-center">
-                    <Link href={`/payroll/${runId}/payslip/${r.id}`} className={btnGhost} title="Payslip">
-                      <Icon name="printer" className="h-3.5 w-3.5" />
-                    </Link>
+                  <td className="px-2 py-2.5 text-center whitespace-nowrap">
+                    <div className="flex flex-col items-center gap-1">
+                      <Link href={`/payroll/${runId}/payslip/${r.id}`} className={btnGhost} title="Payslip">
+                        <Icon name="printer" className="h-3.5 w-3.5" />
+                      </Link>
+                      <PayslipShareButtons rowId={r.id} />
+                    </div>
                   </td>
                 </tr>
               ))}

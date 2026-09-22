@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { todayDate, fmtDate, fmtTime, initials, toDateOnly, cx } from "@/lib/utils";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui";
 import { checkInAction, checkOutAction } from "@/actions/attendance";
+import { PunchWithSelfie } from "@/components/PunchWithSelfie";
 import { Icon } from "@/components/icons";
 import { RequestPunchForm } from "./RequestPunchForm";
 import { monthRange, currentMonth, shiftMonth } from "@/lib/reports";
@@ -47,6 +48,8 @@ export default async function AttendancePage({
         where: { employeeId_date: { employeeId: emp.id, date: todayDate() } },
       })
     : null;
+  const company = await db.company.findUnique({ where: { id: me.companyId }, select: { punchSelfieRequired: true } });
+  const selfieOn = !!company?.punchSelfieRequired;
 
   const dayRows = staff
     ? await db.attendance.findMany({
@@ -137,12 +140,12 @@ export default async function AttendancePage({
             </div>
           </div>
           <div className="flex gap-2">
-            {!myToday?.checkIn && (
+            {!selfieOn && !myToday?.checkIn && (
               <form action={checkInAction}>
                 <button className="btn-brand"><Icon name="fingerprint" className="h-4 w-4" />{<Pa>Punch in</Pa>}</button>
               </form>
             )}
-            {myToday?.checkIn && !myToday.checkOut && (
+            {!selfieOn && myToday?.checkIn && !myToday.checkOut && (
               <form action={checkOutAction}>
                 <button className="btn-ghost"><Icon name="fingerprint" className="h-4 w-4" />{<Pa>Punch out</Pa>}</button>
               </form>
@@ -265,6 +268,7 @@ export default async function AttendancePage({
                   <tr className="border-b border-slate-100">
                     <th className="th">{<Pa>Employee</Pa>}</th>
                     <th className="th">{<Pa>Department</Pa>}</th>
+                    <th className="th">{<Pa>Photo</Pa>}</th>
                     <th className="th">{<Pa>In</Pa>}</th>
                     <th className="th">{<Pa>Out</Pa>}</th>
                     <th className="th">{<Pa>Hours</Pa>}</th>
@@ -282,6 +286,14 @@ export default async function AttendancePage({
                         </Link>
                       </td>
                       <td className="td text-slate-500">{r.employee.department?.name ?? "—"}</td>
+                      <td className="td">
+                        {r.selfiePath ? (
+                          <a href={r.selfiePath} target="_blank" rel="noreferrer" title="View punch selfie">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={r.selfiePath} alt="selfie" className="h-8 w-8 rounded-lg object-cover ring-1 ring-slate-200" />
+                          </a>
+                        ) : <span className="text-slate-300">—</span>}
+                      </td>
                       <td className="td text-slate-600">{fmtTime(r.checkIn)}</td>
                       <td className="td text-slate-600">{fmtTime(r.checkOut)}</td>
                       <td className="td font-semibold text-slate-700">{hoursText(r.checkIn, r.checkOut) ?? "—"}</td>
