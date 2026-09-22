@@ -31,6 +31,7 @@ const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0
   { href: "/departments", label: "Org Structure", icon: "building", staffOnly: true },
   { href: "/reports", label: "Reports", icon: "report", staffOnly: true },
   { href: "/tops", label: "TOPS Weekly", icon: "chart", staffOnly: true },
+  { href: "/kra", label: "KRA", icon: "target" },
   { href: "/settings", label: "Settings & Shifts", icon: "sliders", staffOnly: true },
 ];
 

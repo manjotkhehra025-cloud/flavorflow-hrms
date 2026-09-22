@@ -31,6 +31,7 @@ model Company {
   punchRequests    PunchRequest[]
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
+  kraCycles        KraCycle[]
 }
 
 enum Role {
@@ -127,6 +128,7 @@ model Employee {
   punchRequests    PunchRequest[]
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
+  kraGoals         KraGoal[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -299,4 +301,47 @@ model Letter {
   createdAt  DateTime @default(now())
 
   @@index([companyId, employeeId])
+}
+
+// ---------- Phase C1: KRA (quarterly, weightage + targets, auto-score) ----------
+
+enum KraStatus {
+  DRAFT
+  OPEN
+  SCORING
+  CLOSED
+}
+
+model KraCycle {
+  id        String    @id @default(cuid())
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  year      Int
+  quarter   Int // 1-4
+  status    KraStatus @default(DRAFT)
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  goals KraGoal[]
+
+  @@unique([companyId, year, quarter])
+}
+
+model KraGoal {
+  id         String   @id @default(cuid())
+  cycleId    String
+  cycle      KraCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  title      String
+  weight     Int // % — each employee's goals must sum to 100 before publish
+  target     Float
+  achieved   Float    @default(0)
+  unit       String? // e.g. "cartons" / "days" / "%"
+  hrNote     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([cycleId])
+  @@index([employeeId])
 }

@@ -3,6 +3,7 @@ import { requireStaff } from "@/lib/auth";
 import { Card, PageHeader, Badge } from "@/components/ui";
 import { AvatarImg } from "@/components/AvatarImg";
 import { PrintButton } from "@/components/PrintButton";
+import { kraScoreOf, currentQuarter } from "@/lib/kra";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,19 @@ export default async function TopsPage({ searchParams }: { searchParams: Promise
   const otByEmp = new Map<string, number>();
   for (const o of otApproved) otByEmp.set(o.employeeId, (otByEmp.get(o.employeeId) ?? 0) + (o.hours ?? 0));
 
+  // KRA: current quarter live scores (published cycles only)
+  const qtr = currentQuarter(start);
+  const kraGoals = await db.kraGoal.findMany({
+    where: { cycle: { companyId: me.companyId, year: qtr.year, quarter: qtr.quarter, status: { not: "DRAFT" } } },
+    select: { employeeId: true, weight: true, target: true, achieved: true },
+  });
+  const kraByEmp = new Map<string, { weight: number; target: number; achieved: number }[]>();
+  for (const g of kraGoals) {
+    const list = kraByEmp.get(g.employeeId) ?? [];
+    list.push({ weight: g.weight, target: g.target, achieved: g.achieved });
+    kraByEmp.set(g.employeeId, list);
+  }
+
   const leaveDays = new Map<string, number>();
   const holidayDays = holidays.length;
   for (const l of leaves) {
@@ -78,6 +92,7 @@ export default async function TopsPage({ searchParams }: { searchParams: Promise
     hours: Math.round((byEmp.get(e.id)?.hours ?? 0) * 10) / 10,
     ot: otByEmp.get(e.id) ?? 0,
     leaves: leaveDays.get(e.id) ?? 0,
+    kra: kraByEmp.has(e.id) ? kraScoreOf(kraByEmp.get(e.id)!).pct : null,
   }));
 
   return (
@@ -132,11 +147,12 @@ export default async function TopsPage({ searchParams }: { searchParams: Promise
                   <th className="th text-center">Hours</th>
                   <th className="th text-center">OT</th>
                   <th className="th text-center">Leave</th>
+                  <th className="th text-center">KRA Q{qtr.quarter}</th>
                   <th className="th text-center">Grade</th>
                 </tr>
               </thead>
               <tbody>
-                {vistaCols.map(({ e, present, hours, ot, leaves }) => {
+                {vistaCols.map(({ e, present, hours, ot, leaves, kra }) => {
                   const maxWorkDays = 7 - holidayDays - 1; // week minus offs & holidays approximation
                   const score = Math.round((present / Math.max(maxWorkDays, 1)) * 100);
                   const PERF = score >= 90 ? { tone: "green" as const, chip: "⭐ Star" } : score >= 70 ? { tone: "blue" as const, chip: "Good" } : score >= 50 ? { tone: "amber" as const, chip: "Low" } : { tone: "red" as const, chip: "Poor" };
@@ -158,6 +174,15 @@ export default async function TopsPage({ searchParams }: { searchParams: Promise
                       </td>
                       <td className="td text-center tabular-nums">
                         {leaves > 0 ? <span className="text-amber-600 font-semibold">{leaves}</span> : <span className="text-slate-400">—</span>}
+                      </td>
+                      <td className="td text-center">
+                        {kra === null ? (
+                          <span className="text-slate-300">—</span>
+                        ) : (
+                          <span className={`font-extrabold tabular-nums ${kra >= 75 ? "text-emerald-600" : kra >= 50 ? "text-amber-600" : "text-rose-500"}`}>
+                            {kra}%
+                          </span>
+                        )}
                       </td>
                       <td className="td text-center">
                         <Badge tone={PERF.tone}>{score}%</Badge>
