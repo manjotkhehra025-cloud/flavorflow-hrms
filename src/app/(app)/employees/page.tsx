@@ -29,7 +29,7 @@ export default async function EmployeesPage({
           }
         : {}),
     },
-    include: { department: true, designation: true },
+    include: { department: true, designation: true, users: { select: { id: true, role: true } } },
     orderBy: [{ firstName: "asc" }],
     take: 100,
   });
@@ -72,6 +72,7 @@ export default async function EmployeesPage({
                 <th className="th">Department</th>
                 <th className="th">Designation</th>
                 <th className="th">Joined</th>
+                <th className="th">Login</th>
                 <th className="th">Status</th>
               </tr>
             </thead>
@@ -102,6 +103,15 @@ export default async function EmployeesPage({
                   <td className="px-5 py-3 text-slate-600">{e.department?.name ?? "—"}</td>
                   <td className="px-5 py-3 text-slate-600">{e.designation?.title ?? "—"}</td>
                   <td className="px-5 py-3 text-slate-600">{fmtDate(e.joinDate)}</td>
+                  <td className="px-5 py-3">
+                    {e.users.length > 0 ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+                        ✓ {e.users[0].role === "EMPLOYEE" ? "Login" : e.users[0].role}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-300">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3">
                     <Badge tone={e.status === "ACTIVE" ? "green" : "slate"}>{e.status}</Badge>
                   </td>

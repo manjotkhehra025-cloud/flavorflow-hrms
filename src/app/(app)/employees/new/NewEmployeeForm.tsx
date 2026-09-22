@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { createEmployeeAction } from "@/actions/employees";
 import type { ActionState } from "@/actions/auth";
 import { inputCls, btnBrand } from "@/components/ui";
@@ -12,7 +12,6 @@ const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
 
 export function NewEmployeeForm({ departments, designations, shifts }: { departments: Opt[]; designations: Opt[]; shifts: ShiftOpt[] }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createEmployeeAction, {});
-  const [createAccount, setCreateAccount] = useState(false);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -80,30 +79,38 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
         <textarea name="address" rows={2} className={inputCls} />
       </Field>
 
-      <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-        <input
-          type="checkbox"
-          name="createAccount"
-          checked={createAccount}
-          onChange={(e) => setCreateAccount(e.target.checked)}
-          className="h-4 w-4 accent-emerald-500"
-        />
-        Give this person a login (for self check-in & leave requests)
-      </label>
-
-      {createAccount && (
-        <div className="grid gap-4 rounded-xl bg-slate-50 p-4 sm:grid-cols-2">
-          <Field label="Role">
-            <select name="accountRole" className={inputCls}>
-              <option value="EMPLOYEE">Employee</option>
-              <option value="HR">HR (can manage people & leaves)</option>
-            </select>
-          </Field>
-          <Field label="Temporary password (min 8 chars)">
-            <input name="tempPassword" type="text" minLength={8} className={inputCls} placeholder="Share with the employee" />
-          </Field>
+      <div className="group/login space-y-0 rounded-2xl border border-slate-200 p-4 transition has-[:checked]:border-emerald-300 has-[:checked]:bg-emerald-50/40">
+        <div className="flex items-center gap-3">
+          <input
+            id="hs-login"
+            type="checkbox"
+            name="createAccount"
+            className="h-4.5 w-4.5 shrink-0 accent-emerald-500"
+          />
+          <label htmlFor="hs-login" className="cursor-pointer select-none">
+            <span className="text-sm font-bold text-slate-800">Has login account</span>
+            <span className="block text-xs text-slate-500">Self punch-in, leave requests &amp; gate pass layi innu login chahida</span>
+          </label>
         </div>
-      )}
+
+        {/* CSS-only reveal — phone te JS slow/fail howe taan vi 100% visible */}
+        <div className="hidden pt-4 group-has-[:checked]/login:grid">
+          <div className="grid gap-4 rounded-xl bg-white p-4 ring-1 ring-emerald-200/60 sm:grid-cols-2">
+            <Field label="Role">
+              <select name="accountRole" className={inputCls}>
+                <option value="EMPLOYEE">Employee</option>
+                <option value="HR">HR (can manage people & leaves)</option>
+              </select>
+            </Field>
+            <Field label="Temporary password (min 8 chars)">
+              <input name="tempPassword" type="text" minLength={8} className={inputCls} placeholder="Share with the employee" />
+            </Field>
+            <p className="text-xs text-slate-500 sm:col-span-2">
+              📧 Login email = <b>Email field upar</b> (mandatory hai jad login bana rahe ho). Save ton baad employees list ch <b className="text-emerald-600">✓ Login</b> chip dikhegi.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="flex justify-end gap-2">
         <button type="submit" disabled={pending} className={btnBrand}>
