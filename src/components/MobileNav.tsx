@@ -1,4 +1,6 @@
 "use client";
+import { LangToggle } from "./LangToggle";
+import { Tt } from "@/components/LangCtx";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -14,10 +16,11 @@ export function MobileTopBar({ name }: { name: string }) {
       <div className="flex items-center gap-2.5">
         <HLogo className="h-8 w-8" />
         <div className="leading-tight">
-          <span className="block text-sm font-extrabold tracking-tight text-white">HRMate</span>
-          <span className="block text-[10px] text-emerald-400/80">Namaste, {name.split(" ")[0]} 🙏</span>
+          <span className="block text-sm font-extrabold tracking-tight text-white">{<Tt>HRMate</Tt>}</span>
+          <span className="block text-[10px] text-emerald-400/80"><Tt>Sat Sri Akal</Tt>, {name.split(" ")[0]} 🙏</span>
         </div>
       </div>
+      <LangToggle dark />
     </header>
   );
 }
@@ -54,7 +57,7 @@ export function MobileBottomNav({ employeeId, role }: { employeeId: string | nul
         )}
       >
         <Icon name={icon} className="h-5 w-5" />
-        {label}
+        <Tt>{label}</Tt>
       </Link>
     );
   }
@@ -78,7 +81,7 @@ export function MobileBottomNav({ employeeId, role }: { employeeId: string | nul
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0a1628] text-emerald-400">
                     <Icon name={i.icon} className="h-4.5 w-4.5" />
                   </span>
-                  <span className="text-[11px] font-semibold leading-tight text-slate-700">{i.label}</span>
+                  <span className="text-[11px] font-semibold leading-tight text-slate-700"><Tt>{i.label}</Tt></span>
                 </Link>
               ))}
               <form action={logoutAction} className="contents">
@@ -86,7 +89,7 @@ export function MobileBottomNav({ employeeId, role }: { employeeId: string | nul
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
                     <Icon name="logout" className="h-4.5 w-4.5" />
                   </span>
-                  <span className="text-[11px] font-semibold text-red-600">Sign out</span>
+                  <span className="text-[11px] font-semibold text-red-600">{<Tt>Sign out</Tt>}</span>
                 </button>
               </form>
             </div>
@@ -109,7 +112,7 @@ export function MobileBottomNav({ employeeId, role }: { employeeId: string | nul
               <span className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-[0_8px_20px_-4px_rgb(16_185_129_/_60%)] ring-4 ring-white active:scale-95 transition-all">
                 <Icon name="fingerprint" className="h-7 w-7" />
               </span>
-              <span className="mt-0.5 text-[10px] font-bold text-emerald-700">Punch</span>
+              <span className="mt-0.5 text-[10px] font-bold text-emerald-700">{<Tt>Punch</Tt>}</span>
             </Link>
           ) : (
             <div className="w-16" />
@@ -124,7 +127,7 @@ export function MobileBottomNav({ employeeId, role }: { employeeId: string | nul
             )}
           >
             <Icon name="dots" className="h-5 w-5" />
-            More
+            <Tt>More</Tt>
           </button>
         </div>
       </nav>

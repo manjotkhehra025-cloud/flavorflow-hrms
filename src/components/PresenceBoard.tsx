@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { fmtDate } from "@/lib/utils";
@@ -52,14 +53,14 @@ export async function PresenceBoard({ companyId, today }: { companyId: string; t
           </p>
         </div>
         <div className="flex gap-3 text-[10px] font-medium text-slate-500">
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Present</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-400" /> Absent</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" /> Leave</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" /> Off</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />{<Pa>Present</Pa>}</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-400" />{<Pa>Absent</Pa>}</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-400" />{<Pa>Leave</Pa>}</span>
+          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-sky-400" />{<Pa>Off</Pa>}</span>
         </div>
       </div>
       {employees.length === 0 ? (
-        <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">No employees yet — add from Team page</p>
+        <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">{<Pa>No employees yet — add from Team page</Pa>}</p>
       ) : (
         <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-8">
           {tiles.map(({ e, status }) => (

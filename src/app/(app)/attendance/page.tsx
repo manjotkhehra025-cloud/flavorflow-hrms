@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -118,14 +119,14 @@ export default async function AttendancePage({
 
   return (
     <div>
-      <PageHeader title="Attendance & Logs" subtitle={staff ? "Your calendar + team daily view, manual punches & OT." : "Your calendar, punch records & manual punch requests."} />
+      <PageHeader title={<Pa>Attendance & Logs</Pa>} subtitle={staff ? <Pa>Your calendar + team daily view, manual punches & OT.</Pa> : <Pa>Your calendar, punch records & manual punch requests.</Pa>} />
 
       {/* Today's punch */}
       {emp && (
         <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 border-l-4! border-l-emerald-500! p-5">
           <div>
             <div className="text-sm font-medium text-slate-500">
-              Today · {fmtDate(todayDate())} · Weekly off: {WEEKDAYS[emp.weeklyOff]}
+              <Pa>Today</Pa> · {fmtDate(todayDate())} · <Pa>Weekly off</Pa>: <Pa>{WEEKDAYS[emp.weeklyOff]}</Pa>
             </div>
             <div className="mt-1 text-lg font-semibold text-slate-900">
               {myToday?.checkIn
@@ -138,12 +139,12 @@ export default async function AttendancePage({
           <div className="flex gap-2">
             {!myToday?.checkIn && (
               <form action={checkInAction}>
-                <button className="btn-brand"><Icon name="fingerprint" className="h-4 w-4" /> Punch in</button>
+                <button className="btn-brand"><Icon name="fingerprint" className="h-4 w-4" />{<Pa>Punch in</Pa>}</button>
               </form>
             )}
             {myToday?.checkIn && !myToday.checkOut && (
               <form action={checkOutAction}>
-                <button className="btn-ghost"><Icon name="fingerprint" className="h-4 w-4" /> Punch out</button>
+                <button className="btn-ghost"><Icon name="fingerprint" className="h-4 w-4" />{<Pa>Punch out</Pa>}</button>
               </form>
             )}
           </div>
@@ -162,7 +163,7 @@ export default async function AttendancePage({
           </div>
           <div className="grid grid-cols-7 gap-1 text-center">
             {DOW_SHORT.map((d) => (
-              <div key={d} className="py-1 text-[10px] font-bold tracking-wide text-slate-400">{d}</div>
+              <div key={d} className="py-1 text-[10px] font-bold tracking-wide text-slate-400"><Pa>{d}</Pa></div>
             ))}
             {Array.from({ length: firstDow }).map((_, i) => (
               <div key={`b${i}`} />
@@ -183,10 +184,10 @@ export default async function AttendancePage({
             ))}
           </div>
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] font-medium text-slate-500">
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Present</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sky-500" /> Weekly Off</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-400" /> Holiday / Leave</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-500" /> Absent</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" />{<Pa>Present</Pa>}</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sky-500" />{<Pa>Weekly Off</Pa>}</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-400" />{<Pa>Holiday / Leave</Pa>}</span>
+            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-500" />{<Pa>Absent</Pa>}</span>
           </div>
         </Card>
       )}
@@ -198,18 +199,18 @@ export default async function AttendancePage({
       {emp && monthlyRows.length > 0 && (
         <Card className="mb-6 overflow-hidden">
           <div className="border-b border-slate-100 p-5 pb-4">
-            <h3 className="text-sm font-bold text-slate-900">Monthly Attendance Logs</h3>
+            <h3 className="text-sm font-bold text-slate-900">{<Pa>Monthly Attendance Logs</Pa>}</h3>
             <p className="text-xs text-slate-500">Detailed day-by-day record · {monthLabel}</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="th">Date</th>
-                  <th className="th">Status</th>
-                  <th className="th">Punch in</th>
-                  <th className="th">Punch out</th>
-                  <th className="th">Hours</th>
+                  <th className="th">{<Pa>Date</Pa>}</th>
+                  <th className="th">{<Pa>Status</Pa>}</th>
+                  <th className="th">{<Pa>Punch in</Pa>}</th>
+                  <th className="th">{<Pa>Punch out</Pa>}</th>
+                  <th className="th">{<Pa>Hours</Pa>}</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,7 +221,7 @@ export default async function AttendancePage({
                       <td className="td font-medium text-slate-700">{fmtDate(r.date)}</td>
                       <td className="td">
                         {mins > 0 && mins < 360 ? (
-                          <Badge tone="amber">Half day</Badge>
+                          <Badge tone="amber">{<Pa>Half day</Pa>}</Badge>
                         ) : (
                           <Badge tone="green">{r.status === "PRESENT" ? "Present" : r.status}</Badge>
                         )}
@@ -242,7 +243,7 @@ export default async function AttendancePage({
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5 pb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Team daily view</h3>
+              <h3 className="text-sm font-bold text-slate-900">{<Pa>Team daily view</Pa>}</h3>
               <p className="text-xs text-slate-500">
                 {fmtDate(selectedDate)} · Present {dayRows.length} / {activeCount}
               </p>
@@ -251,22 +252,22 @@ export default async function AttendancePage({
               <input type="hidden" name="m" value={month} />
               <div className="flex items-center gap-2">
                 <input type="date" name="date" defaultValue={selectedDate.toISOString().slice(0, 10)} className="input !w-auto !py-1.5" />
-                <button className="btn-ghost !py-1.5">Go</button>
+                <button className="btn-ghost !py-1.5">{<Pa>Go</Pa>}</button>
               </div>
             </form>
           </div>
           {dayRows.length === 0 ? (
-            <div className="p-6"><EmptyState icon="clock" title="No punches on this day" hint="Try another date" /></div>
+            <div className="p-6"><EmptyState icon="clock" title={<Pa>No punches on this day</Pa>} hint={<Pa>Try another date</Pa>} /></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    <th className="th">Employee</th>
-                    <th className="th">Department</th>
-                    <th className="th">In</th>
-                    <th className="th">Out</th>
-                    <th className="th">Hours</th>
+                    <th className="th">{<Pa>Employee</Pa>}</th>
+                    <th className="th">{<Pa>Department</Pa>}</th>
+                    <th className="th">{<Pa>In</Pa>}</th>
+                    <th className="th">{<Pa>Out</Pa>}</th>
+                    <th className="th">{<Pa>Hours</Pa>}</th>
                   </tr>
                 </thead>
                 <tbody>

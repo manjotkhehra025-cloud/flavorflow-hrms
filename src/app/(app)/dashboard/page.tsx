@@ -1,3 +1,5 @@
+import { Pa } from "@/components/Pa";
+import { LangToggle } from "@/components/LangToggle";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -96,23 +98,25 @@ export default async function DashboardPage() {
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
 
+        <div className="absolute right-4 top-4 z-10"><LangToggle dark /></div>
+
         <div className="relative">
           <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400/90">{fmtDate(today)}</p>
           <h1 className="mt-1.5 text-2xl font-extrabold tracking-tight md:text-3xl">
-            {greeting()}, {me.name.split(" ")[0]}! 👋
+            <Pa>{greeting()}</Pa>, {me.name.split(" ")[0]}! 👋
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Welcome to HRMate · {me.companyName}
+            <Pa>Welcome to HRMate</Pa> · {me.companyName}
           </p>
           <div className="mt-4 flex flex-wrap gap-2.5">
             <Link href="/idcard" className="chip-dark hover:bg-white/15">
-              <Icon name="badge" className="h-3.5 w-3.5" /> ID Card &amp; Pass
+              <Icon name="badge" className="h-3.5 w-3.5" /> <Pa>ID Card &amp; Pass</Pa>
             </Link>
             <Link href="/leaves" className="chip-dark hover:bg-white/15">
-              <Icon name="leaf" className="h-3.5 w-3.5" /> Apply Leave
+              <Icon name="leaf" className="h-3.5 w-3.5" /> <Pa>Apply Leave</Pa>
             </Link>
             {isWeeklyOff && (
-              <span className="chip-dark !text-sky-300 ring-sky-400/25!">🌴 Weekly off today</span>
+              <span className="chip-dark !text-sky-300 ring-sky-400/25!">{<Pa>🌴 Weekly off today</Pa>}</span>
             )}
           </div>
         </div>
@@ -133,7 +137,7 @@ export default async function DashboardPage() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-amber-300">
-                ⭐ Star of the Month · {(() => { const [y, m] = latestStar.month.split("-").map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-IN", { month: "short", year: "numeric" }); })()}
+                <Pa>⭐ Star of the Month</Pa> · {(() => { const [y, m] = latestStar.month.split("-").map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-IN", { month: "short", year: "numeric" }); })()}
               </p>
               <p className="mt-0.5 truncate text-base font-extrabold">
                 {latestStar.employee.firstName} {latestStar.employee.lastName}
@@ -153,15 +157,15 @@ export default async function DashboardPage() {
       {staff && openTickets > 0 && (
         <Link href="/helpdesk?tab=inbox" className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 transition hover:bg-amber-100/70 active:scale-[0.99]">
           <span className="text-lg">💬</span>
-          <span className="text-sm font-bold text-amber-800">{openTickets} open helpdesk ticket{openTickets > 1 ? "s" : ""} — your team is waiting</span>
-          <span className="ml-auto text-xs font-bold text-amber-600">View →</span>
+          <span className="text-sm font-bold text-amber-800">{openTickets} <Pa>open helpdesk tickets — your team is waiting</Pa></span>
+          <span className="ml-auto text-xs font-bold text-amber-600">{<Pa>View →</Pa>}</span>
         </Link>
       )}
       {!staff && myUnreadReplies > 0 && (
         <Link href="/helpdesk" className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 transition hover:bg-emerald-100/70 active:scale-[0.99]">
           <span className="text-lg">💬</span>
           <span className="text-sm font-bold text-emerald-800">You have {myUnreadReplies} helpdesk ticket{myUnreadReplies > 1 ? "s" : ""} with new HR replies!</span>
-          <span className="ml-auto text-xs font-bold text-emerald-600">View →</span>
+          <span className="ml-auto text-xs font-bold text-emerald-600">{<Pa>View →</Pa>}</span>
         </Link>
       )}
 
@@ -184,7 +188,7 @@ export default async function DashboardPage() {
               </span>
             </div>
             <p className="mt-4 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
-              {shiftName} ({shiftHours} hours){isWeeklyOff ? " · Weekly-off day" : ""}
+              {shiftName} ({shiftHours} <Pa>hours</Pa>){isWeeklyOff ? <> · <Pa>Weekly-off day</Pa></> : ""}
             </p>
 
             <div className="mx-auto mt-6 max-w-xs">
@@ -194,13 +198,13 @@ export default async function DashboardPage() {
                 <div className="mx-auto flex h-40 w-40 flex-col items-center justify-center rounded-full border-[9px] border-white/[0.08] text-center">
                   <Icon name="fingerprint" className="h-10 w-10 text-emerald-400/70" />
                   <p className="mt-2 px-6 text-xs font-semibold text-slate-400">
-                    {isWeeklyOff ? "Off-day punch allowed" : "Not punched in yet"}
+                    {isWeeklyOff ? <Pa>Off-day punch allowed</Pa> : <Pa>Not punched in yet</Pa>}
                   </p>
                 </div>
               )}
               {myAttendance?.checkIn && (
                 <p className="mt-3 text-center text-sm font-medium text-slate-400">
-                  Punched In: <span className="font-bold text-white">{fmtTime(myAttendance.checkIn)}</span>
+                  <Pa>Punched In</Pa>: <span className="font-bold text-white">{fmtTime(myAttendance.checkIn)}</span>
                   {myAttendance.checkOut && (
                     <>
                       {" "}· Out: <span className="font-bold text-emerald-400">{fmtTime(myAttendance.checkOut)}</span>
@@ -237,18 +241,18 @@ export default async function DashboardPage() {
 
       {/* ===== Stats ===== */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-        <StatCard label="Active employees" value={employeeCount} icon="users" tone="sky" href={staff ? "/employees" : undefined} />
-        <StatCard label="Present today" value={presentToday} icon="clock" tone="emerald" href="/attendance" />
-        <StatCard label="Pending leaves" value={pendingLeaves} icon="leaf" tone="amber" href="/leaves" />
-        <StatCard label="Upcoming holidays" value={upcomingHolidays.length} icon="calendar" tone="rose" href="/holidays" />
+        <StatCard label={<Pa>Active employees</Pa>} value={employeeCount} icon="users" tone="sky" href={staff ? "/employees" : undefined} />
+        <StatCard label={<Pa>Present today</Pa>} value={presentToday} icon="clock" tone="emerald" href="/attendance" />
+        <StatCard label={<Pa>Pending leaves</Pa>} value={pendingLeaves} icon="leaf" tone="amber" href="/leaves" />
+        <StatCard label={<Pa>Upcoming holidays</Pa>} value={upcomingHolidays.length} icon="calendar" tone="rose" href="/holidays" />
       </div>
 
       {/* ===== Quick actions ===== */}
       {staff && (
         <div className="flex flex-wrap gap-3">
-          <Link href="/employees/new" className="btn-dark"><Icon name="plus" className="h-4 w-4" /> Add employee</Link>
-          <Link href="/holidays" className="btn-ghost"><Icon name="calendar" className="h-4 w-4" /> Add holiday</Link>
-          <Link href="/approvals" className="btn-ghost"><Icon name="check" className="h-4 w-4" /> Approvals hub</Link>
+          <Link href="/employees/new" className="btn-dark"><Icon name="plus" className="h-4 w-4" />{<Pa>Add employee</Pa>}</Link>
+          <Link href="/holidays" className="btn-ghost"><Icon name="calendar" className="h-4 w-4" />{<Pa>Add holiday</Pa>}</Link>
+          <Link href="/approvals" className="btn-ghost"><Icon name="check" className="h-4 w-4" />{<Pa>Approvals hub</Pa>}</Link>
         </div>
       )}
 
@@ -260,11 +264,11 @@ export default async function DashboardPage() {
         {staff && <PendingLeaves companyId={me.companyId} />}
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900">Upcoming holidays</h3>
-            <Link href="/holidays" className="text-xs font-semibold text-emerald-600 hover:underline">View all</Link>
+            <h3 className="text-sm font-bold text-slate-900">{<Pa>Upcoming holidays</Pa>}</h3>
+            <Link href="/holidays" className="text-xs font-semibold text-emerald-600 hover:underline">{<Pa>View all</Pa>}</Link>
           </div>
           {upcomingHolidays.length === 0 ? (
-            <EmptyState icon="calendar" title="No holidays added yet" hint={staff ? "Add your company holidays so everyone sees them" : undefined} />
+            <EmptyState icon="calendar" title={<Pa>No holidays added yet</Pa>} hint={staff ? "Add your company holidays so everyone sees them" : undefined} />
           ) : (
             <ul className="space-y-2.5">
               {upcomingHolidays.map((h) => (
@@ -292,11 +296,11 @@ async function PendingLeaves({ companyId }: { companyId: string }) {
   return (
     <Card className="p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-slate-900">Pending leave requests</h3>
-        <Link href="/approvals" className="text-xs font-semibold text-emerald-600 hover:underline">View all</Link>
+        <h3 className="text-sm font-bold text-slate-900">{<Pa>Pending leave requests</Pa>}</h3>
+        <Link href="/approvals" className="text-xs font-semibold text-emerald-600 hover:underline">{<Pa>View all</Pa>}</Link>
       </div>
       {pending.length === 0 ? (
-        <EmptyState icon="leaf" title="Nothing waiting for approval" hint="New requests will land here" />
+        <EmptyState icon="leaf" title={<Pa>Nothing waiting for approval</Pa>} hint={<Pa>New requests will land here</Pa>} />
       ) : (
         <ul className="space-y-2.5">
           {pending.map((l) => (
@@ -312,7 +316,7 @@ async function PendingLeaves({ companyId }: { companyId: string }) {
                   {l.leaveType.name} · {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} ({l.days}d)
                 </div>
               </div>
-              <Badge tone="amber">Pending</Badge>
+              <Badge tone="amber">{<Pa>Pending</Pa>}</Badge>
             </li>
           ))}
         </ul>

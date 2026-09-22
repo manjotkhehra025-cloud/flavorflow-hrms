@@ -1,4 +1,5 @@
 "use client";
+import { Tt } from "@/components/LangCtx";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -22,12 +23,12 @@ export function LinkAccountCard({ employees }: { employees: Option[] }) {
             <Icon name="users" className="h-5 w-5 text-amber-300" />
           </span>
           <div>
-            <p className="text-sm font-extrabold tracking-tight">Punch button missing?</p>
+            <p className="text-sm font-extrabold tracking-tight">{<Tt>Punch button missing?</Tt>}</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-400">
               Your login isn&apos;t linked to any employee profile, and every existing profile already has a login.
               <br />
-              <b className="text-slate-200">How to fix:</b> Employees → Add New → just fill in your details
-              (<b className="text-amber-200">do NOT tick &quot;Has login account&quot;</b> — you already have one) →
+              <b className="text-slate-200">{<Tt>How to fix:</Tt>}</b> Employees → Add New → just fill in your details
+              (<b className="text-amber-200">{<Tt>do NOT tick &quot;Has login account&quot;</Tt>}</b> — you already have one) →
               save. Your profile will then show up in this card — tap &quot;Link &amp; Continue&quot; and punch starts working.
             </p>
           </div>
@@ -56,8 +57,8 @@ export function LinkAccountCard({ employees }: { employees: Option[] }) {
             <Icon name="link" className="h-5 w-5 text-emerald-300" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-400/90">One-time setup</p>
-            <p className="mt-0.5 text-sm font-extrabold tracking-tight">Link your login to your employee profile</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-400/90">{<Tt>One-time setup</Tt>}</p>
+            <p className="mt-0.5 text-sm font-extrabold tracking-tight">{<Tt>Link your login to your employee profile</Tt>}</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-400">
               Punch, attendance, leave balance &amp; TOPS all need this link. Pick your own profile below —
               one-time setup.

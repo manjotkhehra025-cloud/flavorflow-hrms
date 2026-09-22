@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { Card, PageHeader, Badge } from "@/components/ui";
@@ -97,34 +98,34 @@ export default async function TopsPage({ searchParams }: { searchParams: Promise
 
   return (
     <div className="print-area">
-      <PageHeader title="TOPS Weekly Overview" subtitle={`Attend · OT · Leaves — ${weekLabel} (${fmtD(start)} to ${fmtD(end)})`} />
+      <PageHeader title={<Pa>TOPS Weekly Overview</Pa>} subtitle={`Attend · OT · Leaves — ${weekLabel} (${fmtD(start)} to ${fmtD(end)})`} />
 
       {/* Week nav */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div className="flex items-center gap-2">
-          <Link href={`/tops?w=${iso(addDays(start, -7))}`} className="btn-ghost px-3 py-1.5 text-sm">‹ Prev week</Link>
-          <Link href={`/tops?w=${iso(thisMonday)}`} className="btn-ghost px-3 py-1.5 text-sm disabled:opacity-40" aria-disabled={isCurrentWeek}>This week</Link>
-          <Link href={`/tops?w=${iso(addDays(start, 7))}`} className="btn-ghost px-3 py-1.5 text-sm">Next ›</Link>
+          <Link href={`/tops?w=${iso(addDays(start, -7))}`} className="btn-ghost px-3 py-1.5 text-sm">{<Pa>‹ Prev week</Pa>}</Link>
+          <Link href={`/tops?w=${iso(thisMonday)}`} className="btn-ghost px-3 py-1.5 text-sm disabled:opacity-40" aria-disabled={isCurrentWeek}>{<Pa>This week</Pa>}</Link>
+          <Link href={`/tops?w=${iso(addDays(start, 7))}`} className="btn-ghost px-3 py-1.5 text-sm">{<Pa>Next ›</Pa>}</Link>
         </div>
-        <PrintButton label="Export PDF" />
+        <PrintButton label={<Pa>Export PDF</Pa>} />
       </div>
 
       {/* Summary strip */}
       <Card className="mb-6 grid grid-cols-2 gap-4 border-l-4! border-l-emerald-500! p-5 sm:grid-cols-4">
         <div>
-          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Team size</div>
+          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">{<Pa>Team size</Pa>}</div>
           <div className="mt-1 text-2xl font-black text-slate-900">{employees.length}</div>
         </div>
         <div>
-          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Total shifts logged</div>
+          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">{<Pa>Total shifts logged</Pa>}</div>
           <div className="mt-1 text-2xl font-black text-emerald-600">{[...byEmp.values()].reduce((s, v) => s + v.present, 0)}</div>
         </div>
         <div>
-          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">Total hours</div>
+          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">{<Pa>Total hours</Pa>}</div>
           <div className="mt-1 text-2xl font-black text-slate-900">{totalHours.toFixed(1)}h</div>
         </div>
         <div>
-          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">OT approved</div>
+          <div className="text-xs font-bold uppercase tracking-wide text-slate-400">{<Pa>OT approved</Pa>}</div>
           <div className="mt-1 text-2xl font-black text-emerald-600">{[...otByEmp.values()].reduce((a, b) => a + b, 0)}h</div>
         </div>
       </Card>
@@ -133,22 +134,22 @@ export default async function TopsPage({ searchParams }: { searchParams: Promise
       <Card className="overflow-hidden">
         <div className="border-b border-slate-100 p-5 pb-4">
           <h3 className="text-sm font-bold text-slate-900">{weekLabel}</h3>
-          <p className="text-xs text-slate-400">G.D. Foods Mfg. (I) Pvt. Ltd. · Factory workforce weekly sheet</p>
+          <p className="text-xs text-slate-400">{<Pa>G.D. Foods Mfg. (I) Pvt. Ltd. · Factory workforce weekly sheet</Pa>}</p>
         </div>
         {vistaCols.length === 0 ? (
-          <p className="p-6 text-sm text-slate-500">No employees yet.</p>
+          <p className="p-6 text-sm text-slate-500">{<Pa>No employees yet.</Pa>}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="th">Employee</th>
-                  <th className="th text-center">Present</th>
-                  <th className="th text-center">Hours</th>
-                  <th className="th text-center">OT</th>
-                  <th className="th text-center">Leave</th>
+                  <th className="th">{<Pa>Employee</Pa>}</th>
+                  <th className="th text-center">{<Pa>Present</Pa>}</th>
+                  <th className="th text-center">{<Pa>Hours</Pa>}</th>
+                  <th className="th text-center">{<Pa>OT</Pa>}</th>
+                  <th className="th text-center">{<Pa>Leave</Pa>}</th>
                   <th className="th text-center">KRA Q{qtr.quarter}</th>
-                  <th className="th text-center">Grade</th>
+                  <th className="th text-center">{<Pa>Grade</Pa>}</th>
                 </tr>
               </thead>
               <tbody>
@@ -196,7 +197,7 @@ export default async function TopsPage({ searchParams }: { searchParams: Promise
           </div>
         )}
         <div className="border-t border-slate-100 px-5 py-3 text-[11px] text-slate-400 print:block">
-          ✨ Star Performer auto-marked at ≥90% attendance · OT counts only approved requests · Generated via HRMate {new Date().toLocaleDateString("en-IN")}
+          <Pa>✨ Star Performer auto-marked at ≥90% attendance · OT counts only approved requests · Generated via HRMate</Pa> {new Date().toLocaleDateString("en-IN")}
         </div>
       </Card>
     </div>

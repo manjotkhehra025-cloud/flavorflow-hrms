@@ -1,4 +1,5 @@
 "use server";
+import { bt } from "@/lib/i18n";
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -10,10 +11,10 @@ type Category = (typeof CATEGORIES)[number];
 
 export async function createTicketAction(category: string, subject: string, body: string): Promise<ActionState & { id?: string }> {
   const me = await requireUser();
-  if (!me.employeeId) return { error: "Account not linked — link your login to an employee profile from the dashboard card first." };
-  if (!CATEGORIES.includes(category as Category)) return { error: "Please pick a category." };
-  if (!subject.trim() || subject.trim().length < 4) return { error: "Please write a slightly detailed subject (4+ characters)." };
-  if (!body.trim()) return { error: "Please add details — HR needs the full context." };
+  if (!me.employeeId) return { error: await bt("Account not linked — link your login to an employee profile from the dashboard card first.") };
+  if (!CATEGORIES.includes(category as Category)) return { error: await bt("Please pick a category.") };
+  if (!subject.trim() || subject.trim().length < 4) return { error: await bt("Please write a slightly detailed subject (4+ characters).") };
+  if (!body.trim()) return { error: await bt("Please add details — HR needs the full context.") };
 
   const ticket = await db.ticket.create({
     data: {
@@ -26,17 +27,17 @@ export async function createTicketAction(category: string, subject: string, body
     },
   });
   revalidatePath("/helpdesk");
-  return { success: "Ticket created — delivered to HR! 📨" , id: ticket.id };
+  return { success: await bt("Ticket created — delivered to HR! 📨") , id: ticket.id };
 }
 
 export async function replyTicketAction(ticketId: string, body: string): Promise<ActionState> {
   const me = await requireUser();
-  if (!body.trim()) return { error: "Write a reply first." };
+  if (!body.trim()) return { error: await bt("Write a reply first.") };
   const t = await db.ticket.findFirst({ where: { id: ticketId, companyId: me.companyId } });
-  if (!t) return { error: "Ticket not found." };
+  if (!t) return { error: await bt("Ticket not found.") };
   const staff = me.role !== "EMPLOYEE";
-  if (!staff && me.employeeId !== t.employeeId) return { error: "You can only open your own tickets." };
-  if (t.status === "CLOSED") return { error: "This ticket is closed." };
+  if (!staff && me.employeeId !== t.employeeId) return { error: await bt("You can only open your own tickets.") };
+  if (t.status === "CLOSED") return { error: await bt("This ticket is closed.") };
 
   const isStaff = staff;
   await db.$transaction([
@@ -52,15 +53,15 @@ export async function replyTicketAction(ticketId: string, body: string): Promise
   ]);
   revalidatePath(`/helpdesk/${ticketId}`);
   revalidatePath("/helpdesk");
-  return { success: "Reply sent ✓" };
+  return { success: await bt("Reply sent ✓") };
 }
 
 export async function setTicketStatusAction(ticketId: string, status: string): Promise<ActionState> {
   const me = await requireStaff();
-  if (!["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"].includes(status)) return { error: "Invalid status." };
+  if (!["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"].includes(status)) return { error: await bt("Invalid status.") };
   const t = await db.ticket.findFirst({ where: { id: ticketId, companyId: me.companyId } });
-  if (!t) return { error: "Ticket not found." };
-  if (t.status === "CLOSED" && status !== "CLOSED" && me.role !== "ADMIN") return { error: "Only an ADMIN can re-open a closed ticket." };
+  if (!t) return { error: await bt("Ticket not found.") };
+  if (t.status === "CLOSED" && status !== "CLOSED" && me.role !== "ADMIN") return { error: await bt("Only an ADMIN can re-open a closed ticket.") };
   await db.ticket.update({
     where: { id: ticketId },
     data: { status: status as "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED", staffSeenAt: new Date() },

@@ -1,4 +1,6 @@
 "use client";
+import { LangToggle } from "./LangToggle";
+import { Tt } from "@/components/LangCtx";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -81,7 +83,7 @@ export function Sidebar({ role, name, companyName }: { role: string; name: strin
                 name={item.icon}
                 className={cx("h-[18px] w-[18px] transition-colors", active ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-300")}
               />
-              {item.label}
+              <Tt>{item.label}</Tt>
             </Link>
           );
         })}
@@ -110,9 +112,12 @@ export function Sidebar({ role, name, companyName }: { role: string; name: strin
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
             type="submit"
           >
-            <Icon name="logout" className="h-3.5 w-3.5" /> Sign out
+            <Icon name="logout" className="h-3.5 w-3.5" /> <Tt>Sign out</Tt>
           </button>
         </form>
+        <div className="mt-3 flex justify-center">
+          <LangToggle dark />
+        </div>
       </div>
     </aside>
   );

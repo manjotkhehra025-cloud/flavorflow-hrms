@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { requireStaff } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -21,7 +22,7 @@ export default async function LateReportPage({
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Late-in report" subtitle={`Late check-ins · ${LATE_GRACE_MINS}-minute grace allowed`} />
+      <PageHeader title={<Pa>Late-in report</Pa>} subtitle={`Late check-ins · ${LATE_GRACE_MINS}-minute grace allowed`} />
 
       <Card className="flex items-center justify-between gap-3 p-4">
         <Link href={`/reports/late?month=${shiftMonth(month, -1)}`} className="btn-ghost px-3!" aria-label="Previous month">←</Link>
@@ -32,7 +33,7 @@ export default async function LateReportPage({
       <Card className="flex items-center justify-between p-4">
         <div>
           <div className="text-2xl font-extrabold text-red-500">{rows.length}</div>
-          <div className="text-xs font-medium text-slate-500">late check-ins</div>
+          <div className="text-xs font-medium text-slate-500">{<Pa>late check-ins</Pa>}</div>
         </div>
         <a href={`/api/reports/late?month=${month}`} className="btn-dark">
           <Icon name="download" className="h-4 w-4" /> Excel
@@ -44,20 +45,20 @@ export default async function LateReportPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/80">
-                <th className="th">Employee</th>
-                <th className="th">Date</th>
-                <th className="th text-right">Shift</th>
-                <th className="th text-right">Check-in</th>
-                <th className="th text-right">Late by</th>
+                <th className="th">{<Pa>Employee</Pa>}</th>
+                <th className="th">{<Pa>Date</Pa>}</th>
+                <th className="th text-right">{<Pa>Shift</Pa>}</th>
+                <th className="th text-right">{<Pa>Check-in</Pa>}</th>
+                <th className="th text-right">{<Pa>Late by</Pa>}</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr><td colSpan={5}>
                   {shiftCount === 0 ? (
-                    <EmptyState icon="clock" title="No shifts configured yet" hint="Add a shift in Settings — late-ins will be detected automatically against shift start time" />
+                    <EmptyState icon="clock" title={<Pa>No shifts configured yet</Pa>} hint={<Pa>Add a shift in Settings — late-ins will be detected automatically against shift start time</Pa>} />
                   ) : (
-                    <EmptyState icon="check" title="Everyone on time 🎉" hint={`No late check-ins in ${label}`} />
+                    <EmptyState icon="check" title={<Pa>Everyone on time 🎉</Pa>} hint={`No late check-ins in ${label}`} />
                 )}
                 </td></tr>
               )}

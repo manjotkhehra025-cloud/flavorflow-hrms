@@ -1,4 +1,5 @@
 "use client";
+import { Tt } from "@/components/LangCtx";
 
 import { useActionState } from "react";
 import { loginAction, type ActionState } from "@/actions/auth";
@@ -14,7 +15,7 @@ export function LoginForm() {
         </p>
       )}
       <div>
-        <label className="mb-1.5 block text-sm font-semibold text-slate-700">Email</label>
+        <label className="mb-1.5 block text-sm font-semibold text-slate-700">{<Tt>Email</Tt>}</label>
         <input
           name="email"
           type="email"
@@ -25,7 +26,7 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
+        <label className="mb-1.5 block text-sm font-semibold text-slate-700">{<Tt>Password</Tt>}</label>
         <input
           name="password"
           type="password"

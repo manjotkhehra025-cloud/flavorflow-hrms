@@ -5,7 +5,7 @@ export function Card({ children, className }: { children: React.ReactNode; class
   return <div className={cx("card", className)}>{children}</div>;
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) {
+export function PageHeader({ title, subtitle, actions }: { title: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -49,7 +49,7 @@ export function StatCard({
   tone,
   href,
 }: {
-  label: string;
+  label: React.ReactNode;
   value: number | string;
   icon: IconName;
   tone: "amber" | "emerald" | "rose" | "sky";
@@ -77,7 +77,7 @@ export function StatCard({
   return href ? <a href={href}>{inner}</a> : inner;
 }
 
-export function EmptyState({ icon, title, hint }: { icon: IconName; title: string; hint?: string }) {
+export function EmptyState({ icon, title, hint }: { icon: IconName; title: React.ReactNode; hint?: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
       <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">

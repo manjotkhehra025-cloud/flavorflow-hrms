@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import type { RegisterGrid as Grid } from "@/lib/reports2";
 
 const CELL_TONE: Record<string, string> = {
@@ -22,7 +23,7 @@ export function RegisterGrid({ grid }: { grid: Grid }) {
         <thead>
           <tr>
             <th className="sticky left-0 z-10 min-w-[130px] bg-slate-50 px-2.5 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-slate-500">
-              Employee
+              <Pa>Employee</Pa>
             </th>
             {days.map((d) => (
               <th
@@ -71,7 +72,7 @@ export function RegisterGrid({ grid }: { grid: Grid }) {
           {grid.rows.length > 0 && (
             <tr className="border-t-2 border-slate-200 bg-slate-50/70">
               <td className="sticky left-0 z-10 bg-slate-50 px-2.5 py-1.5 text-[10px] font-extrabold text-slate-700">
-                All ({grid.rows.length})
+                <Pa>All</Pa> ({grid.rows.length})
               </td>
               {days.map((d) => (
                 <td key={d}></td>

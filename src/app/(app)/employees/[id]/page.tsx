@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -63,7 +64,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         subtitle={`${employee.code} · ${employee.designation?.title ?? "No designation"}`}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link href={`/idcard?emp=${employee.id}`} className={btnGhost}>ID Card</Link>
+            <Link href={`/idcard?emp=${employee.id}`} className={btnGhost}>{<Pa>ID Card</Pa>}</Link>
             <form action={bindToggle}>
               <button className={btnGhost}>
                 {employee.status === "ACTIVE" ? "Deactivate" : "Reactivate"}
@@ -140,18 +141,18 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         </Card>
 
         <Card className="p-6 lg:col-span-2">
-          <h3 className="mb-4 text-sm font-semibold text-slate-900">This month's attendance</h3>
+          <h3 className="mb-4 text-sm font-semibold text-slate-900">{<Pa>This month's attendance</Pa>}</h3>
           {attendance.length === 0 ? (
-            <p className="text-sm text-slate-500">No attendance records yet this month.</p>
+            <p className="text-sm text-slate-500">{<Pa>No attendance records yet this month.</Pa>}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-xs uppercase text-slate-500">
-                    <th className="py-2 pr-4">Date</th>
-                    <th className="py-2 pr-4">In</th>
-                    <th className="py-2 pr-4">Out</th>
-                    <th className="py-2">Status</th>
+                    <th className="py-2 pr-4">{<Pa>Date</Pa>}</th>
+                    <th className="py-2 pr-4">{<Pa>In</Pa>}</th>
+                    <th className="py-2 pr-4">{<Pa>Out</Pa>}</th>
+                    <th className="py-2">{<Pa>Status</Pa>}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -193,9 +194,9 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             })}
           </div>
 
-          <h3 className="mb-4 text-sm font-semibold text-slate-900">Recent leave requests</h3>
+          <h3 className="mb-4 text-sm font-semibold text-slate-900">{<Pa>Recent leave requests</Pa>}</h3>
           {leaves.length === 0 ? (
-            <p className="text-sm text-slate-500">No leave requests yet.</p>
+            <p className="text-sm text-slate-500">{<Pa>No leave requests yet.</Pa>}</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {leaves.map((l) => (
@@ -211,7 +212,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             </ul>
           )}
           <div className="mt-6">
-            <Link href="/employees" className="text-sm text-slate-500 hover:underline">← Back to employees</Link>
+            <Link href="/employees" className="text-sm text-slate-500 hover:underline">{<Pa>← Back to employees</Pa>}</Link>
           </div>
         </Card>
       </div>

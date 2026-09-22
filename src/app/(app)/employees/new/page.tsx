@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { PageHeader, Card } from "@/components/ui";
@@ -15,7 +16,7 @@ export default async function NewEmployeePage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader title="Add employee" subtitle="Fill the basics — details can be enriched later." />
+      <PageHeader title={<Pa>Add employee</Pa>} subtitle={<Pa>Fill the basics — details can be enriched later.</Pa>} />
       <Card className="p-6">
         <NewEmployeeForm departments={departments} designations={designations} shifts={shifts} />
       </Card>

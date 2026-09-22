@@ -1,4 +1,5 @@
 "use server";
+import { bt } from "@/lib/i18n";
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -23,12 +24,12 @@ export async function createGatePassAction(_prev: ActionState, formData: FormDat
   const targetEmpId = (formData.get("employeeId") as string) || null;
   let employeeId = me.employeeId;
   if (targetEmpId && targetEmpId !== me.employeeId) {
-    if (me.role === "EMPLOYEE") return { error: "Not authorized." };
+    if (me.role === "EMPLOYEE") return { error: await bt("Not authorized.") };
     const target = await db.employee.findFirst({ where: { id: targetEmpId, companyId: me.companyId } });
-    if (!target) return { error: "Employee not found." };
+    if (!target) return { error: await bt("Employee not found.") };
     employeeId = target.id;
   }
-  if (!employeeId) return { error: "Your login isn't linked to an employee profile." };
+  if (!employeeId) return { error: await bt("Your login isn't linked to an employee profile.") };
 
   const parsed = gatePassSchema.safeParse({
     date: formData.get("date"),
@@ -52,7 +53,7 @@ export async function createGatePassAction(_prev: ActionState, formData: FormDat
 
   revalidatePath("/idcard");
   revalidatePath("/approvals");
-  return { success: "Gate pass requested. Manager will review it." };
+  return { success: await bt("Gate pass requested. Manager will review it.") };
 }
 
 export async function decideGatePassAction(id: string, approve: boolean) {
@@ -94,7 +95,7 @@ const punchSchema = z.object({
 
 export async function createPunchRequestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireUser();
-  if (!me.employeeId) return { error: "Your login isn't linked to an employee profile." };
+  if (!me.employeeId) return { error: await bt("Your login isn't linked to an employee profile.") };
 
   const parsed = punchSchema.safeParse({
     type: formData.get("type"),
@@ -106,10 +107,10 @@ export async function createPunchRequestAction(_prev: ActionState, formData: For
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid data." };
   const d = parsed.data;
 
-  if (d.type !== "OT" && !d.time) return { error: "Time is required for manual punch." };
+  if (d.type !== "OT" && !d.time) return { error: await bt("Time is required for manual punch.") };
   if (d.type === "OT") {
     const h = parseFloat(d.hours ?? "");
-    if (!Number.isFinite(h) || h <= 0 || h > 12) return { error: "OT hours must be 0.5–12." };
+    if (!Number.isFinite(h) || h <= 0 || h > 12) return { error: await bt("OT hours must be 0.5–12.") };
   }
 
   await db.punchRequest.create({
@@ -126,7 +127,7 @@ export async function createPunchRequestAction(_prev: ActionState, formData: For
 
   revalidatePath("/attendance");
   revalidatePath("/approvals");
-  return { success: "Request sent to manager for approval." };
+  return { success: await bt("Request sent to manager for approval.") };
 }
 
 export async function decidePunchRequestAction(id: string, approve: boolean) {
@@ -192,12 +193,12 @@ export async function adjustLeaveBalanceAction(_prev: ActionState, formData: For
   const daysRaw = formData.get("days") as string;
   const note = (formData.get("note") as string) || null;
 
-  if (!employeeId || !leaveTypeId) return { error: "Employee and leave type required." };
+  if (!employeeId || !leaveTypeId) return { error: await bt("Employee and leave type required.") };
   const days = parseFloat(daysRaw);
-  if (!Number.isFinite(days) || days === 0) return { error: "Days must be a non-zero number (positive consumes, negative credits)." };
+  if (!Number.isFinite(days) || days === 0) return { error: await bt("Days must be a non-zero number (positive consumes, negative credits).") };
 
   const emp = await db.employee.findFirst({ where: { id: employeeId, companyId: me.companyId } });
-  if (!emp) return { error: "Employee not found." };
+  if (!emp) return { error: await bt("Employee not found.") };
 
   await db.leaveAdjustment.create({
     data: {

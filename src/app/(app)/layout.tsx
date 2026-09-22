@@ -1,4 +1,6 @@
 import { requireUser } from "@/lib/auth";
+import { getRequestLang } from "@/lib/i18n";
+import { LangProvider } from "@/components/LangCtx";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileTopBar, MobileBottomNav } from "@/components/MobileNav";
 
@@ -6,8 +8,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  const lang = await getRequestLang();
 
   return (
+    <LangProvider lang={lang}>
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
       <Sidebar name={user.name} role={user.role} companyName={user.companyName} />
@@ -21,5 +25,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <MobileBottomNav role={user.role} employeeId={user.employeeId} />
     </div>
+    </LangProvider>
   );
 }

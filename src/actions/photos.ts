@@ -1,4 +1,5 @@
 "use server";
+import { bt } from "@/lib/i18n";
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -12,18 +13,18 @@ const OK_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 export async function uploadEmployeePhotoAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireUser();
   const employeeId = formData.get("employeeId") as string;
-  if (!employeeId) return { error: "Employee missing." };
+  if (!employeeId) return { error: await bt("Employee missing.") };
 
   if (employeeId !== me.employeeId && me.role === "EMPLOYEE") {
-    return { error: "Not authorized." };
+    return { error: await bt("Not authorized.") };
   }
   const emp = await db.employee.findFirst({ where: { id: employeeId, companyId: me.companyId } });
-  if (!emp) return { error: "Employee not found." };
+  if (!emp) return { error: await bt("Employee not found.") };
 
   const file = formData.get("photo") as File | null;
-  if (!file || file.size === 0) return { error: "Choose a photo first." };
-  if (!OK_TYPES.has(file.type)) return { error: "Only JPG / PNG / WebP photos allowed." };
-  if (file.size > MAX_BYTES) return { error: "Photo must be under 4 MB." };
+  if (!file || file.size === 0) return { error: await bt("Choose a photo first.") };
+  if (!OK_TYPES.has(file.type)) return { error: await bt("Only JPG / PNG / WebP photos allowed.") };
+  if (file.size > MAX_BYTES) return { error: await bt("Photo must be under 4 MB.") };
 
   try {
     await ensureUploadDir();
@@ -45,7 +46,7 @@ export async function uploadEmployeePhotoAction(_prev: ActionState, formData: Fo
       data: { photoUrl: `/api/photo/${emp.id}?v=${v}`, photoExt: ext },
     });
   } catch (e) {
-    return { error: "Upload failed — try again." };
+    return { error: await bt("Upload failed — try again.") };
   }
 
   revalidatePath(`/employees/${emp.id}`);
@@ -53,16 +54,16 @@ export async function uploadEmployeePhotoAction(_prev: ActionState, formData: Fo
   revalidatePath("/employees");
   revalidatePath("/dashboard");
   revalidatePath("/tops");
-  return { success: "Photo uploaded 📸" };
+  return { success: await bt("Photo uploaded 📸") };
 }
 
 export async function deleteEmployeePhotoAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireUser();
   const employeeId = formData.get("employeeId") as string;
-  if (!employeeId) return { error: "Employee missing." };
-  if (employeeId !== me.employeeId && me.role === "EMPLOYEE") return { error: "Not authorized." };
+  if (!employeeId) return { error: await bt("Employee missing.") };
+  if (employeeId !== me.employeeId && me.role === "EMPLOYEE") return { error: await bt("Not authorized.") };
   const emp = await db.employee.findFirst({ where: { id: employeeId, companyId: me.companyId } });
-  if (!emp) return { error: "Employee not found." };
+  if (!emp) return { error: await bt("Employee not found.") };
 
   const { rm } = await import("node:fs/promises");
   const { join } = await import("node:path");
@@ -77,5 +78,5 @@ export async function deleteEmployeePhotoAction(_prev: ActionState, formData: Fo
   revalidatePath("/employees");
   revalidatePath("/dashboard");
   revalidatePath("/tops");
-  return { success: "Photo removed." };
+  return { success: await bt("Photo removed.") };
 }

@@ -1,4 +1,5 @@
 "use client";
+import { Tt, useT } from "@/components/LangCtx";
 
 import { useActionState, useState } from "react";
 import { updateEmployeeDetailsAction } from "@/actions/employees";
@@ -31,6 +32,7 @@ export function ProfileForms({
   leaveTypes: { id: string; name: string; quota: number }[];
   isYellow: boolean;
 }) {
+  const ph = useT();
   const [editState, editAction, editPending] = useActionState<ActionState, FormData>(updateEmployeeDetailsAction, {});
   const [adjState, adjAction, adjPending] = useActionState<ActionState, FormData>(adjustLeaveBalanceAction, {});
   const [openEdit, setOpenEdit] = useState(false);
@@ -53,8 +55,8 @@ export function ProfileForms({
             <label className="col-span-2 block text-xs font-semibold text-slate-600">
               Staff category
               <select name="category" defaultValue={employee.category} className={inputCls + " mt-1"}>
-                <option value="OFFICIAL">🔵 Official Staff</option>
-                <option value="YELLOW_CARD">🟡 Yellow Card</option>
+                <option value="OFFICIAL">{<Tt>🔵 Official Staff</Tt>}</option>
+                <option value="YELLOW_CARD">{<Tt>🟡 Yellow Card</Tt>}</option>
               </select>
             </label>
             <label className="block text-xs font-semibold text-slate-600">
@@ -68,7 +70,7 @@ export function ProfileForms({
             <label className="block text-xs font-semibold text-slate-600">
               Shift
               <select name="shiftId" defaultValue={employee.shiftId ?? ""} className={inputCls + " mt-1"}>
-                <option value="">General (default)</option>
+                <option value="">{<Tt>General (default)</Tt>}</option>
                 {shifts.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
@@ -76,7 +78,7 @@ export function ProfileForms({
             </label>
             <label className="block text-xs font-semibold text-slate-600">
               Blood group
-              <input name="bloodGroup" defaultValue={employee.bloodGroup ?? ""} placeholder="O+" className={inputCls + " mt-1"} />
+              <input name="bloodGroup" defaultValue={employee.bloodGroup ?? ""} placeholder={ph("O+")} className={inputCls + " mt-1"} />
             </label>
             <label className="block text-xs font-semibold text-slate-600">
               Emergency contact
@@ -115,11 +117,11 @@ export function ProfileForms({
           </label>
           <label className="block text-xs font-semibold text-slate-600">
             Days (+ adds balance, − deducts, e.g. 2 or -1)
-            <input type="number" name="days" step="0.5" placeholder="e.g. 2 or -1" className={inputCls + " mt-1"} required />
+            <input type="number" name="days" step="0.5" placeholder={ph("e.g. 2 or -1")} className={inputCls + " mt-1"} required />
           </label>
           <label className="block text-xs font-semibold text-slate-600">
             Note (optional)
-            <input name="note" placeholder="Correction for August gate pass…" className={inputCls + " mt-1"} />
+            <input name="note" placeholder={ph("Correction for August gate pass…")} className={inputCls + " mt-1"} />
           </label>
           <button disabled={adjPending} className={btnBrand + " w-full justify-center"}>{adjPending ? "Saving…" : "Apply adjustment"}</button>
         </form>

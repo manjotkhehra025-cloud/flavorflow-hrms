@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -22,9 +23,9 @@ export default async function MyKraPage() {
   if (!me.employeeId) {
     return (
       <div>
-        <PageHeader title="My KRA 🎯" subtitle="Quarterly targets & auto-score" />
+        <PageHeader title={<Pa>My KRA 🎯</Pa>} subtitle={<Pa>Quarterly targets & auto-score</Pa>} />
         <Card className="p-5">
-          <EmptyState icon="chart" title="Account not linked" hint="Link your login to an employee profile via the dashboard 'Link account' card — your KRA will show up here." />
+          <EmptyState icon="chart" title={<Pa>Account not linked</Pa>} hint={<Pa>Link your login to an employee profile via the dashboard 'Link account' card — your KRA will show up here.</Pa>} />
         </Card>
       </div>
     );
@@ -50,13 +51,13 @@ export default async function MyKraPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="My KRA 🎯"
-        subtitle="Quarterly weightage targets — HR publishes them, you update progress, the score is automatic"
+        title={<Pa>My KRA 🎯</Pa>}
+        subtitle={<Pa>Quarterly weightage targets — HR publishes them, you update progress, the score is automatic</Pa>}
       />
 
       {cycles.length === 0 && (
         <Card className="p-5">
-          <EmptyState icon="chart" title="No KRA assigned yet" hint="Once HR publishes the quarter cycle, your goals will appear here 🎯" />
+          <EmptyState icon="chart" title={<Pa>No KRA assigned yet</Pa>} hint={<Pa>Once HR publishes the quarter cycle, your goals will appear here 🎯</Pa>} />
         </Card>
       )}
 
@@ -64,7 +65,7 @@ export default async function MyKraPage() {
 
       {history.length > 0 && (
         <Card className="p-5">
-          <h3 className="mb-3 text-sm font-bold text-slate-900">Past quarters 🏁</h3>
+          <h3 className="mb-3 text-sm font-bold text-slate-900">{<Pa>Past quarters 🏁</Pa>}</h3>
           <ul className="divide-y divide-slate-100">
             {history.map(({ cycle, goals }) => {
               const s = kraScoreOf(goals);
@@ -90,7 +91,7 @@ export default async function MyKraPage() {
 
       {me.role !== "EMPLOYEE" && (
         <p className="text-center text-xs text-slate-400">
-          HR/Admin? <Link href="/kra/manage" className="font-semibold text-emerald-600 hover:underline">Manage KRA →</Link>
+          HR/Admin? <Link href="/kra/manage" className="font-semibold text-emerald-600 hover:underline">{<Pa>Manage KRA →</Pa>}</Link>
         </p>
       )}
     </div>
@@ -119,7 +120,7 @@ function KraView({ bucket, canEdit }: { bucket: { cycle: { year: number; quarter
           >
             <div className="flex h-[5.4rem] w-[5.4rem] flex-col items-center justify-center rounded-full bg-[#0a1628]">
               <span className="text-2xl font-extrabold text-emerald-400">{s.pct}%</span>
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">auto score</span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-500">{<Pa>auto score</Pa>}</span>
             </div>
           </div>
           <p className="mt-3 text-xs text-slate-400">

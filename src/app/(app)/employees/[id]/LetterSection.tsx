@@ -1,4 +1,5 @@
 "use client";
+import { Tt, useT } from "@/components/LangCtx";
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
@@ -16,13 +17,14 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 export function LetterSection({ employeeId, letters }: { employeeId: string; letters: Letter[] }) {
+  const ph = useT();
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createLetterAction, {});
   const [open, setOpen] = useState(false);
 
   return (
     <div className="mt-6 border-t border-slate-100 pt-4">
       <div className="mb-3 flex items-center justify-between">
-        <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Letters & Documents</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">{<Tt>Letters & Documents</Tt>}</h4>
         <button onClick={() => setOpen(!open)} className="text-[11px] font-semibold text-emerald-600 hover:underline">
           {open ? "Hide" : "+ Generate"}
         </button>
@@ -34,11 +36,11 @@ export function LetterSection({ employeeId, letters }: { employeeId: string; let
           {state.success && <p className="rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-800">{state.success}</p>}
           <input type="hidden" name="employeeId" value={employeeId} />
           <select name="type" className={inputCls} required>
-            <option value="EXPERIENCE">Experience Certificate</option>
-            <option value="JOINING">Joining / Appointment Letter</option>
-            <option value="KYC">KYC / Employment Verification</option>
+            <option value="EXPERIENCE">{<Tt>Experience Certificate</Tt>}</option>
+            <option value="JOINING">{<Tt>Joining / Appointment Letter</Tt>}</option>
+            <option value="KYC">{<Tt>KYC / Employment Verification</Tt>}</option>
           </select>
-          <input name="issuedTo" className={inputCls} placeholder="Issued to (bank/authority) — optional" />
+          <input name="issuedTo" className={inputCls} placeholder={ph("Issued to (bank/authority) — optional")} />
           <button disabled={pending} className="btn-brand w-full justify-center">
             {pending ? "Creating…" : "Generate letter (auto GDF/HR serial)"}
           </button>
@@ -46,7 +48,7 @@ export function LetterSection({ employeeId, letters }: { employeeId: string; let
       )}
 
       {letters.length === 0 ? (
-        <p className="rounded-xl bg-slate-50 px-3.5 py-4 text-center text-xs text-slate-400">No letters issued yet</p>
+        <p className="rounded-xl bg-slate-50 px-3.5 py-4 text-center text-xs text-slate-400">{<Tt>No letters issued yet</Tt>}</p>
       ) : (
         <ul className="space-y-1.5">
           {letters.map((l) => (

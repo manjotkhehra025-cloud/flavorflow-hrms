@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import { requireStaff } from "@/lib/auth";
 import { buildLeaveBalanceRegister } from "@/lib/reports2";
 import { Card, PageHeader, EmptyState } from "@/components/ui";
@@ -15,7 +16,7 @@ export default async function LeaveBalanceReportPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Leave balance register" subtitle={`Year ${year} · snapshot as of ${asOf}`} />
+      <PageHeader title={<Pa>Leave balance register</Pa>} subtitle={`Year ${year} · snapshot as of ${asOf}`} />
 
       <Card className="flex items-center justify-between p-4">
         <div>
@@ -32,7 +33,7 @@ export default async function LeaveBalanceReportPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/80">
-                <th className="th">Employee</th>
+                <th className="th">{<Pa>Employee</Pa>}</th>
                 {types.map((t) => (
                   <th key={t.id} className="th text-right">{t.name}</th>
                 ))}
@@ -40,7 +41,7 @@ export default async function LeaveBalanceReportPage() {
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={types.length + 1}><EmptyState icon="users" title="No employees yet" hint="Add employees to see leave balances" /></td></tr>
+                <tr><td colSpan={types.length + 1}><EmptyState icon="users" title={<Pa>No employees yet</Pa>} hint={<Pa>Add employees to see leave balances</Pa>} /></td></tr>
               )}
               {rows.map((r) => {
                 const byType = new Map(r.balances.map((b) => [b.leaveTypeId, b]));

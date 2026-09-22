@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
@@ -52,7 +53,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
 
   return (
     <div>
-      <PageHeader title="Pending Approvals" subtitle={`Review, authorize, or decline requests · ${total} waiting`} />
+      <PageHeader title={<Pa>Pending Approvals</Pa>} subtitle={<><Pa>Review, authorize, or decline requests</Pa> · {total} <Pa>waiting</Pa></>} />
 
       {/* Tabs */}
       <div className="mb-6 flex gap-1 overflow-x-auto rounded-2xl bg-slate-200/60 p-1">
@@ -65,7 +66,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
               active === t.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
             )}
           >
-            {t.label}
+            <Pa>{t.label}</Pa>
             <span className={cx(
               "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
               counts[t.key] > 0 ? "bg-emerald-500 text-white" : "bg-slate-300/70 text-slate-500"
@@ -224,7 +225,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
 
 function Blank() {
   return (
-    <EmptyState icon="check" title="No pending requests" hint="All clear — no waiting requests ✨" />
+    <EmptyState icon="check" title={<Pa>No pending requests</Pa>} hint={<Pa>All clear — no waiting requests ✨</Pa>} />
   );
 }
 
@@ -240,10 +241,10 @@ function Actions({ approve, reject }: { approve: () => Promise<void>; reject: ()
   return (
     <div className="flex gap-2">
       <form action={approve}>
-        <button className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 active:scale-95">Approve</button>
+        <button className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 active:scale-95">{<Pa>Approve</Pa>}</button>
       </form>
       <form action={reject}>
-        <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 active:scale-95">Reject</button>
+        <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 active:scale-95">{<Pa>Reject</Pa>}</button>
       </form>
     </div>
   );

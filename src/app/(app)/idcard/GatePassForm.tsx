@@ -1,4 +1,5 @@
 "use client";
+import { Tt, useT } from "@/components/LangCtx";
 
 import { useActionState } from "react";
 import { createGatePassAction } from "@/actions/requests";
@@ -9,14 +10,15 @@ import { Icon } from "@/components/icons";
 type Pass = { id: string; date: string; exitAt: string; returnAt: string | null; reason: string | null; status: string; verified: boolean };
 
 export function GatePassForm({ isOwner, targetEmployeeId, passes }: { isOwner: boolean; targetEmployeeId: string; passes: Pass[] }) {
+  const ph = useT();
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createGatePassAction, {});
 
   return (
     <Card className="p-5">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Digital Gate Passes</h3>
-          <p className="text-xs text-slate-500">Exit permissions &amp; factory duty passes</p>
+          <h3 className="text-sm font-bold text-slate-900">{<Tt>Digital Gate Passes</Tt>}</h3>
+          <p className="text-xs text-slate-500">{<Tt>Exit permissions &amp; factory duty passes</Tt>}</p>
         </div>
         <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">({passes.length})</span>
       </div>
@@ -30,7 +32,7 @@ export function GatePassForm({ isOwner, targetEmployeeId, passes }: { isOwner: b
             <input type="date" name="date" className={inputCls} required />
             <input type="time" name="exitAt" className={inputCls} required title="Exit time" />
             <input type="time" name="returnAt" className={inputCls} title="Return time (optional)" />
-            <input type="text" name="reason" className={inputCls} placeholder="Reason (e.g. urgent work at home)" />
+            <input type="text" name="reason" className={inputCls} placeholder={ph("Reason (e.g. urgent work at home)")} />
           </div>
           <button disabled={pending} className={`${btnBrand} mt-3`}>
             <Icon name="gate" className="h-4 w-4" /> {pending ? "Requesting…" : "+ Request Gate Pass"}
@@ -39,7 +41,7 @@ export function GatePassForm({ isOwner, targetEmployeeId, passes }: { isOwner: b
       )}
 
       {passes.length === 0 ? (
-        <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">No gate passes yet</p>
+        <p className="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">{<Tt>No gate passes yet</Tt>}</p>
       ) : (
         <ul className="space-y-2.5">
           {passes.map((g) => (

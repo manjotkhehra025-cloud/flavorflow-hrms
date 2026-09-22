@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { requireStaff } from "@/lib/auth";
 import { currentMonth, shiftMonth, monthRange } from "@/lib/reports";
@@ -25,7 +26,7 @@ export default async function GatePassLogPage({
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Gate pass log" subtitle="All exit passes · guards & payroll audit trail" />
+      <PageHeader title={<Pa>Gate pass log</Pa>} subtitle={<Pa>All exit passes · guards & payroll audit trail</Pa>} />
 
       <Card className="flex items-center justify-between gap-3 p-4">
         <Link href={`/reports/gate-pass?month=${shiftMonth(month, -1)}`} className="btn-ghost px-3!" aria-label="Previous month">←</Link>
@@ -36,7 +37,7 @@ export default async function GatePassLogPage({
       <Card className="flex items-center justify-between p-4">
         <div>
           <div className="text-2xl font-extrabold text-blue-600">{rows.length}</div>
-          <div className="text-xs font-medium text-slate-500">gate passes</div>
+          <div className="text-xs font-medium text-slate-500">{<Pa>gate passes</Pa>}</div>
         </div>
         <a href={`/api/reports/gate-pass?month=${month}`} className="btn-dark">
           <Icon name="download" className="h-4 w-4" /> Excel
@@ -48,17 +49,17 @@ export default async function GatePassLogPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/80">
-                <th className="th">Employee</th>
-                <th className="th">Date</th>
-                <th className="th text-right">Exit</th>
-                <th className="th text-right">Return</th>
-                <th className="th">Reason</th>
-                <th className="th text-right">Status</th>
+                <th className="th">{<Pa>Employee</Pa>}</th>
+                <th className="th">{<Pa>Date</Pa>}</th>
+                <th className="th text-right">{<Pa>Exit</Pa>}</th>
+                <th className="th text-right">{<Pa>Return</Pa>}</th>
+                <th className="th">{<Pa>Reason</Pa>}</th>
+                <th className="th text-right">{<Pa>Status</Pa>}</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={6}><EmptyState icon="gate" title="No gate passes" hint={`Nobody left through the gate in ${label}`} /></td></tr>
+                <tr><td colSpan={6}><EmptyState icon="gate" title={<Pa>No gate passes</Pa>} hint={`Nobody left through the gate in ${label}`} /></td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.id} className="border-b border-slate-50 last:border-0 hover:bg-blue-50/30">

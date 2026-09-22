@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -48,7 +49,7 @@ export default async function LeavesPage() {
 
   return (
     <div>
-      <PageHeader title="Leaves Management" subtitle={isYellow ? "Yellow Card Staff · 15 EL per year" : "Apply for time off and track approvals."} />
+      <PageHeader title={<Pa>Leaves Management</Pa>} subtitle={isYellow ? "Yellow Card Staff · 15 EL per year" : "Apply for time off and track approvals."} />
 
       {/* Yellow Card policy card */}
       {isYellow && (
@@ -58,10 +59,10 @@ export default async function LeavesPage() {
               <Icon name="badge" className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-amber-900">Yellow Card Staff Leave Policy</h3>
+              <h3 className="text-sm font-bold text-amber-900">{<Pa>Yellow Card Staff Leave Policy</Pa>}</h3>
               <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                Yellow Card staff receive <b>15 Earned Leaves (EL)</b> per year, accrued monthly at{" "}
-                <b>1.25 days per elapsed month</b> from your join month. Casual, Sick and Optional leaves are not applicable.
+                Yellow Card staff receive <b>{<Pa>15 Earned Leaves (EL)</Pa>}</b> per year, accrued monthly at{" "}
+                <b>{<Pa>1.25 days per elapsed month</Pa>}</b> from your join month. Casual, Sick and Optional leaves are not applicable.
               </p>
             </div>
           </div>
@@ -90,12 +91,12 @@ export default async function LeavesPage() {
                   {remaining === null ? (
                     <>
                       <span className="text-3xl font-black text-emerald-600">{consumed}</span>
-                      <span className="text-xs font-medium text-slate-400">taken · unlimited</span>
+                      <span className="text-xs font-medium text-slate-400">{<Pa>taken · unlimited</Pa>}</span>
                     </>
                   ) : (
                     <>
                       <span className="text-3xl font-black text-emerald-600">{remaining}</span>
-                      <span className="text-xs font-medium text-slate-400">days left</span>
+                      <span className="text-xs font-medium text-slate-400">{<Pa>days left</Pa>}</span>
                     </>
                   )}
                 </div>
@@ -125,15 +126,15 @@ export default async function LeavesPage() {
         {me.employeeId && (
           <div className="space-y-6 lg:col-span-2">
             <Card className="p-5">
-              <h3 className="mb-1 text-sm font-bold text-slate-900">Apply for leave</h3>
-              <p className="mb-4 text-xs text-slate-500">Manager reviews and approves.</p>
+              <h3 className="mb-1 text-sm font-bold text-slate-900">{<Pa>Apply for leave</Pa>}</h3>
+              <p className="mb-4 text-xs text-slate-500">{<Pa>Manager reviews and approves.</Pa>}</p>
               <ApplyLeaveForm leaveTypes={leaveTypes} />
             </Card>
 
             <Card className="p-5">
-              <h3 className="mb-4 text-sm font-bold text-slate-900">My requests</h3>
+              <h3 className="mb-4 text-sm font-bold text-slate-900">{<Pa>My requests</Pa>}</h3>
               {myLeaves.length === 0 ? (
-                <EmptyState icon="leaf" title="No leave requests yet" />
+                <EmptyState icon="leaf" title={<Pa>No leave requests yet</Pa>} />
               ) : (
                 <ul className="space-y-2.5">
                   {myLeaves.map((l) => (
@@ -153,7 +154,7 @@ export default async function LeavesPage() {
                               await cancelLeaveAction(l.id);
                             }}
                           >
-                            <button className="text-xs font-semibold text-red-500 hover:underline">Withdraw</button>
+                            <button className="text-xs font-semibold text-red-500 hover:underline">{<Pa>Withdraw</Pa>}</button>
                           </form>
                         </div>
                       )}
@@ -171,10 +172,10 @@ export default async function LeavesPage() {
             <Card className="p-5">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-bold text-slate-900">Pending approvals ({pending.length})</h3>
-                <Link href="/approvals" className="text-xs font-semibold text-emerald-600 hover:underline">Approvals hub →</Link>
+                <Link href="/approvals" className="text-xs font-semibold text-emerald-600 hover:underline">{<Pa>Approvals hub →</Pa>}</Link>
               </div>
               {pending.length === 0 ? (
-                <EmptyState icon="check" title="All clear!" hint="New leave requests will appear here" />
+                <EmptyState icon="check" title={<Pa>All clear!</Pa>} hint={<Pa>New leave requests will appear here</Pa>} />
               ) : (
                 <ul className="space-y-2.5">
                   {pending.map((l) => (
@@ -197,7 +198,7 @@ export default async function LeavesPage() {
                             await decideLeaveAction(l.id, "APPROVED");
                           }}
                         >
-                          <button className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 active:scale-95">Approve</button>
+                          <button className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 active:scale-95">{<Pa>Approve</Pa>}</button>
                         </form>
                         <form
                           action={async () => {
@@ -205,7 +206,7 @@ export default async function LeavesPage() {
                             await decideLeaveAction(l.id, "REJECTED");
                           }}
                         >
-                          <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 active:scale-95">Reject</button>
+                          <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 active:scale-95">{<Pa>Reject</Pa>}</button>
                         </form>
                       </div>
                     </li>
@@ -216,7 +217,7 @@ export default async function LeavesPage() {
           )}
           {!me.employeeId && !staff && (
             <Card className="p-6">
-              <EmptyState icon="leaf" title="No employee profile linked" hint="Ask HR to link your login to an employee record" />
+              <EmptyState icon="leaf" title={<Pa>No employee profile linked</Pa>} hint={<Pa>Ask HR to link your login to an employee record</Pa>} />
             </Card>
           )}
         </div>

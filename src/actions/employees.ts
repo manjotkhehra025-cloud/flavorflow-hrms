@@ -1,4 +1,5 @@
 "use server";
+import { bt } from "@/lib/i18n";
 
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -62,9 +63,9 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
   const d = parsed.data;
 
   if (d.createAccount) {
-    if (!d.email) return { error: "Email is required to create a login account." };
+    if (!d.email) return { error: await bt("Email is required to create a login account.") };
     if (!d.tempPassword || d.tempPassword.length < 8)
-      return { error: "Temporary password must be at least 8 characters." };
+      return { error: await bt("Temporary password must be at least 8 characters.") };
   }
 
   // Friendly guard instead of a DB unique-violation crash: email already owns a login?
@@ -123,7 +124,7 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
     });
   } catch (e) {
     console.error("createEmployeeAction failed:", e);
-    return { error: "Could not save employee — duplicate email or invalid data. Check the fields and try again." };
+    return { error: await bt("Could not save employee — duplicate email or invalid data. Check the fields and try again.") };
   }
 
   revalidatePath("/employees");
@@ -134,7 +135,7 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
 export async function updateEmployeeDetailsAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireStaff();
   const id = formData.get("employeeId") as string;
-  if (!id) return { error: "Employee missing." };
+  if (!id) return { error: await bt("Employee missing.") };
 
   const weeklyOff = parseInt((formData.get("weeklyOff") as string) ?? "0", 10);
   const data = {
@@ -148,10 +149,10 @@ export async function updateEmployeeDetailsAction(_prev: ActionState, formData: 
   };
 
   const res = await db.employee.updateMany({ where: { id, companyId: me.companyId }, data });
-  if (res.count === 0) return { error: "Employee not found." };
+  if (res.count === 0) return { error: await bt("Employee not found.") };
   revalidatePath(`/employees/${id}`);
   revalidatePath("/employees");
-  return { success: "Profile updated." };
+  return { success: await bt("Profile updated.") };
 }
 
 export async function updateEmployeeStatusAction(employeeId: string, status: "ACTIVE" | "INACTIVE") {

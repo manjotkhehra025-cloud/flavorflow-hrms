@@ -1,3 +1,5 @@
+import { pht } from "@/lib/i18n";
+import { Pa } from "@/components/Pa";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { fmtTime } from "@/lib/utils";
@@ -25,12 +27,12 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Settings & Shifts" subtitle="Factory policy configuration — shifts, leave quotas & staff categories." />
+      <PageHeader title={<Pa>Settings & Shifts</Pa>} subtitle={<Pa>Factory policy configuration — shifts, leave quotas & staff categories.</Pa>} />
 
       {/* Company snapshot */}
       <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 border-l-4! border-l-emerald-500! p-5">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Company</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{<Pa>Company</Pa>}</div>
           <div className="mt-0.5 text-lg font-extrabold text-slate-900">{me.companyName}</div>
         </div>
         <div className="flex gap-2">
@@ -43,8 +45,8 @@ export default async function SettingsPage() {
       <Card className="mb-6 p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Shift Management</h3>
-            <p className="text-xs text-slate-500">Configure factory shift rotations — employees punch against these.</p>
+            <h3 className="text-sm font-bold text-slate-900">{<Pa>Shift Management</Pa>}</h3>
+            <p className="text-xs text-slate-500">{<Pa>Configure factory shift rotations — employees punch against these.</Pa>}</p>
           </div>
           <form action={async () => { "use server"; await seedFactoryShiftsAction(); }}>
             <button className="btn-ghost !text-xs">
@@ -54,7 +56,7 @@ export default async function SettingsPage() {
         </div>
 
         {shifts.length === 0 ? (
-          <EmptyState icon="clock" title="No shifts configured" hint="Use 'Seed factory defaults' for General / Night / Season" />
+          <EmptyState icon="clock" title={<Pa>No shifts configured</Pa>} hint={<Pa>Use 'Seed factory defaults' for General / Night / Season</Pa>} />
         ) : (
           <ul className="mb-5 space-y-2.5">
             {shifts.map((s) => (
@@ -65,12 +67,12 @@ export default async function SettingsPage() {
                   </span>
                   <div>
                     <div className="text-sm font-bold text-slate-800">{s.name}</div>
-                    <div className="text-xs text-slate-500">Starts {s.startTime} · {s.durationH}h · {s._count.employees} employee(s)</div>
+                    <div className="text-xs text-slate-500"><Pa>Starts</Pa> {s.startTime} · {s.durationH}h · {s._count.employees} <Pa>employee(s)</Pa></div>
                   </div>
                 </div>
                 <form action={async (fd: FormData) => { "use server"; await deleteShiftAction({}, fd); }}>
                   <input type="hidden" name="id" value={s.id} />
-                  <button className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50">Delete</button>
+                  <button className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50">{<Pa>Delete</Pa>}</button>
                 </form>
               </li>
             ))}
@@ -78,11 +80,11 @@ export default async function SettingsPage() {
         )}
 
         <form action={async (fd: FormData) => { "use server"; await createShiftAction({}, fd); }} className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-4">
-          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Add a new shift</div>
+          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">{<Pa>Add a new shift</Pa>}</div>
           <div className="grid gap-3 sm:grid-cols-4">
-            <input name="name" placeholder="e.g. Season Day" className={`${inputCls} sm:col-span-2`} required />
+            <input name="name" placeholder={await pht("e.g. Season Day")} className={`${inputCls} sm:col-span-2`} required />
             <input type="time" name="startTime" className={inputCls} required title="Start time" />
-            <input type="number" name="durationH" step="0.5" min="1" max="16" placeholder="Hours (e.g. 9)" className={inputCls} required />
+            <input type="number" name="durationH" step="0.5" min="1" max="16" placeholder={await pht("Hours (e.g. 9)")} className={inputCls} required />
           </div>
           <button className={`${btnBrand} mt-3`}>
             <Icon name="plus" className="h-4 w-4" /> Create shift
@@ -92,9 +94,9 @@ export default async function SettingsPage() {
 
       {/* Leave quotas snapshot */}
       <Card className="p-5">
-        <h3 className="mb-4 text-sm font-bold text-slate-900">Leave Type Quotas</h3>
+        <h3 className="mb-4 text-sm font-bold text-slate-900">{<Pa>Leave Type Quotas</Pa>}</h3>
         {leaveTypes.length === 0 ? (
-          <EmptyState icon="leaf" title="No leave types" hint="Seed factory defaults above adds Earned Leave (15)" />
+          <EmptyState icon="leaf" title={<Pa>No leave types</Pa>} hint={<Pa>Seed factory defaults above adds Earned Leave (15)</Pa>} />
         ) : (
           <ul className="space-y-2">
             {leaveTypes.map((t) => (
@@ -106,7 +108,7 @@ export default async function SettingsPage() {
           </ul>
         )}
         <p className="mt-3 text-xs text-slate-400">
-          🟡 Yellow Card staff receive EL only — 15 days/year, auto-accruing 1.25/month from join month. Adjust individual balances from the employee profile.
+          <Pa>🟡 Yellow Card staff receive EL only — 15 days/year, auto-accruing 1.25/month from join month. Adjust individual balances from the employee profile.</Pa>
         </p>
       </Card>
     </div>

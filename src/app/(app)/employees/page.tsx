@@ -1,3 +1,5 @@
+import { pht } from "@/lib/i18n";
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
@@ -37,7 +39,7 @@ export default async function EmployeesPage({
   return (
     <div>
       <PageHeader
-        title="Employees"
+        title={<Pa>Employees</Pa>}
         subtitle={`${employees.length} ${status === "INACTIVE" ? "inactive" : "active"} people`}
         actions={
           <Link href="/employees/new" className={btnBrand}>
@@ -51,14 +53,14 @@ export default async function EmployeesPage({
           <input
             name="q"
             defaultValue={q ?? ""}
-            placeholder="Search name, code or email…"
+            placeholder={await pht("Search name, code or email…")}
             className={cx(inputCls, "max-w-xs")}
           />
           <select name="status" defaultValue={status ?? "ACTIVE"} className={cx(inputCls, "w-auto")}>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="ACTIVE">{<Pa>Active</Pa>}</option>
+            <option value="INACTIVE">{<Pa>Inactive</Pa>}</option>
           </select>
-          <button className={btnBrand}>Search</button>
+          <button className={btnBrand}>{<Pa>Search</Pa>}</button>
         </form>
       </Card>
 
@@ -67,20 +69,20 @@ export default async function EmployeesPage({
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/80">
-                <th className="th">Employee</th>
-                <th className="th">Code</th>
-                <th className="th">Department</th>
-                <th className="th">Designation</th>
-                <th className="th">Joined</th>
-                <th className="th">Login</th>
-                <th className="th">Status</th>
+                <th className="th">{<Pa>Employee</Pa>}</th>
+                <th className="th">{<Pa>Code</Pa>}</th>
+                <th className="th">{<Pa>Department</Pa>}</th>
+                <th className="th">{<Pa>Designation</Pa>}</th>
+                <th className="th">{<Pa>Joined</Pa>}</th>
+                <th className="th">{<Pa>Login</Pa>}</th>
+                <th className="th">{<Pa>Status</Pa>}</th>
               </tr>
             </thead>
             <tbody>
               {employees.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-5 py-10 text-center text-slate-500">
-                    No employees found. <Link href="/employees/new" className="text-amber-600 hover:underline">Add one</Link>.
+                    No employees found. <Link href="/employees/new" className="text-amber-600 hover:underline">{<Pa>Add one</Pa>}</Link>.
                   </td>
                 </tr>
               )}

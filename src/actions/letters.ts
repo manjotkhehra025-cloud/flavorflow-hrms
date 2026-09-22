@@ -1,4 +1,5 @@
 "use server";
+import { bt } from "@/lib/i18n";
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -13,11 +14,11 @@ export async function createLetterAction(_prev: ActionState, formData: FormData)
   const type = (formData.get("type") as string)?.toUpperCase();
   const issuedTo = (formData.get("issuedTo") as string)?.trim() || null;
 
-  if (!employeeId) return { error: "Employee missing." };
-  if (!LETTER_TYPES.has(type)) return { error: "Choose a letter type." };
+  if (!employeeId) return { error: await bt("Employee missing.") };
+  if (!LETTER_TYPES.has(type)) return { error: await bt("Choose a letter type.") };
 
   const emp = await db.employee.findFirst({ where: { id: employeeId, companyId: me.companyId } });
-  if (!emp) return { error: "Employee not found." };
+  if (!emp) return { error: await bt("Employee not found.") };
 
   const year = new Date().getUTCFullYear();
   const letter = await db.$transaction(async (tx) => {

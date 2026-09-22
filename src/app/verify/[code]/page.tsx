@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { fmtDate, initials } from "@/lib/utils";
@@ -23,7 +24,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ code: s
             {emp.company.name.slice(0, 2).toUpperCase()}
           </div>
           <div className="mt-2 text-xs font-black tracking-wide text-slate-300">{emp.company.name.toUpperCase()}</div>
-          <div className="text-[10px] font-semibold tracking-[0.2em] text-emerald-400">HRMATE IDENTITY VERIFICATION</div>
+          <div className="text-[10px] font-semibold tracking-[0.2em] text-emerald-400">{<Pa>HRMATE IDENTITY VERIFICATION</Pa>}</div>
         </div>
         <div className="p-6">
           <div className="flex items-center gap-4">

@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
@@ -59,7 +60,7 @@ export default async function KraManagePage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <PageHeader title="KRA Manage 🎯" subtitle="Quarterly weightage targets — set → publish → score → lock" />
+      <PageHeader title={<Pa>KRA Manage 🎯</Pa>} subtitle={<Pa>Quarterly weightage targets — set → publish → score → lock</Pa>} />
 
       {/* Cycle picker */}
       <div className="flex flex-wrap items-center gap-2">
@@ -80,7 +81,7 @@ export default async function KraManagePage({ searchParams }: { searchParams: Pr
 
       {!cycle ? (
         <Card className="p-5">
-          <EmptyState icon="chart" title="No cycles yet" hint="Start with 'New cycle' above — add goals, then publish." />
+          <EmptyState icon="chart" title={<Pa>No cycles yet</Pa>} hint={<Pa>Start with 'New cycle' above — add goals, then publish.</Pa>} />
         </Card>
       ) : (
         <>
@@ -89,7 +90,7 @@ export default async function KraManagePage({ searchParams }: { searchParams: Pr
             <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-teal-500/15 blur-3xl" />
             <div className="relative flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400/90">Cycle</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400/90">{<Pa>Cycle</Pa>}</p>
                 <h2 className="mt-1 text-xl font-extrabold">Q{cycle.quarter} {cycle.year} <span className="text-sm font-medium text-slate-400">({QTR_LABEL[cycle.quarter]})</span></h2>
                 <p className="mt-1 text-xs text-slate-400">
                   {goals.length} goals · {perEmp.size} employees · <Badge tone={TONE[cycle.status]}>{cycle.status}</Badge>
@@ -144,7 +145,7 @@ export default async function KraManagePage({ searchParams }: { searchParams: Pr
           {/* Employee editors */}
           {rows.length === 0 && (
             <Card className="p-5">
-              <EmptyState icon="users" title="Add goals first" hint="3–5 weightage goals per employee (total must be 100%)." />
+              <EmptyState icon="users" title={<Pa>Add goals first</Pa>} hint={<Pa>3–5 weightage goals per employee (total must be 100%).</Pa>} />
             </Card>
           )}
           <div className="space-y-4">

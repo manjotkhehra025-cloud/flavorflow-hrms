@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { requireStaff } from "@/lib/auth";
 import { currentMonth, shiftMonth, monthRange } from "@/lib/reports";
@@ -19,7 +20,7 @@ export default async function OtReportPage({
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Overtime report" subtitle="Hours worked beyond shift length · plus approved OT requests" />
+      <PageHeader title={<Pa>Overtime report</Pa>} subtitle={<Pa>Hours worked beyond shift length · plus approved OT requests</Pa>} />
 
       <Card className="flex items-center justify-between gap-3 p-4">
         <Link href={`/reports/ot?month=${shiftMonth(month, -1)}`} className="btn-ghost px-3!" aria-label="Previous month">←</Link>
@@ -29,7 +30,7 @@ export default async function OtReportPage({
 
       <Card className="flex items-center justify-between p-4">
         <div>
-          <div className="text-2xl font-extrabold text-amber-600">{hoursFmt(totalOt)} <span className="text-sm">hrs</span></div>
+          <div className="text-2xl font-extrabold text-amber-600">{hoursFmt(totalOt)} <span className="text-sm">{<Pa>hrs</Pa>}</span></div>
           <div className="text-xs font-medium text-slate-500">total overtime · {rows.length} entries</div>
         </div>
         <a href={`/api/reports/ot?month=${month}`} className="btn-dark">
@@ -42,16 +43,16 @@ export default async function OtReportPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/80">
-                <th className="th">Employee</th>
-                <th className="th">Date</th>
-                <th className="th text-right">Worked</th>
-                <th className="th text-right">OT hrs</th>
-                <th className="th text-right">Source</th>
+                <th className="th">{<Pa>Employee</Pa>}</th>
+                <th className="th">{<Pa>Date</Pa>}</th>
+                <th className="th text-right">{<Pa>Worked</Pa>}</th>
+                <th className="th text-right">{<Pa>OT hrs</Pa>}</th>
+                <th className="th text-right">{<Pa>Source</Pa>}</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={5}><EmptyState icon="chart" title="No overtime this month" hint={`No OT hours recorded in ${label}`} /></td></tr>
+                <tr><td colSpan={5}><EmptyState icon="chart" title={<Pa>No overtime this month</Pa>} hint={`No OT hours recorded in ${label}`} /></td></tr>
               )}
               {rows.map((r, i) => (
                 <tr key={`${r.employeeId}-${r.date}-${r.source}-${i}`} className="border-b border-slate-50 last:border-0 hover:bg-amber-50/40">

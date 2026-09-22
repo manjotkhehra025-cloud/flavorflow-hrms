@@ -1,3 +1,5 @@
+import { pht } from "@/lib/i18n";
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
@@ -70,9 +72,11 @@ export default async function StarPage({ searchParams }: { searchParams: Promise
     })
     .sort((a, b) => b.score - a.score);
 
+  const notePh = await pht("Note (optional)");
+
   return (
     <div className="space-y-6">
-      <PageHeader title="⭐ Star of the Month" subtitle="Auto-shortlist (attendance + KRA) — the final pick is yours" />
+      <PageHeader title={<Pa>⭐ Star of the Month</Pa>} subtitle={<Pa>Auto-shortlist (attendance + KRA) — the final pick is yours</Pa>} />
 
       {/* Month picker */}
       <div className="flex flex-wrap items-center gap-2">
@@ -105,8 +109,8 @@ export default async function StarPage({ searchParams }: { searchParams: Promise
       {/* Shortlist */}
       {!picked && (
         <Card className="p-5">
-          <h3 className="text-sm font-bold text-slate-900">Auto shortlist — {monthLabel(key)}</h3>
-          <p className="mb-4 text-xs text-slate-400">Attendance (×4) + KRA score — complaints. Tap Pick ⭐ — add a note if you like.</p>
+          <h3 className="text-sm font-bold text-slate-900"><Pa>Auto shortlist</Pa> — {monthLabel(key)}</h3>
+          <p className="mb-4 text-xs text-slate-400">{<Pa>Attendance (×4) + KRA score — complaints. Tap Pick ⭐ — add a note if you like.</Pa>}</p>
           <ul className="divide-y divide-slate-100">
             {candidates.slice(0, 6).map((c, i) => (
               <li key={c.e.id} className="flex flex-wrap items-center gap-3 py-3">
@@ -131,7 +135,7 @@ export default async function StarPage({ searchParams }: { searchParams: Promise
                 >
                   <input
                     name="note"
-                    placeholder="Note (optional)"
+                    placeholder={notePh}
                     className="w-28 rounded-lg border border-slate-200 px-2.5 py-2 text-[11px] outline-none focus:border-emerald-400 sm:w-40"
                   />
                   <button className="rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-3.5 py-2 text-xs font-extrabold text-amber-950 shadow-sm transition hover:from-amber-300 hover:to-amber-400 active:scale-95">
@@ -146,9 +150,9 @@ export default async function StarPage({ searchParams }: { searchParams: Promise
 
       {/* Hall of fame */}
       <Card className="p-5">
-        <h3 className="mb-4 text-sm font-bold text-slate-900">Hall of Fame 🏆</h3>
+        <h3 className="mb-4 text-sm font-bold text-slate-900">{<Pa>Hall of Fame 🏆</Pa>}</h3>
         {awards.length === 0 ? (
-          <EmptyState icon="badge" title="No stars yet" hint="Declare the first star — it will shine on everyone's dashboard!" />
+          <EmptyState icon="badge" title={<Pa>No stars yet</Pa>} hint={<Pa>Declare the first star — it will shine on everyone's dashboard!</Pa>} />
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-2">
             {awards.map((a) => (

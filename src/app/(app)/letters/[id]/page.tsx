@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -61,8 +62,8 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="mt-6 flex items-center justify-between text-sm text-slate-700">
-          <div>Ref: <b>{letter.serial}</b></div>
-          <div>Dated: <b>{fmtDate(letter.createdAt)}</b></div>
+          <div>{<Pa>Ref:</Pa>}<b>{letter.serial}</b></div>
+          <div>{<Pa>Dated:</Pa>}<b>{fmtDate(letter.createdAt)}</b></div>
         </div>
 
         <div className="mt-6 whitespace-pre-line text-sm leading-relaxed text-slate-700">{addressee},</div>
@@ -75,8 +76,8 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
           {letter.type === "EXPERIENCE" && (
             <>
               <p>
-                This is to certify that <b>Mr./Ms. {name}</b>, holding Employee ID <b>{e.code}</b>, has been working
-                with <b>{letter.company.name}</b> as <b>{role}</b> in the <b>{dept}</b> department since{" "}
+                This is to certify that <b>Mr./Ms. {name}</b>{<Pa>, holding Employee ID</Pa>}<b>{e.code}</b>, has been working
+                with <b>{letter.company.name}</b>{<Pa>as</Pa>}<b>{role}</b>{<Pa>in the</Pa>}<b>{dept}</b> department since{" "}
                 <b>{fmtDate(e.joinDate)}</b>.
               </p>
               <p>
@@ -92,8 +93,8 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
           {letter.type === "JOINING" && (
             <>
               <p>
-                We are pleased to confirm the appointment of <b>Mr./Ms. {name}</b>, Employee ID <b>{e.code}</b>,
-                with <b>{letter.company.name}</b> as <b>{role}</b> in the <b>{dept}</b> department, effective{" "}
+                We are pleased to confirm the appointment of <b>Mr./Ms. {name}</b>{<Pa>, Employee ID</Pa>}<b>{e.code}</b>,
+                with <b>{letter.company.name}</b>{<Pa>as</Pa>}<b>{role}</b>{<Pa>in the</Pa>}<b>{dept}</b> department, effective{" "}
                 <b>{fmtDate(e.joinDate)}</b>.
               </p>
               <p>
@@ -110,11 +111,11 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
             <>
               <p>
                 This is to verify, at the request of {letter.issuedTo ? <b>{letter.issuedTo}</b> : "the concerned authority"},
-                that <b>Mr./Ms. {name}</b>, holding Employee ID <b>{e.code}</b>, is presently employed
-                with <b>{letter.company.name}</b> as <b>{role}</b> in the <b>{dept}</b> department.
+                that <b>Mr./Ms. {name}</b>{<Pa>, holding Employee ID</Pa>}<b>{e.code}</b>, is presently employed
+                with <b>{letter.company.name}</b>{<Pa>as</Pa>}<b>{role}</b>{<Pa>in the</Pa>}<b>{dept}</b> department.
               </p>
               <p>
-                {e.address && <>As per our records, the employee's declared residential address is: <b>{e.address}.</b></>}
+                {e.address && <>{<Pa>As per our records, the employee's declared residential address is:</Pa>}<b>{e.address}.</b></>}
               </p>
               <p>
                 The employee joined the company on <b>{fmtDate(e.joinDate)}</b> and is currently on active rolls
@@ -130,11 +131,11 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
             <div className="h-16 w-16 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-300">
               SEAL
             </div>
-            <div className="mt-1 text-center text-[10px]">Company Seal</div>
+            <div className="mt-1 text-center text-[10px]">{<Pa>Company Seal</Pa>}</div>
           </div>
           <div className="text-right">
             <div className="text-sm font-bold text-slate-700">For {letter.company.name}</div>
-            <div className="mt-10 border-t border-slate-300 pt-1 text-xs font-semibold text-slate-500">Authorized Signatory (HR)</div>
+            <div className="mt-10 border-t border-slate-300 pt-1 text-xs font-semibold text-slate-500">{<Pa>Authorized Signatory (HR)</Pa>}</div>
           </div>
         </div>
 

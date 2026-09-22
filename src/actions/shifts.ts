@@ -1,4 +1,5 @@
 "use server";
+import { bt } from "@/lib/i18n";
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -22,14 +23,14 @@ export async function createShiftAction(_prev: ActionState, formData: FormData):
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid data." };
   const d = parsed.data;
   const hours = parseFloat(d.durationH);
-  if (!Number.isFinite(hours) || hours <= 0 || hours > 16) return { error: "Hours must be 0.5–16." };
+  if (!Number.isFinite(hours) || hours <= 0 || hours > 16) return { error: await bt("Hours must be 0.5–16.") };
 
   try {
     await db.shift.create({
       data: { companyId: me.companyId, name: d.name.trim(), startTime: d.startTime, durationH: hours },
     });
   } catch {
-    return { error: "A shift with this name already exists." };
+    return { error: await bt("A shift with this name already exists.") };
   }
   revalidatePath("/settings");
   revalidatePath("/employees");
@@ -40,7 +41,7 @@ export async function deleteShiftAction(_prev: ActionState, formData: FormData):
   const me = await requireStaff();
   const id = String(formData.get("id") ?? "");
   const shift = await db.shift.findFirst({ where: { id, companyId: me.companyId } });
-  if (!shift) return { error: "Shift not found." };
+  if (!shift) return { error: await bt("Shift not found.") };
   await db.employee.updateMany({ where: { shiftId: shift.id }, data: { shiftId: null } });
   await db.shift.delete({ where: { id: shift.id } });
   revalidatePath("/settings");
@@ -70,5 +71,5 @@ export async function seedFactoryShiftsAction(): Promise<ActionState> {
     update: { daysPerYear: 15 },
   });
   revalidatePath("/settings");
-  return { success: "Factory defaults ready: 3 shifts + Earned Leave (15/yr)." };
+  return { success: await bt("Factory defaults ready: 3 shifts + Earned Leave (15/yr).") };
 }

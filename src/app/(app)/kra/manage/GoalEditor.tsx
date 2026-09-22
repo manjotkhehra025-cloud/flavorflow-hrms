@@ -1,4 +1,5 @@
 "use client";
+import { Tt, useT } from "@/components/LangCtx";
 
 import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ export function GoalEditor({
   scorePct: number | null;
   weightOk: boolean;
 }) {
+  const ph = useT();
   const router = useRouter();
   const [open, setOpen] = useState(goals.length > 0);
   const [busy, startTransition] = useTransition();
@@ -72,7 +74,7 @@ export function GoalEditor({
           <div>
             <div className="text-sm font-bold text-slate-800">{employeeName} <span className="font-mono text-[10px] font-normal text-slate-400">{employeeCode}</span></div>
             <div className="text-[11px] text-slate-500">
-              {goals.length} goals · weight {wsum}%{goals.length > 0 && !weightOk && <b className="text-rose-500"> (not 100%!)</b>}
+              {goals.length} goals · weight {wsum}%{goals.length > 0 && !weightOk && <b className="text-rose-500">{<Tt>(not 100%!)</Tt>}</b>}
             </div>
           </div>
         </div>
@@ -137,10 +139,10 @@ export function GoalEditor({
           {editable && (
             <div className="rounded-xl border border-dashed border-emerald-300/70 bg-emerald-50/40 p-3">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_64px_64px_76px]">
-                <input ref={titleRef} placeholder="Goal title (e.g. Dispatch accuracy)" className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-emerald-400" />
-                <input ref={weightRef} placeholder="Wt %" type="number" min="1" max="100" className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-emerald-400" />
-                <input ref={targetRef} placeholder="Target" type="number" min="0" step="0.5" className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-emerald-400" />
-                <input ref={unitRef} placeholder="Unit" className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-emerald-400" />
+                <input ref={titleRef} placeholder={ph("Goal title (e.g. Dispatch accuracy)")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-emerald-400" />
+                <input ref={weightRef} placeholder={ph("Wt %")} type="number" min="1" max="100" className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-emerald-400" />
+                <input ref={targetRef} placeholder={ph("Target")} type="number" min="0" step="0.5" className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-emerald-400" />
+                <input ref={unitRef} placeholder={ph("Unit")} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs outline-none focus:border-emerald-400" />
               </div>
               <button
                 onClick={addGoal}
@@ -152,7 +154,7 @@ export function GoalEditor({
             </div>
           )}
           {cycleStatus === "CLOSED" && (
-            <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-medium text-slate-500">🔒 This cycle is locked — read-only.</p>
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-medium text-slate-500">{<Tt>🔒 This cycle is locked — read-only.</Tt>}</p>
           )}
         </div>
       )}

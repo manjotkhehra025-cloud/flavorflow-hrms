@@ -1,4 +1,5 @@
 "use server";
+import { bt } from "@/lib/i18n";
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -16,7 +17,7 @@ const leaveSchema = z.object({
 
 export async function applyLeaveAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireUser();
-  if (!me.employeeId) return { error: "Your account is not linked to an employee profile." };
+  if (!me.employeeId) return { error: await bt("Your account is not linked to an employee profile.") };
 
   const parsed = leaveSchema.safeParse({
     leaveTypeId: formData.get("leaveTypeId"),
@@ -28,10 +29,10 @@ export async function applyLeaveAction(_prev: ActionState, formData: FormData): 
 
   const from = toDateOnly(parsed.data.fromDate);
   const to = toDateOnly(parsed.data.toDate);
-  if (to < from) return { error: "End date can't be before start date." };
+  if (to < from) return { error: await bt("End date can't be before start date.") };
 
   const days = dayDiffInclusive(from, to);
-  if (days > 30) return { error: "Leave longer than 30 days needs admin entry." };
+  if (days > 30) return { error: await bt("Leave longer than 30 days needs admin entry.") };
 
   const overlap = await db.leaveRequest.findFirst({
     where: {
@@ -41,7 +42,7 @@ export async function applyLeaveAction(_prev: ActionState, formData: FormData): 
       toDate: { gte: from },
     },
   });
-  if (overlap) return { error: "You already have a leave request overlapping these dates." };
+  if (overlap) return { error: await bt("You already have a leave request overlapping these dates.") };
 
   await db.leaveRequest.create({
     data: {

@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { LoginForm } from "./LoginForm";
@@ -13,11 +14,11 @@ function BrandPanel() {
       <div className="pointer-events-none absolute -bottom-28 -left-16 h-72 w-72 rounded-full bg-teal-500/10 blur-3xl" />
       <div className="relative flex items-center gap-3">
         <HLogo className="h-11 w-11" />
-        <span className="text-lg font-bold tracking-tight">HRMate</span>
+        <span className="text-lg font-bold tracking-tight">{<Pa>HRMate</Pa>}</span>
       </div>
       <div className="relative">
         <h2 className="text-3xl font-extrabold leading-tight tracking-tight">
-          Factory people, punch<br />&amp; gate pass — <span className="text-emerald-400">sorted.</span>
+          Factory people, punch<br />{<Pa>&amp; gate pass —</Pa>}<span className="text-emerald-400">{<Pa>sorted.</Pa>}</span>
         </h2>
         <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">
           Your whole workforce in one clean workspace. Biometric-style punches, leave & gate pass approvals, ID cards with QR — no spreadsheets, no WhatsApp chaos.
@@ -52,11 +53,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <div className="mx-auto mb-3">
               <HLogo className="mx-auto h-12 w-12 drop-shadow-[0_6px_16px_rgb(16_185_129_/_35%)]" />
             </div>
-            <h1 className="text-lg font-bold text-slate-900">HRMate</h1>
+            <h1 className="text-lg font-bold text-slate-900">{<Pa>HRMate</Pa>}</h1>
           </div>
           <div className="card p-7">
-            <h2 className="text-lg font-bold text-slate-900">Welcome back</h2>
-            <p className="mb-5 mt-0.5 text-sm text-slate-500">Sign in to your workspace</p>
+            <h2 className="text-lg font-bold text-slate-900">{<Pa>Welcome back</Pa>}</h2>
+            <p className="mb-5 mt-0.5 text-sm text-slate-500">{<Pa>Sign in to your workspace</Pa>}</p>
             {setup === "done" && (
               <p className="mb-4 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
                 Setup complete — sign in with your admin account.

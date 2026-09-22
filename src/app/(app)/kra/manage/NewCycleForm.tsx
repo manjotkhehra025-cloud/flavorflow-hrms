@@ -1,4 +1,5 @@
 "use client";
+import { Tt } from "@/components/LangCtx";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +42,7 @@ export function NewCycleForm() {
 
   return (
     <div className="w-full rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/60">
-      <p className="mb-3 text-xs font-bold text-slate-700">Nava KRA cycle — year te quarter chuno</p>
+      <p className="mb-3 text-xs font-bold text-slate-700">{<Tt>New KRA cycle — pick year and quarter</Tt>}</p>
       <div className="flex flex-wrap items-center gap-2">
         <select
           value={year}

@@ -1,3 +1,5 @@
+import { pht } from "@/lib/i18n";
+import { Pa } from "@/components/Pa";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { fmtDate, todayDate } from "@/lib/utils";
@@ -26,7 +28,7 @@ export default async function HolidaysPage() {
 
   return (
     <div>
-      <PageHeader title={`Holidays ${year}`} subtitle="Company holiday calendar." />
+      <PageHeader title={`Holidays ${year}`} subtitle={<Pa>Company holiday calendar.</Pa>} />
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="p-5 lg:col-span-2">
           {holidays.length === 0 ? (
@@ -42,7 +44,7 @@ export default async function HolidaysPage() {
                       <Badge tone={past ? "slate" : "blue"}>{fmtDate(h.date)}</Badge>
                       {staff && (
                         <form action={deleteHolidayAction.bind(null, h.id)}>
-                          <button className="text-xs text-red-500 hover:underline">Delete</button>
+                          <button className="text-xs text-red-500 hover:underline">{<Pa>Delete</Pa>}</button>
                         </form>
                       )}
                     </span>
@@ -54,11 +56,11 @@ export default async function HolidaysPage() {
         </Card>
         {staff && (
           <Card className="h-fit p-5">
-            <h3 className="mb-4 text-sm font-semibold text-slate-900">Add holiday</h3>
+            <h3 className="mb-4 text-sm font-semibold text-slate-900">{<Pa>Add holiday</Pa>}</h3>
             <form action={addHolidayAction} className="space-y-3">
-              <input name="name" required placeholder="e.g. Diwali" className={inputCls} />
+              <input name="name" required placeholder={await pht("e.g. Diwali")} className={inputCls} />
               <input name="date" type="date" required className={inputCls} />
-              <button className={btnBrand}>Add</button>
+              <button className={btnBrand}>{<Pa>Add</Pa>}</button>
             </form>
           </Card>
         )}

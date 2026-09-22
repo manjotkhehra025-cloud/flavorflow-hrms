@@ -1,3 +1,4 @@
+import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -17,9 +18,9 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
   if (!me.employeeId) {
     return (
       <div>
-        <PageHeader title="Helpdesk 💬" subtitle="Complaint ya suggestion — HR tak seedha" />
+        <PageHeader title={<Pa>Helpdesk 💬</Pa>} subtitle={<Pa>Complaints and suggestions — straight to HR</Pa>} />
         <Card className="p-5">
-          <EmptyState icon="chat" title="Account not linked" hint="First link your login to an employee profile using the dashboard 'Link your login' card — then Helpdesk will open." />
+          <EmptyState icon="chat" title={<Pa>Account not linked</Pa>} hint={<Pa>First link your login to an employee profile using the dashboard 'Link your login' card — then Helpdesk will open.</Pa>} />
         </Card>
       </div>
     );
@@ -51,16 +52,16 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Helpdesk 💬" subtitle={staff ? "Team complaints & suggestions — reply and resolve" : "Complaints & suggestions — straight to HR"} />
+      <PageHeader title={<Pa>Helpdesk 💬</Pa>} subtitle={staff ? <Pa>Team complaints & suggestions — reply and resolve</Pa> : <Pa>Complaints & suggestions — straight to HR</Pa>} />
 
       {staff && (
         <div className="flex gap-1 rounded-2xl bg-slate-200/60 p-1">
           <Link href="/helpdesk?tab=inbox" className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeTab === "inbox" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
-            🎫 Team inbox
+            🎫 <Pa>Team inbox</Pa>
             {countOf("OPEN") > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-white">{countOf("OPEN")}</span>}
           </Link>
           <Link href="/helpdesk?tab=mine" className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeTab === "mine" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
-            💬 My tickets
+            💬 <Pa>My tickets</Pa>
           </Link>
         </div>
       )}
@@ -69,9 +70,9 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
         <>
           <RaiseTicketForm />
           <Card className="p-5">
-            <h3 className="mb-4 text-sm font-bold text-slate-900">My tickets ({myTickets.length})</h3>
+            <h3 className="mb-4 text-sm font-bold text-slate-900"><Pa>My tickets</Pa> ({myTickets.length})</h3>
             {myTickets.length === 0 ? (
-              <EmptyState icon="chat" title="No tickets yet" hint="Machine, salary, uniform, canteen or safety — raise one with the form above 💬" />
+              <EmptyState icon="chat" title={<Pa>No tickets yet</Pa>} hint={<Pa>Machine, salary, uniform, canteen or safety — raise one with the form above 💬</Pa>} />
             ) : (
               <ul className="space-y-2.5">
                 {myTickets.map((t) => {
@@ -85,14 +86,14 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                             <span className="truncate">{t.subject}</span>
-                            {unreadStaffReply && <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" title="Navi reply!" />}
+                            {unreadStaffReply && <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" title="New reply from HR!" />}
                           </div>
                           <div className="text-xs text-slate-500">
-                            {c.label} · {fmtDate(t.createdAt)}
-                            {lp ? ` · Last: ${lp.isStaff ? "HR" : "You"}` : ""}
+                            <Pa>{c.label}</Pa> · {fmtDate(t.createdAt)}
+                            {lp ? <> · <Pa>Last</Pa>: {lp.isStaff ? "HR" : <Pa>You</Pa>}</> : ""}
                           </div>
                         </div>
-                        <Badge tone={TICKET_TONE[t.status]}>{t.status === "IN_PROGRESS" ? "IN PROGRESS" : t.status}</Badge>
+                        <Badge tone={TICKET_TONE[t.status]}><Pa>{t.status === "IN_PROGRESS" ? "IN PROGRESS" : t.status}</Pa></Badge>
                       </Link>
                     </li>
                   );
@@ -118,7 +119,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
             ))}
           </div>
           {inboxTickets.length === 0 ? (
-            <EmptyState icon="check" title="All clear 🎉" hint="No tickets in this filter." />
+            <EmptyState icon="check" title={<Pa>All clear 🎉</Pa>} hint={<Pa>No tickets in this filter.</Pa>} />
           ) : (
             <ul className="space-y-2.5">
               {inboxTickets.map((t) => {
@@ -132,11 +133,11 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                           <span className="truncate">{t.employee.firstName} {t.employee.lastName}: {t.subject}</span>
-                          {unreadEmpReply && <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" title="Navi employee reply!" />}
+                          {unreadEmpReply && <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" title="New reply from employee!" />}
                         </div>
-                        <div className="text-xs text-slate-500">{c.label} · {fmtDate(t.createdAt)}{lp ? ` · Last: ${lp.isStaff ? (lp.authorName) : "Employee"}` : ""}</div>
+                        <div className="text-xs text-slate-500"><Pa>{c.label}</Pa> · {fmtDate(t.createdAt)}{lp ? <> · <Pa>Last</Pa>: {lp.isStaff ? (lp.authorName) : <Pa>Employee</Pa>}</> : ""}</div>
                       </div>
-                      <Badge tone={TICKET_TONE[t.status]}>{t.status === "IN_PROGRESS" ? "IN PROGRESS" : t.status}</Badge>
+                      <Badge tone={TICKET_TONE[t.status]}><Pa>{t.status === "IN_PROGRESS" ? "IN PROGRESS" : t.status}</Pa></Badge>
                     </Link>
                   </li>
                 );

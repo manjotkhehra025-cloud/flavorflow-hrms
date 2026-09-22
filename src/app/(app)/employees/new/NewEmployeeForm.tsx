@@ -1,4 +1,5 @@
 "use client";
+import { Tt, useT } from "@/components/LangCtx";
 
 import { useActionState } from "react";
 import { createEmployeeAction } from "@/actions/employees";
@@ -11,6 +12,7 @@ type ShiftOpt = { id: string; name: string; startTime: string };
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export function NewEmployeeForm({ departments, designations, shifts }: { departments: Opt[]; designations: Opt[]; shifts: ShiftOpt[] }) {
+  const ph = useT();
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createEmployeeAction, {});
 
   return (
@@ -22,12 +24,12 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="First name *"><input name="firstName" required className={inputCls} /></Field>
         <Field label="Last name *"><input name="lastName" required className={inputCls} /></Field>
-        <Field label="Email"><input name="email" type="email" className={inputCls} placeholder="name@gdfoods.co.in" /></Field>
+        <Field label="Email"><input name="email" type="email" className={inputCls} placeholder={ph("name@gdfoods.co.in")} /></Field>
         <Field label="Phone"><input name="phone" className={inputCls} placeholder="+91…" /></Field>
         <Field label="Staff category">
           <select name="category" className={inputCls}>
-            <option value="OFFICIAL">Official Staff</option>
-            <option value="YELLOW_CARD">Yellow Card (15 EL / yr)</option>
+            <option value="OFFICIAL">{<Tt>Official Staff</Tt>}</option>
+            <option value="YELLOW_CARD">{<Tt>Yellow Card (15 EL / yr)</Tt>}</option>
           </select>
         </Field>
         <Field label="Weekly off">
@@ -39,20 +41,20 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
         </Field>
         <Field label="Shift">
           <select name="shiftId" className={inputCls}>
-            <option value="">General Day (default)</option>
+            <option value="">{<Tt>General Day (default)</Tt>}</option>
             {shifts.map((s) => (
               <option key={s.id} value={s.id}>{s.name} ({s.startTime})</option>
             ))}
           </select>
         </Field>
-        <Field label="Blood group"><input name="bloodGroup" className={inputCls} placeholder="e.g. AB+" /></Field>
+        <Field label="Blood group"><input name="bloodGroup" className={inputCls} placeholder={ph("e.g. AB+")} /></Field>
         <Field label="Emergency contact"><input name="emergencyPhone" className={inputCls} placeholder="+91…" /></Field>
         <Field label="Gender">
           <select name="gender" className={inputCls}>
             <option value="">—</option>
-            <option>Male</option>
-            <option>Female</option>
-            <option>Other</option>
+            <option>{<Tt>Male</Tt>}</option>
+            <option>{<Tt>Female</Tt>}</option>
+            <option>{<Tt>Other</Tt>}</option>
           </select>
         </Field>
         <Field label="Joining date *"><input name="joinDate" type="date" required className={inputCls} /></Field>
@@ -88,8 +90,8 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
             className="h-4.5 w-4.5 shrink-0 accent-emerald-500"
           />
           <label htmlFor="hs-login" className="cursor-pointer select-none">
-            <span className="text-sm font-bold text-slate-800">Has login account</span>
-            <span className="block text-xs text-slate-500">Needed for self punch-in, leave requests &amp; gate pass</span>
+            <span className="text-sm font-bold text-slate-800">{<Tt>Has login account</Tt>}</span>
+            <span className="block text-xs text-slate-500">{<Tt>Needed for self punch-in, leave requests &amp; gate pass</Tt>}</span>
           </label>
         </div>
 
@@ -98,15 +100,15 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
           <div className="grid gap-4 rounded-xl bg-white p-4 ring-1 ring-emerald-200/60 sm:grid-cols-2">
             <Field label="Role">
               <select name="accountRole" className={inputCls}>
-                <option value="EMPLOYEE">Employee</option>
-                <option value="HR">HR (can manage people & leaves)</option>
+                <option value="EMPLOYEE">{<Tt>Employee</Tt>}</option>
+                <option value="HR">{<Tt>HR (can manage people & leaves)</Tt>}</option>
               </select>
             </Field>
             <Field label="Temporary password (min 8 chars)">
-              <input name="tempPassword" type="text" minLength={8} className={inputCls} placeholder="Share with the employee" />
+              <input name="tempPassword" type="text" minLength={8} className={inputCls} placeholder={ph("Share with the employee")} />
             </Field>
             <p className="text-xs text-slate-500 sm:col-span-2">
-              📧 Login email = <b>the Email field above</b> (required when creating a login). After saving, the employees list shows a <b className="text-emerald-600">✓ Login</b> chip.
+              📧 Login email = <b>{<Tt>the Email field above</Tt>}</b>{<Tt>(required when creating a login). After saving, the employees list shows a</Tt>}<b className="text-emerald-600">{<Tt>✓ Login</Tt>}</b> chip.
             </p>
           </div>
         </div>
