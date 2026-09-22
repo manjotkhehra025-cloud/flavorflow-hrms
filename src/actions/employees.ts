@@ -67,43 +67,63 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
       return { error: "Temporary password must be at least 8 characters." };
   }
 
+  // Friendly guard instead of a DB unique-violation crash: email already owns a login?
+  if (d.createAccount && d.email) {
+    const taken = await db.user.findUnique({ where: { email: d.email.toLowerCase() } });
+    if (taken)
+      return {
+        error:
+          "Eh email pehlaan ton ek login naal juddi hai. Agar eh tuhada AAP da account hai: checkbox HATAO → employee save karo → fer dashboard de 'Link your login' card naal judo (punch turant chal pauga).",
+      };
+  }
+
   const company = await db.company.findUniqueOrThrow({ where: { id: me.companyId } });
   const code = await nextEmployeeCode(me.companyId, company.code);
 
-  const employee = await db.employee.create({
-    data: {
-      companyId: me.companyId,
-      code,
-      firstName: d.firstName.trim(),
-      lastName: d.lastName.trim(),
-      email: emptyToUndefined(d.email?.toLowerCase()),
-      phone: emptyToUndefined(d.phone?.trim()),
-      gender: emptyToUndefined(d.gender),
-      joinDate: toDateOnly(d.joinDate),
-      departmentId: emptyToUndefined(d.departmentId) ?? null,
-      designationId: emptyToUndefined(d.designationId) ?? null,
-      address: emptyToUndefined(d.address?.trim()),
-      dateOfBirth: d.dateOfBirth ? toDateOnly(d.dateOfBirth) : null,
-      category: d.category,
-      weeklyOff: d.weeklyOff,
-      shiftId: emptyToUndefined(d.shiftId) ?? null,
-      bloodGroup: emptyToUndefined(d.bloodGroup?.trim()),
-      emergencyPhone: emptyToUndefined(d.emergencyPhone?.trim()),
-      status: "ACTIVE",
-    },
-  });
+  // Single transaction: employee + login either both save or neither (no half-saved rows).
+  let employee;
+  try {
+    employee = await db.$transaction(async (tx) => {
+      const emp = await tx.employee.create({
+        data: {
+          companyId: me.companyId,
+          code,
+          firstName: d.firstName.trim(),
+          lastName: d.lastName.trim(),
+          email: emptyToUndefined(d.email?.toLowerCase()),
+          phone: emptyToUndefined(d.phone?.trim()),
+          gender: emptyToUndefined(d.gender),
+          joinDate: toDateOnly(d.joinDate),
+          departmentId: emptyToUndefined(d.departmentId) ?? null,
+          designationId: emptyToUndefined(d.designationId) ?? null,
+          address: emptyToUndefined(d.address?.trim()),
+          dateOfBirth: d.dateOfBirth ? toDateOnly(d.dateOfBirth) : null,
+          category: d.category,
+          weeklyOff: d.weeklyOff,
+          shiftId: emptyToUndefined(d.shiftId) ?? null,
+          bloodGroup: emptyToUndefined(d.bloodGroup?.trim()),
+          emergencyPhone: emptyToUndefined(d.emergencyPhone?.trim()),
+          status: "ACTIVE",
+        },
+      });
 
-  if (d.createAccount && d.email && d.tempPassword) {
-    await db.user.create({
-      data: {
-        companyId: me.companyId,
-        email: d.email.toLowerCase(),
-        name: `${d.firstName} ${d.lastName}`,
-        role: d.accountRole,
-        passwordHash: await bcrypt.hash(d.tempPassword, 10),
-        employeeId: employee.id,
-      },
+      if (d.createAccount && d.email && d.tempPassword) {
+        await tx.user.create({
+          data: {
+            companyId: me.companyId,
+            email: d.email.toLowerCase(),
+            name: `${d.firstName} ${d.lastName}`,
+            role: d.accountRole,
+            passwordHash: await bcrypt.hash(d.tempPassword, 10),
+            employeeId: emp.id,
+          },
+        });
+      }
+      return emp;
     });
+  } catch (e) {
+    console.error("createEmployeeAction failed:", e);
+    return { error: "Employee save nahi hoya — email duplicate ya data ghalat lagda hai. Fields check kar ke dubara try karo." };
   }
 
   revalidatePath("/employees");

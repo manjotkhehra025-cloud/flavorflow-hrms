@@ -25,8 +25,10 @@ export function LinkAccountCard({ employees }: { employees: Option[] }) {
             <p className="text-sm font-extrabold tracking-tight">Punch button missing?</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-400">
               Your login isn&apos;t linked to any employee profile, and every existing profile already has a login.
-              Create your employee profile first (Employees → Add New with &quot;Has login account&quot;) — then the Punch
-              button appears here automatically.
+              <br />
+              <b className="text-slate-200">Karne layi:</b> Employees → Add New → bas apni details bharo
+              (<b className="text-amber-200">&quot;Has login account&quot; tick NAHI karna</b> — tuhada login pehlaan hi hai) →
+              save. Fer es thaan card ch tuhadi profile dikhegi, &quot;Link &amp; Continue&quot; dabao — punch turant chal pauga.
             </p>
           </div>
         </div>
