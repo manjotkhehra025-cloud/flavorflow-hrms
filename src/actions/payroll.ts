@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { bt } from "@/lib/i18n";
-import { calculatePayroll } from "@/lib/payroll";
+import { calculatePayroll, computeStatutory } from "@/lib/payroll";
 import type { ActionState } from "./auth";
 
 function toInt(v: unknown): number | null {
@@ -54,6 +54,10 @@ export async function computePayrollAction(_prev: ActionState, formData: FormDat
         otRate: r.otRate,
         otAmount: r.otAmount,
         deductions: r.deductions,
+        pfEmployee: r.pfEmployee,
+        pfEmployer: r.pfEmployer,
+        esiEmployee: r.esiEmployee,
+        esiEmployer: r.esiEmployer,
         advanceRecover: r.advanceRecover,
         otherDeduction: r.otherDeduction,
         otherEarning: r.otherEarning,
@@ -93,7 +97,13 @@ export async function saveRowAdjustmentsAction(_prev: ActionState, formData: For
     const advanceRecover = Math.min(toInt(e.advanceRecover) ?? 0, advBalance);
 
     const otAmount = Math.round(otHours * row.otRate);
-    const net = Math.max(0, row.baseAmount + otAmount + otherEarning - advanceRecover - otherDeduction);
+    // PF on earned basic (already LOP-adjusted); ESI on basic + extras (OT excluded)
+    const stat = computeStatutory(
+      { pfEnabled: row.employee.pfEnabled, esiEnabled: row.employee.esiEnabled },
+      row.baseAmount,
+      otherEarning,
+    );
+    const net = Math.max(0, row.baseAmount + otAmount + otherEarning - stat.pfEmployee - stat.esiEmployee - advanceRecover - otherDeduction);
     await db.payrollRow.update({
       where: { id: row.id },
       data: {
@@ -101,6 +111,8 @@ export async function saveRowAdjustmentsAction(_prev: ActionState, formData: For
         otherDeduction, otherDeductionNote: (e.otherDeductionNote ?? "").trim() || null,
         otherEarning, otherEarningNote: (e.otherEarningNote ?? "").trim() || null,
         advanceRecover,
+        pfEmployee: stat.pfEmployee, pfEmployer: stat.pfEmployer,
+        esiEmployee: stat.esiEmployee, esiEmployer: stat.esiEmployer,
         netPay: net,
       },
     });

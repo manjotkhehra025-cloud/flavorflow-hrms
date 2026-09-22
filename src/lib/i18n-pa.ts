@@ -616,4 +616,18 @@ export const PA: Record<string, string> = {
   "Open / print": "ਖੋਲ੍ਹੋ / ਪ੍ਰਿੰਟ",
   "All payslips": "ਸਾਰੀਆਂ ਸਲਿੱਪਾਂ",
   "Payslips": "ਪੇ-ਸਲਿੱਪਾਂ",
+
+  // ---------- Phase D4: PF / ESI statutory ----------
+  "Statutory (India)": "ਕਾਨੂੰਨੀ ਕਟੌਤੀਆਂ (ਭਾਰਤ)",
+  "PF / EPF": "PF / EPF",
+  "12% employee + 12% employer": "12% ਕਰਮਚਾਰੀ + 12% ਮਾਲਕ",
+  "UAN number": "UAN ਨੰਬਰ",
+  "0.75% employee + 3.25% employer": "0.75% ਕਰਮਚਾਰੀ + 3.25% ਮਾਲਕ",
+  "IP / insurance no.": "IP / ਬੀਮਾ ਨੰਬਰ",
+  "Suggested for salary ≤ ₹15,000 (PF) and ≤ ₹21,000 (ESI). PF cap ₹1,800 above ₹15,000.": "ਤਨਖ਼ਾਹ ₹15,000 ਤੱਕ (PF) ਅਤੇ ₹21,000 ਤੱਕ (ESI) ਲਈ ਸੁਝਾਈ ਗਈ। ₹15,000 ਤੋੋ ਵੱਧ ਹੋਵੇ ਤਾਂ PF ਵੱਧ ਤਮ ₹1,800।",
+  "Employer PF + ESI (company)": "ਮਾਲਕ ਵਾਲा PF + ESI (ਕੰਪਨੀ)",
+  "Provident Fund (12%)": "ਪ੍ਰੋਵੀਡੈਂਟ ਫੰਡ (12%)",
+  "ESI (0.75%)": "ESI (0.75%)",
+  "Employer's PF / ESI contribution": "ਮਾਲਕ ਵਾਲਾ PF / ESI ਹਿੱਸਾ",
+  "is paid by the company on top of your salary — it does NOT reduce your net pay.": "ਤੁਹਾਡੀ ਤਨਖ਼ਾਹ ਤੋੋ ਵੱਧ ਕੰਪਨੀ ਭਰਦੀ ਹੈ — ਇਸ ਨਾਲ ਤੁਹਾਡੀ ਨੈੱਟ ਅਦਾਇਗੀ ਘੱਟ ਨਹੀਂ ਹੁੰਦੀ।",
 };

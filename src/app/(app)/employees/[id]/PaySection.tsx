@@ -16,6 +16,10 @@ type Props = {
     otRate: number | null;
     bankAccount: string | null;
     ifsc: string | null;
+    pfEnabled: boolean;
+    pfNumber: string | null;
+    esiEnabled: boolean;
+    esiNumber: string | null;
   };
   advances: {
     id: string;
@@ -43,6 +47,8 @@ export function PaySection({ employee, advances }: Props) {
   const [type, setType] = useState(employee.salaryType === "DAILY" ? "DAILY" : "MONTHLY");
   const [base, setBase] = useState(employee.baseSalary);
   const [daily, setDaily] = useState(employee.dailyRate);
+  const [pfOn, setPfOn] = useState(employee.pfEnabled);
+  const [esiOn, setEsiOn] = useState(employee.esiEnabled);
 
   const suggestion = autoOt(employee, type, base, daily);
   const totalBalance = advances.reduce((s, a) => s + (a.amount - a.repaid), 0);
@@ -77,6 +83,30 @@ export function PaySection({ employee, advances }: Props) {
               {t === "MONTHLY" ? <Tt>Monthly salary</Tt> : <Tt>Daily-rate</Tt>}
             </button>
           ))}
+        </div>
+
+        {/* statutory */}
+        <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Tt>Statutory (India)</Tt></div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className={"flex items-start gap-2 rounded-lg border-2 px-3 py-2 cursor-pointer " + (pfOn ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white")}>
+              <input type="checkbox" name="pfEnabled" className="mt-1" checked={pfOn} onChange={(e) => setPfOn(e.target.checked)} />
+              <span className="text-xs">
+                <b><Tt>PF / EPF</Tt></b> — <Tt>12% employee + 12% employer</Tt>
+                {pfOn && <input name="pfNumber" className="mt-1.5 w-full rounded-md border border-slate-200 px-2 py-1" placeholder={ph("UAN number")} defaultValue={employee.pfNumber ?? ""} />}
+              </span>
+            </label>
+            <label className={"flex items-start gap-2 rounded-lg border-2 px-3 py-2 cursor-pointer " + (esiOn ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-white")}>
+              <input type="checkbox" name="esiEnabled" className="mt-1" checked={esiOn} onChange={(e) => setEsiOn(e.target.checked)} />
+              <span className="text-xs">
+                <b><Tt>ESI</Tt></b> — <Tt>0.75% employee + 3.25% employer</Tt>
+                {esiOn && <input name="esiNumber" className="mt-1.5 w-full rounded-md border border-slate-200 px-2 py-1" placeholder={ph("IP / insurance no.")} defaultValue={employee.esiNumber ?? ""} />}
+              </span>
+            </label>
+          </div>
+          <p className="mt-1.5 text-[10.5px] text-slate-400">
+            <Tt>Suggested for salary ≤ ₹15,000 (PF) and ≤ ₹21,000 (ESI). PF cap ₹1,800 above ₹15,000.</Tt>
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

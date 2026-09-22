@@ -15,6 +15,8 @@ export type PayslipData = {
   otHours: number; otRate: number; otAmount: number;
   otherEarning: number; otherEarningNote: string | null;
   lopDays: number; lopPerDay: number; lopAmount: number;
+  pfEmployee: number; pfEmployer: number;
+  esiEmployee: number; esiEmployer: number;
   advanceRecover: number;
   otherDeduction: number; otherDeductionNote: string | null;
   netPay: number;
@@ -82,6 +84,12 @@ export function Payslip({ d }: { d: PayslipData }) {
               ) : (
                 <div style={{ fontSize: 11, color: "#64748b", padding: "4px 0" }}><Pa>No absent deduction 🎉</Pa></div>
               )}
+              {d.pfEmployee > 0 && (
+                <Row k={<Pa>Provident Fund (12%)</Pa>} v={"−" + fmtINR(d.pfEmployee)} bad />
+              )}
+              {d.esiEmployee > 0 && (
+                <Row k={<Pa>ESI (0.75%)</Pa>} v={"−" + fmtINR(d.esiEmployee)} bad />
+              )}
               {d.advanceRecover > 0 && (
                 <Row k={<Pa>Advance recovery</Pa>} v={"−" + fmtINR(d.advanceRecover)} bad />
               )}
@@ -102,6 +110,11 @@ export function Payslip({ d }: { d: PayslipData }) {
         </div>
 
         <div style={{ marginTop: 10, fontSize: 9.5, color: "#94a3b8", lineHeight: 1.5 }}>
+          {(d.pfEmployer > 0 || d.esiEmployer > 0) && (
+            <div style={{ marginBottom: 4 }}>
+              <Pa>Employer's PF / ESI contribution</Pa> ({d.pfEmployer > 0 ? `PF ${fmtINR(d.pfEmployer)}` : ""}{d.pfEmployer > 0 && d.esiEmployer > 0 ? " + " : ""}{d.esiEmployer > 0 ? `ESI ${fmtINR(d.esiEmployer)}` : ""}) <Pa>is paid by the company on top of your salary — it does NOT reduce your net pay.</Pa>
+            </div>
+          )}
           <Pa>This is a system-generated salary slip and does not require a signature.</Pa>
         </div>
       </div>

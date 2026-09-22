@@ -48,6 +48,8 @@ export default async function MyPayslipPage({ params }: { params: Promise<{ rowI
     otHours: row.otHours, otRate: row.otRate, otAmount: row.otAmount,
     otherEarning: row.otherEarning, otherEarningNote: row.otherEarningNote,
     lopDays: row.lopDays, lopPerDay: monthly && dim > 0 ? Math.round((e.baseSalary ?? 0) / dim) : 0, lopAmount: row.deductions,
+    pfEmployee: row.pfEmployee, pfEmployer: row.pfEmployer,
+    esiEmployee: row.esiEmployee, esiEmployer: row.esiEmployer,
     advanceRecover: row.advanceRecover,
     otherDeduction: row.otherDeduction, otherDeductionNote: row.otherDeductionNote,
     netPay: row.netPay,

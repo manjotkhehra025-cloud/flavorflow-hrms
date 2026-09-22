@@ -36,6 +36,10 @@ export type CalcRow = {
   otRate: number;
   otAmount: number;
   deductions: number; // LOP ₹ (monthly)
+  pfEmployee: number;
+  pfEmployer: number;
+  esiEmployee: number;
+  esiEmployer: number;
   advanceBalance: number;
   advanceRecover: number;
   otherDeduction: number;
@@ -43,6 +47,28 @@ export type CalcRow = {
   netPay: number;
   needsSetup: boolean;
 };
+
+export type Statutory = { pfEmployee: number; pfEmployer: number; esiEmployee: number; esiEmployer: number; pfWage: number; esiGross: number };
+
+/**
+ * Indian statutory deductions:
+ * - PF: 12% employee + 12% employer of PF-wage = min(earned basic, ₹15,000 cap). Only when employee.pfEnabled and basic > 0.
+ * - ESI: 0.75% employee + 3.25% employer of gross (base ± extras, OT excluded by law). Only when employee.esiEnabled.
+ *   Amounts are rounded UP to the next rupee (ESIC convention).
+ */
+export function computeStatutory(
+  emp: { pfEnabled: boolean; esiEnabled: boolean },
+  earnedBasic: number,
+  otherEarning: number,
+): Statutory {
+  const pfWage = emp.pfEnabled && earnedBasic > 0 ? Math.min(earnedBasic, 15000) : 0;
+  const pfEmployee = Math.round(pfWage * 0.12);
+  const pfEmployer = Math.round(pfWage * 0.12);
+  const esiGross = emp.esiEnabled ? Math.max(0, earnedBasic + otherEarning) : 0;
+  const esiEmployee = esiGross > 0 ? Math.ceil(esiGross * 0.0075) : 0;
+  const esiEmployer = esiGross > 0 ? Math.ceil(esiGross * 0.0325) : 0;
+  return { pfEmployee, pfEmployer, esiEmployee, esiEmployer, pfWage, esiGross };
+}
 
 export type CalcResult = {
   month: string;
@@ -160,6 +186,7 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     const cap = Math.round(Math.max(0, gross) * 0.25); // recovery cap: 25% of gross before extras
     const advanceRecover = Math.min(cap, advBalance);
     const otRate = autoOtRate(emp);
+    const stat = computeStatutory(emp, Math.max(0, gross), 0);
 
     rows.push({
       employeeId: emp.id,
@@ -181,11 +208,15 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       otRate,
       otAmount: 0,
       deductions: lopAmount,
+      pfEmployee: stat.pfEmployee,
+      pfEmployer: stat.pfEmployer,
+      esiEmployee: stat.esiEmployee,
+      esiEmployer: stat.esiEmployer,
       advanceBalance: advBalance,
       advanceRecover,
       otherDeduction: 0,
       otherEarning: 0,
-      netPay: Math.max(0, gross - advanceRecover),
+      netPay: Math.max(0, gross - stat.pfEmployee - stat.esiEmployee - advanceRecover),
       needsSetup: false,
     });
   }

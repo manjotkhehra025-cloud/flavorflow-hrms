@@ -23,6 +23,10 @@ export async function updateSalaryAction(_prev: ActionState, formData: FormData)
   const otRate = toInt(formData.get("otRate")); // null → auto at payroll time
   const bankAccount = (String(formData.get("bankAccount") ?? "").replace(/[^\d]/g, "") || null);
   const ifsc = (String(formData.get("ifsc") ?? "").trim().toUpperCase() || null);
+  const pfEnabled = formData.get("pfEnabled") === "on";
+  const pfNumber = (String(formData.get("pfNumber") ?? "").trim().toUpperCase() || null);
+  const esiEnabled = formData.get("esiEnabled") === "on";
+  const esiNumber = (String(formData.get("esiNumber") ?? "").trim() || null);
 
   if (salaryType === "MONTHLY" && (!baseSalary || baseSalary <= 0)) {
     return { error: await bt("Monthly base salary is required (₹/month).") };
@@ -39,7 +43,8 @@ export async function updateSalaryAction(_prev: ActionState, formData: FormData)
 
   const res = await db.employee.updateMany({
     where: { id: employeeId, companyId: me.companyId },
-    data: { salaryType, baseSalary: baseSalary ?? null, dailyRate: dailyRate ?? null, otRate: otRate ?? null, bankAccount, ifsc },
+    data: { salaryType, baseSalary: baseSalary ?? null, dailyRate: dailyRate ?? null, otRate: otRate ?? null, bankAccount, ifsc,
+            pfEnabled, pfNumber: pfEnabled ? pfNumber : null, esiEnabled, esiNumber: esiEnabled ? esiNumber : null },
   });
   if (res.count === 0) return { error: await bt("Employee not found.") };
   revalidatePath(`/employees/${employeeId}`);

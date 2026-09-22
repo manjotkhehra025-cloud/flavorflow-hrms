@@ -17,15 +17,26 @@ export type EditRow = {
   otherDeduction: number; otherDeductionNote: string | null;
   otherEarning: number; otherEarningNote: string | null;
   paymentMode: string; bank: string | null;
+  pfEnabled: boolean; esiEnabled: boolean;
+  pfEmployee: number; pfEmployer: number; esiEmployee: number; esiEmployer: number;
   netPay: number; employeeId: string;
 };
+
+function statutory(r: EditRow, earn: number) {
+  const pfWage = r.pfEnabled ? Math.min(r.baseAmount, 15000) : 0;
+  const pf = Math.round(pfWage * 0.12);
+  const esiG = r.esiEnabled ? Math.max(0, r.baseAmount + earn) : 0;
+  const esi = esiG > 0 ? Math.ceil(esiG * 0.0075) : 0;
+  return { pf, esi };
+}
 
 function net(r: EditRow, o: { ot?: number; adv?: number; ded?: number; earn?: number } = {}) {
   const ot = Math.round((o.ot ?? r.otHours) * r.otRate);
   const adv = o.adv ?? r.advanceRecover;
   const ded = o.ded ?? r.otherDeduction;
   const earn = o.earn ?? r.otherEarning;
-  return { ot, net: Math.max(0, r.baseAmount + ot + earn - adv - ded) };
+  const st = statutory(r, earn);
+  return { ot, pf: st.pf, esi: st.esi, net: Math.max(0, r.baseAmount + ot + earn - st.pf - st.esi - adv - ded) };
 }
 
 export function RunEditor({ runId, rows }: { runId: string; month: string; rows: EditRow[] }) {
@@ -143,7 +154,13 @@ export function RunEditor({ runId, rows }: { runId: string; month: string; rows:
                           defaultValue={r.otherDeductionNote ?? ""} onBlur={(e) => setField(r.id, "otherDeductionNote", e.target.value)} />
                       )}
                     </td>
-                    <td className="px-2 py-2.5 text-right font-black text-emerald-700">{fmtINR(n.net)}</td>
+                    <td className="px-2 py-2.5 text-right font-black text-emerald-700">{fmtINR(n.net)}
+                      {(n.pf > 0 || n.esi > 0) && (
+                        <div className="text-[9.5px] font-semibold text-rose-500">
+                          − {[n.pf > 0 ? `PF ${fmtINR(n.pf)}` : "", n.esi > 0 ? `ESI ${fmtINR(n.esi)}` : ""].filter(Boolean).join(" + ")}
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

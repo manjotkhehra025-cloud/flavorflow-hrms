@@ -122,6 +122,11 @@ model Employee {
   otRate         Int? // ₹ per hour (null → auto from base / 26 / 9)
   bankAccount    String?
   ifsc           String?
+  // Phase D4: statutory
+  pfEnabled      Boolean        @default(false)
+  pfNumber       String? // UAN
+  esiEnabled     Boolean        @default(false)
+  esiNumber      String? // IP / insurance number
   shiftId        String?
   shift          Shift?         @relation(fields: [shiftId], references: [id], onDelete: SetNull)
 
@@ -294,6 +299,10 @@ model PayrollRow {
   otherDeductionNote String?
   otherEarning    Int @default(0)
   otherEarningNote String?
+  pfEmployee      Int @default(0)  // 12% of min(earned basic, 15000)
+  pfEmployer      Int @default(0)  // employer share (company cost)
+  esiEmployee     Int @default(0)  // 0.75% of gross (ex-OT)
+  esiEmployer     Int @default(0)  // 3.25% (company cost)
   netPay          Int @default(0)
   paymentMode     String @default("BANK") // BANK | CASH
 

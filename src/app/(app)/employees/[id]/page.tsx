@@ -145,6 +145,10 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               otRate: employee.otRate,
               bankAccount: employee.bankAccount,
               ifsc: employee.ifsc,
+              pfEnabled: employee.pfEnabled,
+              pfNumber: employee.pfNumber,
+              esiEnabled: employee.esiEnabled,
+              esiNumber: employee.esiNumber,
             }}
             advances={employee.advances.map((a) => ({
               id: a.id,
