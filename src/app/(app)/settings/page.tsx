@@ -80,9 +80,9 @@ export default async function SettingsPage() {
           </label>
           <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
             <input type="checkbox" name="punchSelfieRequired" defaultChecked={companyRules?.punchSelfieRequired ?? false} />
-            📸 <Pa>Selfie punch camera (every punch needs a photo)</Pa>
+            <Pa>Selfie punch camera (every punch needs a photo)</Pa>
           </label>
-          <button type="submit" className={btnBrand}>💾 <Pa>Save rules</Pa></button>
+          <button type="submit" className={btnBrand}><Pa>Save rules</Pa></button>
         </form>
       </Card>
 
@@ -93,8 +93,8 @@ export default async function SettingsPage() {
           <div className="mt-0.5 text-lg font-extrabold text-slate-900">{me.companyName}</div>
         </div>
         <div className="flex gap-2">
-          <Badge tone="blue">🔵 Official: {officialCount}</Badge>
-          <Badge tone="amber">🟡 Yellow Card: {yellowCount}</Badge>
+          <Badge tone="blue">Official: {officialCount}</Badge>
+          <Badge tone="amber">Yellow Card: {yellowCount}</Badge>
         </div>
       </Card>
 
@@ -151,7 +151,7 @@ export default async function SettingsPage() {
           </ul>
         )}
         <p className="mt-3 text-xs text-slate-400">
-          <Pa>🟡 Yellow Card staff receive EL only — 15 days/year, auto-accruing 1.25/month from join month. Adjust individual balances from the employee profile.</Pa>
+          <Pa>Yellow Card staff receive EL only — 15 days/year, auto-accruing 1.25/month from join month. Adjust individual balances from the employee profile.</Pa>
         </p>
       </Card>
     </div>

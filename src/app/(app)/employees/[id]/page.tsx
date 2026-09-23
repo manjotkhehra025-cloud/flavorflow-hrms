@@ -126,7 +126,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             </h2>
             <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
               <Badge tone={employee.status === "ACTIVE" ? "green" : "slate"}>{employee.status}</Badge>
-              <Badge tone={isYellow ? "amber" : "blue"}>{isYellow ? "🟡 Yellow Card" : "🔵 Official"}</Badge>
+              <Badge tone={isYellow ? "amber" : "blue"}>{isYellow ? "Yellow Card" : "Official"}</Badge>
             </div>
             <PhotoUpload employeeId={employee.id} hasPhoto={!!employee.photoUrl} />
           </div>
@@ -175,7 +175,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               const labelOf = (d: (typeof deptsAll)[number]) => d.parentId ? `${deptsAll.find((p) => p.id === d.parentId)?.name ?? ""} › ${d.name}` : d.name;
               return [...deptsAll].sort((a, b) => (labelOf(a) < labelOf(b) ? -1 : 1)).map((d) => ({ id: d.id, name: labelOf(d) }));
             })()}
-            designations={desigsAll.map((d) => ({ id: d.id, title: d.title }))}
+            designations={desigsAll.map((d) => ({ id: d.id, title: d.title, category: d.category }))}
             isYellow={isYellow}
           />
 

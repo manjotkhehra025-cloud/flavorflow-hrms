@@ -44,7 +44,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ code: s
           </div>
           <div className="mt-5 space-y-0 border-t border-slate-100">
             <Row k="Employee ID" v={emp.code} />
-            <Row k="Staff Category" v={emp.category === "YELLOW_CARD" ? "🟡 Yellow Card" : "🔵 Official"} />
+            <Row k="Staff Category" v={emp.category === "YELLOW_CARD" ? "Yellow Card" : "Official"} />
             <Row k="Date of Joining" v={fmtDate(emp.joinDate)} />
           </div>
           <p className="mt-5 rounded-xl bg-slate-50 p-3 text-center text-[11px] leading-relaxed text-slate-500">

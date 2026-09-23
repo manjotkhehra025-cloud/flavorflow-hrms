@@ -19,10 +19,7 @@ export default async function NewEmployeePage() {
   const departments = [...departmentsAll]
     .sort((a, b) => (labelOf(a) < labelOf(b) ? -1 : 1))
     .map((d) => ({ ...d, name: labelOf(d) }));
-  const designations = designationsAll.map((d) => ({
-    ...d,
-    title: d.title + (d.category === "YELLOW_CARD" ? " (Yellow Card)" : d.category === "OFFICIAL" ? " (Official)" : ""),
-  }));
+  const designations = designationsAll.map((d) => ({ id: d.id, title: d.title, category: d.category }));
 
   return (
     <div className="mx-auto max-w-2xl">

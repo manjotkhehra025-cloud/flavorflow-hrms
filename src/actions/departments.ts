@@ -92,7 +92,7 @@ export async function seedGdStructureAction() {
   const depts = ["Production", "Quality", "Engineering", "Electrical", "Agriculture", "Security", "Instruments", "Accounts"];
   const subs: Array<[string, string]> = [
     ["Lab", "Quality"],
-    ["Mechanical / Maintenance", "Engineering"],
+    ["Mechanical", "Engineering"], // merges legacy top-level "Mechanical" — name-unique upsert re-parents it
     ["General Store", "Production"], // Store Keeper home — can be re-parented anytime via Edit
   ];
   const ids: Record<string, string> = {};

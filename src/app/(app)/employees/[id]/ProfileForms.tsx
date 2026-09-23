@@ -9,6 +9,7 @@ import { inputCls, btnBrand, btnGhost } from "@/components/ui";
 import { Icon } from "@/components/icons";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 type DeptOpt = { id: string; name: string; parentId?: string | null };
 type Emp = {
@@ -38,13 +39,15 @@ export function ProfileForms({
   leaveTypes: { id: string; name: string; quota: number }[];
   isYellow: boolean;
   departments?: DeptOpt[];
-  designations?: { id: string; title: string }[];
+  designations?: { id: string; title: string; category?: string }[];
 }) {
   const ph = useT();
   const [editState, editAction, editPending] = useActionState<ActionState, FormData>(updateEmployeeDetailsAction, {});
   const [adjState, adjAction, adjPending] = useActionState<ActionState, FormData>(adjustLeaveBalanceAction, {});
   const [openEdit, setOpenEdit] = useState(false);
   const [openAdj, setOpenAdj] = useState(false);
+  const [draftCat, setDraftCat] = useState<string>(employee.category);
+  const desigOptions = designations.filter((d) => !d.category || d.category === "BOTH" || d.category === draftCat);
 
   const balanceTypes = isYellow ? leaveTypes.filter((t) => /earned/i.test(t.name)) : leaveTypes.filter((t) => t.quota > 0);
 
@@ -62,7 +65,7 @@ export function ProfileForms({
           <div className="grid grid-cols-2 gap-3">
             <label className="col-span-2 block text-xs font-semibold text-slate-600">
               Staff category
-              <select name="category" defaultValue={employee.category} className={inputCls + " mt-1"}>
+              <select name="category" value={draftCat} onChange={(e) => setDraftCat(e.target.value)} className={inputCls + " mt-1"}>
                 <option value="OFFICIAL">{<Tt>Official Staff</Tt>}</option>
                 <option value="YELLOW_CARD">{<Tt>Yellow Card</Tt>}</option>
               </select>
@@ -80,7 +83,7 @@ export function ProfileForms({
               <Tt>Designation</Tt>
               <select name="designationId" defaultValue={employee.designationId ?? ""} className={inputCls + " mt-1"}>
                 <option value="">—</option>
-                {designations.map((d) => (
+                {desigOptions.map((d) => (
                   <option key={d.id} value={d.id}>{d.title}</option>
                 ))}
               </select>
@@ -103,8 +106,11 @@ export function ProfileForms({
               </select>
             </label>
             <label className="block text-xs font-semibold text-slate-600">
-              Blood group
-              <input name="bloodGroup" defaultValue={employee.bloodGroup ?? ""} placeholder={ph("O+")} className={inputCls + " mt-1"} />
+              <Tt>Blood group</Tt>
+              <select name="bloodGroup" defaultValue={employee.bloodGroup ?? ""} className={inputCls + " mt-1"}>
+                <option value="">—</option>
+                {BLOOD_GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
             </label>
             <label className="block text-xs font-semibold text-slate-600">
               Emergency contact

@@ -1,12 +1,13 @@
 "use client";
 import { Tt, useT } from "@/components/LangCtx";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createEmployeeAction } from "@/actions/employees";
 import type { ActionState } from "@/actions/auth";
 import { inputCls, btnBrand } from "@/components/ui";
 
-type Opt = { id: string; name?: string; title?: string };
+type Opt = { id: string; name?: string; title?: string; category?: string };
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 type ShiftOpt = { id: string; name: string; startTime: string };
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -14,6 +15,9 @@ const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
 export function NewEmployeeForm({ departments, designations, shifts }: { departments: Opt[]; designations: Opt[]; shifts: ShiftOpt[] }) {
   const ph = useT();
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createEmployeeAction, {});
+  const [category, setCategory] = useState<"OFFICIAL" | "YELLOW_CARD">("OFFICIAL");
+  // Staff-type-aware designation list (BOTH visible to everyone)
+  const desigOptions = designations.filter((d) => !d.category || d.category === "BOTH" || d.category === category);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -27,7 +31,7 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
         <Field label="Email"><input name="email" type="email" className={inputCls} placeholder={ph("name@gdfoods.co.in")} /></Field>
         <Field label="Phone"><input name="phone" className={inputCls} placeholder="+91…" /></Field>
         <Field label="Staff category">
-          <select name="category" className={inputCls}>
+          <select name="category" value={category} onChange={(e) => setCategory(e.target.value as "OFFICIAL" | "YELLOW_CARD")} className={inputCls}>
             <option value="OFFICIAL">{<Tt>Official Staff</Tt>}</option>
             <option value="YELLOW_CARD">{<Tt>Yellow Card (15 EL / yr)</Tt>}</option>
           </select>
@@ -47,7 +51,12 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
             ))}
           </select>
         </Field>
-        <Field label="Blood group"><input name="bloodGroup" className={inputCls} placeholder={ph("e.g. AB+")} /></Field>
+        <Field label="Blood group">
+          <select name="bloodGroup" className={inputCls}>
+            <option value="">—</option>
+            {BLOOD_GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </Field>
         <Field label="Emergency contact"><input name="emergencyPhone" className={inputCls} placeholder="+91…" /></Field>
         <Field label="Gender">
           <select name="gender" className={inputCls}>
@@ -69,8 +78,10 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
         <Field label="Designation">
           <select name="designationId" className={inputCls}>
             <option value="">—</option>
-            {designations.map((d) => (
-              <option key={d.id} value={d.id}>{d.title}</option>
+            {desigOptions.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.title}{d.category === "YELLOW_CARD" ? " (Yellow Card)" : d.category === "OFFICIAL" ? " (Official)" : ""}
+              </option>
             ))}
           </select>
         </Field>
@@ -108,7 +119,7 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
               <input name="tempPassword" type="text" minLength={8} className={inputCls} placeholder={ph("Share with the employee")} />
             </Field>
             <p className="text-xs text-slate-500 sm:col-span-2">
-              📧 Login email = <b>{<Tt>the Email field above</Tt>}</b>{<Tt>(required when creating a login). After saving, the employees list shows a</Tt>}<b className="text-emerald-600">{<Tt>✓ Login</Tt>}</b> chip.
+              Login email = <b>{<Tt>the Email field above</Tt>}</b>{<Tt>(required when creating a login). After saving, the employees list shows a</Tt>}<b className="text-emerald-600">{<Tt>✓ Login</Tt>}</b> chip.
             </p>
           </div>
         </div>

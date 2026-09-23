@@ -109,7 +109,7 @@ export default async function IdCardPage({
 
               <div className="mt-4 flex justify-center">
                 <span className="rounded-full border border-amber-400/60 bg-amber-400/10 px-4 py-1 text-[11px] font-black tracking-wider text-amber-300">
-                  {isYellow ? <Pa>🟡 YELLOW CARD STAFF</Pa> : <Pa>🔵 OFFICIAL STAFF</Pa>}
+                  {isYellow ? <Pa>YELLOW CARD STAFF</Pa> : <Pa>OFFICIAL STAFF</Pa>}
                 </span>
               </div>
 

@@ -180,7 +180,7 @@ export function RunEditor({ runId, rows }: { runId: string; month: string; rows:
         <form action={submit} className="contents">
           <input type="hidden" name="runId" value={runId} />
           <button type="submit" className={btnGhost} disabled={pending || !dirty}>
-            💾 {pending ? <Tt>Saving…</Tt> : dirty ? <Tt>Save adjustments</Tt> : <Tt>Adjustments saved ✓</Tt>}
+            {pending ? <Tt>Saving…</Tt> : dirty ? <Tt>Save adjustments</Tt> : <Tt>Adjustments saved ✓</Tt>}
           </button>
         </form>
         <form action={lockAction} className="contents">
