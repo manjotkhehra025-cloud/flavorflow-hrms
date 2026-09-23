@@ -6,7 +6,7 @@ import { createEmployeeAction } from "@/actions/employees";
 import type { ActionState } from "@/actions/auth";
 import { inputCls, btnBrand } from "@/components/ui";
 
-type Opt = { id: string; name?: string; title?: string; category?: string };
+type Opt = { id: string; name?: string; title?: string; category?: string; parentId?: string | null; hasSubs?: boolean };
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 type ShiftOpt = { id: string; name: string; startTime: string };
 
@@ -16,8 +16,16 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
   const ph = useT();
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createEmployeeAction, {});
   const [category, setCategory] = useState<"OFFICIAL" | "YELLOW_CARD">("OFFICIAL");
-  // Staff-type-aware designation list (BOTH visible to everyone)
-  const desigOptions = designations.filter((d) => !d.category || d.category === "BOTH" || d.category === category);
+  // Official staff may hold Official or generic (Both) titles.
+  // Yellow-card staff see ONLY yellow-card titles (Manager etc. never appear).
+  const desigOptions = category === "YELLOW_CARD"
+    ? designations.filter((d) => d.category === "YELLOW_CARD")
+    : designations.filter((d) => !d.category || d.category === "BOTH" || d.category === "OFFICIAL");
+  // Department rules: official staff anywhere; yellow-card staff → sub-departments
+  // OR departments that have no sub-departments.
+  const deptOptions = category === "YELLOW_CARD"
+    ? departments.filter((d) => d.parentId || !d.hasSubs)
+    : departments;
 
   return (
     <form action={formAction} className="space-y-5">
@@ -33,7 +41,7 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
         <Field label="Staff category">
           <select name="category" value={category} onChange={(e) => setCategory(e.target.value as "OFFICIAL" | "YELLOW_CARD")} className={inputCls}>
             <option value="OFFICIAL">{<Tt>Official Staff</Tt>}</option>
-            <option value="YELLOW_CARD">{<Tt>Yellow Card (15 EL / yr)</Tt>}</option>
+            <option value="YELLOW_CARD">{<Tt>Yellow Card</Tt>}</option>
           </select>
         </Field>
         <Field label="Weekly off">
@@ -70,7 +78,7 @@ export function NewEmployeeForm({ departments, designations, shifts }: { departm
         <Field label="Department">
           <select name="departmentId" className={inputCls}>
             <option value="">—</option>
-            {departments.map((d) => (
+            {deptOptions.map((d) => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>

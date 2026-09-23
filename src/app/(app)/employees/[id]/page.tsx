@@ -173,7 +173,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             leaveTypes={leaveTypes.map((t) => ({ id: t.id, name: t.name, quota: t.daysPerYear }))}
             departments={(() => {
               const labelOf = (d: (typeof deptsAll)[number]) => d.parentId ? `${deptsAll.find((p) => p.id === d.parentId)?.name ?? ""} › ${d.name}` : d.name;
-              return [...deptsAll].sort((a, b) => (labelOf(a) < labelOf(b) ? -1 : 1)).map((d) => ({ id: d.id, name: labelOf(d) }));
+              const hasChildIds = new Set(deptsAll.map((d) => d.parentId).filter(Boolean) as string[]);
+              return [...deptsAll].sort((a, b) => (labelOf(a) < labelOf(b) ? -1 : 1)).map((d) => ({ id: d.id, name: labelOf(d), parentId: d.parentId, hasSubs: hasChildIds.has(d.id) }));
             })()}
             designations={desigsAll.map((d) => ({ id: d.id, title: d.title, category: d.category }))}
             isYellow={isYellow}

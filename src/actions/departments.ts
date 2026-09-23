@@ -90,10 +90,10 @@ export async function seedGdStructureAction() {
   const cid = me.companyId;
 
   const depts = ["Production", "Quality", "Engineering", "Electrical", "Agriculture", "Security", "Instruments", "Accounts"];
+  // Only Lab under Quality stays a sub-department. Mechanical & General Store are
+  // plain top-level departments per G.D. Foods' current structure.
   const subs: Array<[string, string]> = [
     ["Lab", "Quality"],
-    ["Mechanical", "Engineering"], // merges legacy top-level "Mechanical" — name-unique upsert re-parents it
-    ["General Store", "Production"], // Store Keeper home — can be re-parented anytime via Edit
   ];
   const ids: Record<string, string> = {};
   for (const d of depts) {
@@ -106,6 +106,18 @@ export async function seedGdStructureAction() {
       update: { parentId: ids[parent] },
     })).id;
   }
+
+  // Reset earlier sub mappings: Mechanical / General Store back to top level.
+  for (const legacy of ["Mechanical", "General Store"]) {
+    const row = await db.department.findFirst({ where: { companyId: cid, name: legacy } });
+    if (!row) {
+      await db.department.create({ data: { companyId: cid, name: legacy } });
+    } else if (row.parentId) {
+      await db.department.update({ where: { id: row.id }, data: { parentId: null } });
+    }
+    ids[legacy] = (await db.department.update({ where: { companyId_name: { companyId: cid, name: legacy } }, data: {} })).id;
+  }
+
 
   const desigs: Array<[string, "OFFICIAL" | "YELLOW_CARD" | "BOTH", string | null]> = [
     // Official

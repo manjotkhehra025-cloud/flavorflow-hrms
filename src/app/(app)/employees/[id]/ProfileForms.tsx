@@ -11,7 +11,7 @@ import { Icon } from "@/components/icons";
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-type DeptOpt = { id: string; name: string; parentId?: string | null };
+type DeptOpt = { id: string; name: string; parentId?: string | null; hasSubs?: boolean };
 type Emp = {
   id: string;
   category: string;
@@ -47,7 +47,12 @@ export function ProfileForms({
   const [openEdit, setOpenEdit] = useState(false);
   const [openAdj, setOpenAdj] = useState(false);
   const [draftCat, setDraftCat] = useState<string>(employee.category);
-  const desigOptions = designations.filter((d) => !d.category || d.category === "BOTH" || d.category === draftCat);
+  const desigOptions = draftCat === "YELLOW_CARD"
+    ? designations.filter((d) => d.category === "YELLOW_CARD")
+    : designations.filter((d) => !d.category || d.category === "BOTH" || d.category === "OFFICIAL");
+  const deptOptions = draftCat === "YELLOW_CARD"
+    ? departments.filter((d) => d.parentId || !d.hasSubs)
+    : departments;
 
   const balanceTypes = isYellow ? leaveTypes.filter((t) => /earned/i.test(t.name)) : leaveTypes.filter((t) => t.quota > 0);
 
@@ -74,7 +79,7 @@ export function ProfileForms({
               <Tt>Department</Tt>
               <select name="departmentId" defaultValue={employee.departmentId ?? ""} className={inputCls + " mt-1"}>
                 <option value="">—</option>
-                {departments.map((d) => (
+                {deptOptions.map((d) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>

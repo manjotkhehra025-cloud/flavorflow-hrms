@@ -16,9 +16,10 @@ export default async function NewEmployeePage() {
   // Hierarchy-aware labels: "Quality › Lab"
   const labelOf = (d: (typeof departmentsAll)[number]) =>
     d.parentId ? `${departmentsAll.find((p) => p.id === d.parentId)?.name ?? ""} › ${d.name}` : d.name;
+  const hasChildIds = new Set(departmentsAll.map((d) => d.parentId).filter(Boolean) as string[]);
   const departments = [...departmentsAll]
     .sort((a, b) => (labelOf(a) < labelOf(b) ? -1 : 1))
-    .map((d) => ({ ...d, name: labelOf(d) }));
+    .map((d) => ({ id: d.id, name: labelOf(d), parentId: d.parentId, hasSubs: hasChildIds.has(d.id) }));
   const designations = designationsAll.map((d) => ({ id: d.id, title: d.title, category: d.category }));
 
   return (
