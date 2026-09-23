@@ -42,6 +42,8 @@ model Company {
   geoLat          Float?
   geoLng          Float?
   geoRadius       Float @default(200) // metres
+  geoFacility     String? // e.g. "G.D. Foods Mfg. (I) Pvt. Ltd."
+  geoAddress      String? // reverse-geocoded address text
   punchRequests    PunchRequest[]
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
@@ -52,6 +54,9 @@ model Company {
   payrollRuns      PayrollRun[]
   shiftAssignments ShiftAssignment[]
   payslipLinks     PayslipLink[]
+  socialPosts      SocialPost[]
+  kycDocs          KycDoc[]
+  shiftSwapRequests ShiftSwapRequest[]
 }
 
 enum Role {
@@ -60,6 +65,76 @@ enum Role {
   EMPLOYEE
 }
 
+
+model SocialPost {
+  id        String        @id @default(cuid())
+  companyId String
+  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime      @default(now())
+
+  likes    PostLike[]
+  comments PostComment[]
+
+  @@index([companyId, createdAt])
+}
+
+model PostLike {
+  id     String     @id @default(cuid())
+  postId String
+  post   SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+model PostComment {
+  id        String     @id @default(cuid())
+  postId    String
+  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime   @default(now())
+
+  @@index([postId])
+}
+
+model ShiftSwapRequest {
+  id          String        @id @default(cuid())
+  companyId   String
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  requesterId String
+  requester   Employee      @relation("SwapRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  peerId      String
+  peer        Employee      @relation("SwapPeer", fields: [peerId], references: [id], onDelete: Cascade)
+  date        DateTime      @db.Date
+  note        String?
+  status      RequestStatus @default(PENDING)
+  approverId  String?
+  decidedAt   DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@index([companyId, status])
+}
+
+model KycDoc {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  docType     String // AADHAAR | PAN | BANK | ESIC | MEDICAL | OTHER
+  refNumber   String
+  filePath    String?
+  createdAt   DateTime @default(now())
+
+  @@index([companyId, employeeId])
+}
 model User {
   id           String    @id @default(cuid())
   companyId    String
@@ -77,6 +152,9 @@ model User {
   approvedLeaves LeaveRequest[] @relation("LeaveApprover")
 
   @@index([companyId])
+  socialPosts      SocialPost[]
+  postLikes        PostLike[]
+  postComments     PostComment[]
 }
 
 model Department {
@@ -122,6 +200,9 @@ model Employee {
   phone          String?
   gender         String?
   dateOfBirth    DateTime?      @db.Date
+  bloodGroup     String? // e.g. "AB+"
+  emergencyName  String?
+  emergencyPhone String?
   joinDate       DateTime       @db.Date
   address        String?
   status         EmployeeStatus @default(ACTIVE)
@@ -130,8 +211,6 @@ model Employee {
   category       StaffCategory  @default(OFFICIAL)
   contractor     String? // contractor / thekedari grouping (Phase E5)
   weeklyOff      Int            @default(0) // JS getUTCDay(): 0=Sun ... 6=Sat
-  bloodGroup     String?
-  emergencyPhone String?
   // Phase D: payroll setup
   salaryType     String         @default("MONTHLY") // MONTHLY | DAILY
   baseSalary     Int? // ₹ per month (whole rupees)
@@ -166,6 +245,9 @@ model Employee {
   tickets          Ticket[]
   starAwards       StarAward[]
   advances         Advance[]
+  kycDocs         KycDoc[]
+  swapRequestsOut ShiftSwapRequest[] @relation("SwapRequester")
+  swapRequestsIn  ShiftSwapRequest[] @relation("SwapPeer")
     payrollRows      PayrollRow[]
   salaryRevisions  SalaryRevision[]
   shiftAssignments ShiftAssignment[]

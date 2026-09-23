@@ -10,14 +10,14 @@ import { fmtDate } from "@/lib/utils";
 
 type Req = { id: string; type: string; date: Date; time: string | null; hours: number | null; status: string };
 
-export function RequestPunchForm({ recent }: { recent: Req[] }) {
+export function RequestPunchForm({ recent, otApprovedHours = 0 }: { recent: Req[]; otApprovedHours?: number }) {
   const ph = useT();
   const [state, formAction, pending] = useActionState<ActionState, FormData>(createPunchRequestAction, {});
 
   return (
     <Card className="mb-6 p-5">
       <h3 className="text-sm font-bold text-slate-900">{<Tt>✍️ Manual Punch / OT Request</Tt>}</h3>
-      <p className="mb-4 text-xs text-slate-500">Bhul gaye punch karna? Ya overtime? Manager approve kardega.</p>
+      <p className="mb-4 text-xs text-slate-500">Missed a punch? Or overtime? Your manager will review & approve it.</p>
 
       {state.error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{state.error}</p>}
       {state.success && <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{state.success}</p>}
@@ -26,7 +26,7 @@ export function RequestPunchForm({ recent }: { recent: Req[] }) {
         <select name="type" className={inputCls} defaultValue="MANUAL_IN" required>
           <option value="MANUAL_IN">{<Tt>Manual Punch In</Tt>}</option>
           <option value="MANUAL_OUT">{<Tt>Manual Punch Out</Tt>}</option>
-          <option value="OT">{<Tt>Overtime (OT)</Tt>}</option>
+          <option value="OT">{<Tt>Overtime (OT)</Tt>}{otApprovedHours > 0 ? ` · ${otApprovedHours}h approved` : ""}</option>
         </select>
         <input type="date" name="date" className={inputCls} required />
         <input type="time" name="time" className={inputCls} placeholder={ph("Time")} />

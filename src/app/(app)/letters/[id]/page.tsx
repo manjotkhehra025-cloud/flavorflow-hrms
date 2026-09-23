@@ -11,7 +11,14 @@ const TYPE_TITLES: Record<string, string> = {
   EXPERIENCE: "EXPERIENCE CERTIFICATE",
   JOINING: "JOINING / APPOINTMENT LETTER",
   KYC: "EMPLOYMENT VERIFICATION LETTER",
+  DUTY: "DUTY & SHIFT PASS",
 };
+
+/** Render-friendly ref: GDF/HR/2026/{empCode}-0007 (serial suffix stays global). */
+function displayRef(serial: string, empCode: string): string {
+  const m = serial.match(/^(.*\/HR\/[0-9]{4})\/(\d+)$/);
+  return m ? `${m[1]}/${empCode}-${m[2]}` : serial;
+}
 
 export default async function LetterPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireUser();
@@ -39,7 +46,7 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
     <div className="print-area mx-auto max-w-3xl">
       <div className="mb-4 flex items-center justify-between print:hidden">
         <div className="text-sm font-semibold text-slate-600">
-          Ref: <span className="font-black text-emerald-700">{letter.serial}</span>
+          Ref: <span className="font-black text-emerald-700">{displayRef(letter.serial, e.code)}</span>
           <span className="ml-2 text-xs text-slate-400">({title.toLowerCase()})</span>
         </div>
         <PrintButton />
@@ -62,7 +69,7 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="mt-6 flex items-center justify-between text-sm text-slate-700">
-          <div>{<Pa>Ref:</Pa>}<b>{letter.serial}</b></div>
+          <div>{<Pa>Ref:</Pa>}<b>{displayRef(letter.serial, e.code)}</b></div>
           <div>{<Pa>Dated:</Pa>}<b>{fmtDate(letter.createdAt)}</b></div>
         </div>
 
@@ -107,6 +114,23 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
               </p>
             </>
           )}
+          {letter.type === "DUTY" && (
+            <>
+              <p>
+                This is to certify that <b>Mr./Ms. {name}</b>{<Pa>, holding Employee ID</Pa>}<b>{e.code}</b>, is a
+                bonafide employee of <b>{letter.company.name}</b>{<Pa>in the</Pa>}<b>{dept}</b> department.
+                This pass authorizes him/her to report for official duty within the factory premises as per
+                the shift roster assigned from time to time, including early-morning and night shifts.
+              </p>
+              <p>
+                The holder is requested to carry this pass along with the company ID card at all times.
+                Traffic authorities and check-posts are requested to permit duty travel accordingly.
+              </p>
+              <p>
+                This pass is valid for the period of active employment and must be surrendered on leaving service.
+              </p>
+            </>
+          )}
           {letter.type === "KYC" && (
             <>
               <p>
@@ -128,10 +152,13 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
 
         <div className="mt-12 flex items-end justify-between">
           <div className="text-xs text-slate-400">
-            <div className="h-16 w-16 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-300">
-              SEAL
+            <div className="relative flex h-20 w-20 -rotate-12 items-center justify-center rounded-full border-[3px] border-emerald-600/70">
+              <div className="absolute inset-1 rounded-full border border-emerald-600/50" />
+              <div className="text-center text-[7px] font-black uppercase leading-tight tracking-wider text-emerald-700">
+                {letter.company.name.split(" ").slice(0, 2).join(" ")}<br />Officially<br />Verified
+              </div>
             </div>
-            <div className="mt-1 text-center text-[10px]">{<Pa>Company Seal</Pa>}</div>
+            <div className="mt-1 text-center text-[10px]">{<Pa>Official Seal</Pa>}</div>
           </div>
           <div className="text-right">
             <div className="text-sm font-bold text-slate-700">For {letter.company.name}</div>

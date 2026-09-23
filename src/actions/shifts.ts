@@ -73,3 +73,20 @@ export async function seedFactoryShiftsAction(): Promise<ActionState> {
   revalidatePath("/settings");
   return { success: await bt("Factory defaults ready: 3 shifts + Earned Leave (15/yr).") };
 }
+
+/** Staff: edit an existing shift (name, start time, hours). */
+export async function updateShiftAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireStaff();
+  const id = String(formData.get("shiftId") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const startTime = String(formData.get("startTime") ?? "").trim();
+  const durationH = Number(formData.get("durationH") ?? 0);
+  if (!id || !name || !/^\d{2}:\d{2}$/.test(startTime)) return { error: await bt("Fill name + HH:MM start time.") };
+  if (!durationH || durationH < 1 || durationH > 16) return { error: await bt("Hours must be 1–16.") };
+  const shift = await db.shift.findFirst({ where: { id, companyId: me.companyId } });
+  if (!shift) return { error: await bt("Shift not found.") };
+  await db.shift.update({ where: { id }, data: { name, startTime, durationH } });
+  revalidatePath("/settings");
+  revalidatePath("/roster");
+  return { success: await bt("Shift updated ✔") };
+}

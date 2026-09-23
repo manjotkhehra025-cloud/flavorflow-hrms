@@ -10,7 +10,9 @@ import { cx } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "home" as const },
-  { href: "/employees", label: "Team", icon: "users" as const, staffOnly: true },
+  { href: "/social", label: "Social Wall", icon: "chat" as const },
+  { href: "/employees", label: "Employees", icon: "users" as const, staffOnly: true },
+  { href: "/team", label: "Live Team", icon: "fingerprint" as const, staffOnly: true },
   { href: "/attendance", label: "Attendance", icon: "clock" as const },
   { href: "/leaves", label: "Leaves", icon: "leaf" as const },
   { href: "/approvals", label: "Approvals", icon: "check" as const, staffOnly: true },

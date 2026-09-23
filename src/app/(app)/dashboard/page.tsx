@@ -10,6 +10,9 @@ import { checkInAction, checkOutAction } from "@/actions/attendance";
 import { PunchWithSelfie } from "@/components/PunchWithSelfie";
 import { LiveTimer } from "@/components/LiveTimer";
 import { PresenceBoard } from "@/components/PresenceBoard";
+import { ActivityFeed } from "@/components/ActivityFeed";
+import { getRecentActivity } from "@/lib/activity";
+import { fmtDate as _fmtDate } from "@/lib/utils";
 import { LinkAccountCard } from "@/components/LinkAccountCard";
 import { AvatarImg } from "@/components/AvatarImg";
 
@@ -85,6 +88,29 @@ export default async function DashboardPage() {
     : [];
 
   const teamWorking = staff ? presentToday : 0;
+
+  // Workforce pulse (staff) — today
+  const [todayRows, onLeaveToday] = staff
+    ? await Promise.all([
+        db.attendance.groupBy({ by: ["status"], where: { companyId: me.companyId, date: today }, _count: true }),
+        db.leaveRequest.count({ where: { companyId: me.companyId, status: "APPROVED", fromDate: { lte: today }, toDate: { gte: today } } }),
+      ])
+    : [[], 0];
+  const punchDone = staff ? await db.attendance.count({ where: { companyId: me.companyId, date: today, checkOut: { not: null } } }) : 0;
+  const stCount = (st: string) => (todayRows as { status: string; _count: number }[]).find((r) => r.status === st)?._count ?? 0;
+
+  // My attendance % (employee) — month to date
+  let myPct: { present: number; absent: number; half: number; pct: number } | null = null;
+  if (me.employeeId) {
+    const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    const rows = await db.attendance.groupBy({ by: ["status"], where: { employeeId: me.employeeId, date: { gte: monthStart, lte: today } }, _count: true });
+    const c = (st: string) => rows.find((r) => r.status === st)?._count ?? 0;
+    const present = c("PRESENT"), absent = c("ABSENT"), half = c("HALF_DAY");
+    const denom = present + absent + half;
+    myPct = { present, absent, half, pct: denom ? Math.round(((present + half * 0.5) / denom) * 100) : 0 };
+  }
+
+  const activityItems = (await getRecentActivity(me, 8)).map((a) => ({ ...a, at: a.at.toISOString() }));
   const shiftName = myEmployee?.shift?.name ?? "General Day Shift";
   const shiftHours = myEmployee?.shift?.durationH ?? 9;
   const isWeeklyOff = myEmployee ? today.getUTCDay() === myEmployee.weeklyOff : false;
@@ -263,6 +289,58 @@ export default async function DashboardPage() {
         <StatCard label={<Pa>Pending leaves</Pa>} value={pendingLeaves} icon="leaf" tone="amber" href="/leaves" />
         <StatCard label={<Pa>Upcoming holidays</Pa>} value={upcomingHolidays.length} icon="calendar" tone="rose" href="/holidays" />
       </div>
+
+      {/* ===== Workforce pulse (staff) / My attendance (employee) ===== */}
+      {staff && (
+        <Card className="p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-900">{<Pa>Workforce pulse — today</Pa>}</h3>
+            <Link href="/team" className="text-xs font-semibold text-emerald-600 hover:underline">{<Pa>Live team →</Pa>}</Link>
+          </div>
+          <div className="grid grid-cols-4 gap-2.5">
+            {(() => {
+              const present = stCount("PRESENT");
+              const active = employeeCount || 1;
+              const tiles = [
+                { n: `${Math.round((present / active) * 100)}%`, l: "Present today", c: "text-emerald-600", bar: "bg-emerald-500", pct: (present / active) * 100 },
+                { n: stCount("HALF_DAY"), l: "Half-day", c: "text-amber-600", bar: "bg-amber-400", pct: Math.min(100, (stCount("HALF_DAY") / active) * 100) },
+                { n: onLeaveToday, l: "On approved leave", c: "text-sky-600", bar: "bg-sky-400", pct: Math.min(100, (onLeaveToday / active) * 100) },
+                { n: punchDone, l: "Shifts completed", c: "text-violet-600", bar: "bg-violet-500", pct: Math.min(100, (punchDone / active) * 100) },
+              ];
+              return tiles.map((t) => (
+                <div key={String(t.l)} className="rounded-2xl bg-slate-50 p-3">
+                  <p className={`text-xl font-extrabold tabular-nums ${t.c}`}>{t.n}</p>
+                  <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">{<Pa>{t.l}</Pa>}</p>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-200">
+                    <div className={`h-full rounded-full ${t.bar}`} style={{ width: `${Math.max(4, t.pct)}%` }} />
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        </Card>
+      )}
+      {myPct && (
+        <Card className="flex items-center gap-5 p-5">
+          <div className="relative h-20 w-20 shrink-0">
+            <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90">
+              <circle cx="40" cy="40" r="34" fill="none" strokeWidth="9" className="stroke-slate-100" />
+              <circle cx="40" cy="40" r="34" fill="none" strokeWidth="9" strokeLinecap="round" className="stroke-emerald-500" strokeDasharray="213.6" strokeDashoffset={213.6 - (213.6 * myPct.pct) / 100} />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center text-base font-extrabold text-slate-800">{myPct.pct}%</div>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">{<Pa>My attendance — this month</Pa>}</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              <span className="font-bold text-emerald-600">{myPct.present} <Pa>present</Pa></span> · <span className="font-bold text-amber-600">{myPct.half} <Pa>half-day</Pa></span> · <span className="font-bold text-rose-500">{myPct.absent} <Pa>absent</Pa></span>
+            </p>
+            <Link href="/attendance" className="mt-1.5 inline-block text-xs font-semibold text-emerald-600 hover:underline">{<Pa>Full register →</Pa>}</Link>
+          </div>
+        </Card>
+      )}
+
+      {/* ===== Recent activity ===== */}
+      <ActivityFeed items={activityItems} />
 
       {/* ===== Quick actions ===== */}
       {staff && (

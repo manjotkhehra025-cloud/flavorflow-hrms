@@ -2,6 +2,8 @@ import { pht } from "@/lib/i18n";
 import { Pa } from "@/components/Pa";
 import { savePayRulesAction, saveGeofenceAction } from "@/actions/config";
 import { GeofenceCard } from "./GeofenceCard";
+import { ShiftRow } from "./ShiftRow";
+import { ChangePasswordCard } from "@/components/PasswordCards";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { fmtTime } from "@/lib/utils";
@@ -14,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const me = await requireStaff();
 
-  const companyRules = await db.company.findUnique({ where: { id: me.companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true, daPercent: true, otMultiplier: true, shiftHours: true, punchSelfieRequired: true, geofenceEnabled: true, geoLat: true, geoLng: true, geoRadius: true } });
+  const companyRules = await db.company.findUnique({ where: { id: me.companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true, daPercent: true, otMultiplier: true, shiftHours: true, punchSelfieRequired: true, geofenceEnabled: true, geoLat: true, geoLng: true, geoRadius: true, geoFacility: true, geoAddress: true } });
   const [shifts, leaveTypes, empCounts] = await Promise.all([
     db.shift.findMany({
       where: { companyId: me.companyId },
@@ -32,11 +34,15 @@ export default async function SettingsPage() {
     <div>
       <PageHeader title={<Pa>Settings & Shifts</Pa>} subtitle={<Pa>Factory policy configuration — shifts, leave quotas & staff categories.</Pa>} />
 
+      <ChangePasswordCard />
+
       <GeofenceCard initial={{
         enabled: companyRules?.geofenceEnabled ?? false,
         lat: companyRules?.geoLat ?? null,
         lng: companyRules?.geoLng ?? null,
         radius: companyRules?.geoRadius ?? 200,
+        facility: companyRules?.geoFacility ?? null,
+        address: companyRules?.geoAddress ?? null,
       }} />
 
       {/* Pay rules (payroll engine) */}
@@ -111,21 +117,7 @@ export default async function SettingsPage() {
         ) : (
           <ul className="mb-5 space-y-2.5">
             {shifts.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0a1628] text-emerald-400">
-                    <Icon name="clock" className="h-4.5 w-4.5" />
-                  </span>
-                  <div>
-                    <div className="text-sm font-bold text-slate-800">{s.name}</div>
-                    <div className="text-xs text-slate-500"><Pa>Starts</Pa> {s.startTime} · {s.durationH}h · {s._count.employees} <Pa>employee(s)</Pa></div>
-                  </div>
-                </div>
-                <form action={async (fd: FormData) => { "use server"; await deleteShiftAction({}, fd); }}>
-                  <input type="hidden" name="id" value={s.id} />
-                  <button className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50">{<Pa>Delete</Pa>}</button>
-                </form>
-              </li>
+              <ShiftRow key={s.id} id={s.id} name={s.name} startTime={s.startTime} durationH={s.durationH} count={s._count.employees} />
             ))}
           </ul>
         )}

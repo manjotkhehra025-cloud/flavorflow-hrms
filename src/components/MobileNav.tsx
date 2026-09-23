@@ -10,7 +10,7 @@ import { HLogo } from "./Sidebar";
 import { logoutAction } from "@/actions/auth";
 import { cx } from "@/lib/utils";
 
-export function MobileTopBar({ name }: { name: string }) {
+export function MobileTopBar({ name, right }: { name: string; right?: React.ReactNode }) {
   return (
     <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-white/[0.06] bg-[#0a1628] px-4 lg:hidden">
       <div className="flex items-center gap-2.5">
@@ -20,14 +20,19 @@ export function MobileTopBar({ name }: { name: string }) {
           <span className="block text-[10px] text-emerald-400/80"><Tt>Sat Sri Akal</Tt>, {name.split(" ")[0]} 🙏</span>
         </div>
       </div>
-      <LangToggle dark />
+      <div className="flex items-center gap-2">
+        {right}
+        <LangToggle dark />
+      </div>
     </header>
   );
 }
 
 const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0]["name"]; staffOnly?: boolean }[] = [
+  { href: "/social", label: "Social Wall", icon: "chat" },
+  { href: "/team", label: "Live Team", icon: "fingerprint", staffOnly: true },
   { href: "/attendance", label: "Attendance & Logs", icon: "clock" },
-  { href: "/employees", label: "Team", icon: "users", staffOnly: true },
+  { href: "/employees", label: "Employees", icon: "users", staffOnly: true },
   { href: "/idcard", label: "ID Card & Gate Pass", icon: "badge" },
   { href: "/approvals", label: "Approvals", icon: "check", staffOnly: true },
   { href: "/payroll", label: "Payroll", icon: "wallet", staffOnly: true },

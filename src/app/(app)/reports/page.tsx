@@ -14,6 +14,8 @@ import {
   LATE_GRACE_MINS,
 } from "@/lib/reports2";
 import { RegisterGrid } from "@/components/RegisterGrid";
+import { AnalyticsBoard, type AnalyticsUi } from "@/components/AnalyticsBoard";
+import { buildMonthAnalytics } from "@/lib/analytics";
 import { Card, PageHeader } from "@/components/ui";
 import { Icon, type IconName } from "@/components/icons";
 
@@ -77,14 +79,31 @@ export default async function ReportsPage({
   const lang = await getRequestLang();
   const { label } = monthRange(month);
 
-  const [grid, late, ot, lbr, gp, shiftCount] = await Promise.all([
+  const [grid, late, ot, lbr, gp, shiftCount, analytics, dayCounts] = await Promise.all([
     buildRegisterGrid(me.companyId, month),
     buildLateIn(me.companyId, month),
     buildOt(me.companyId, month),
     buildLeaveBalanceRegister(me.companyId),
     buildGatePassLog(me.companyId, month),
     db.shift.count({ where: { companyId: me.companyId } }),
+    buildMonthAnalytics(me.companyId, month),
+    (async () => {
+      const { start, endExclusive } = monthRange(month);
+      const raw = await db.attendance.groupBy({ by: ["date"], where: { companyId: me.companyId, date: { gte: start, lt: endExclusive }, checkIn: { not: null } }, _count: true });
+      const dim = Math.round((endExclusive.getTime() - start.getTime()) / 86400000);
+      const arr = new Array(dim).fill(0);
+      for (const r of raw) arr[parseInt(r.date.toISOString().slice(8, 10), 10) - 1] = r._count;
+      return arr;
+    })(),
   ]);
+
+  const analyticsUi: AnalyticsUi = {
+    month, label,
+    tiles: { present: analytics.present, late: analytics.late, half: analytics.half, absent: analytics.absent, onTimePct: analytics.onTimePct, avgLateMin: analytics.avgLateMin },
+    byDept: analytics.byDept,
+    sparkline: dayCounts,
+    rows: analytics.perEmp.map((r) => ({ ...r, workedH: Math.round(r.workedH * 10) / 10 })),
+  };
 
   return (
     <div className="space-y-5">
@@ -99,6 +118,9 @@ export default async function ReportsPage({
         </div>
         <Link href={`/reports?month=${shiftMonth(month, 1)}`} className="btn-ghost px-3!" aria-label="Next month">→</Link>
       </Card>
+
+      {/* 1 · Analytics */}
+      <AnalyticsBoard data={analyticsUi} />
 
       {/* 1 · Monthly register */}
       <Card className="space-y-3 p-4">

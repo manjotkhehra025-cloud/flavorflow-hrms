@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import type { ActionState } from "./auth";
 
-const LETTER_TYPES = new Set(["EXPERIENCE", "JOINING", "KYC"]);
+const LETTER_TYPES = new Set(["EXPERIENCE", "JOINING", "KYC", "DUTY"]);
 
 export async function createLetterAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireStaff();

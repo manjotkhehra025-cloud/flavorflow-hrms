@@ -4,6 +4,9 @@ import { getSessionUser } from "@/lib/auth";
 import { LoginForm } from "./LoginForm";
 import { Icon } from "@/components/icons";
 import { HLogo } from "@/components/Sidebar";
+import { LangProvider } from "@/components/LangCtx";
+import { LangToggle } from "@/components/LangToggle";
+import { getRequestLang } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +19,7 @@ function BrandPanel() {
         <HLogo className="h-11 w-11" />
         <span className="text-lg font-bold tracking-tight">{<Pa>HRMate</Pa>}</span>
       </div>
+      <div className="absolute right-8 top-10"><LangToggle dark /></div>
       <div className="relative">
         <h2 className="text-3xl font-extrabold leading-tight tracking-tight">
           Factory people, punch<br />{<Pa>&amp; gate pass —</Pa>}<span className="text-emerald-400">{<Pa>sorted.</Pa>}</span>
@@ -45,9 +49,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { setup } = await searchParams;
 
   return (
+    <LangProvider lang={await getRequestLang()}>
     <main className="flex min-h-screen bg-[#0a1628]">
       <BrandPanel />
-      <div className="flex flex-1 items-center justify-center bg-[#f6f7f9] px-4">
+      <div className="relative flex flex-1 items-center justify-center bg-[#f6f7f9] px-4">
+        <div className="absolute right-4 top-4 lg:hidden"><LangToggle /></div>
         <div className="w-full max-w-sm animate-fade-up">
           <div className="mb-6 text-center lg:hidden">
             <div className="mx-auto mb-3">
@@ -68,5 +74,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
     </main>
+  </LangProvider>
   );
 }

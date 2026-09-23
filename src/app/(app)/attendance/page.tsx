@@ -124,6 +124,11 @@ export default async function AttendancePage({
   const monthLabel = start.toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "UTC" });
   const monthlyRows = [...myMonthRows].sort((a, b) => (a.date < b.date ? -1 : 1)).reverse();
 
+  // Month summary tiles (employee) + approved OT hours
+  const mPresent = myMonthRows.filter((r) => r.status === "PRESENT").length;
+  const mHalf = myMonthRows.filter((r) => r.status === "HALF_DAY" || (hoursMins(r.checkIn, r.checkOut) > 0 && hoursMins(r.checkIn, r.checkOut) < 360)).length;
+  const otApprovedHours = (Array.isArray(myRequests) ? myRequests : []).filter((r) => r.type === "OT" && r.status === "APPROVED").reduce((a, r) => a + (r.hours ?? 0), 0);
+
   return (
     <div>
       <PageHeader title={<Pa>Attendance & Logs</Pa>} subtitle={staff ? <Pa>Your calendar + team daily view, manual punches & OT.</Pa> : <Pa>Your calendar, punch records & manual punch requests.</Pa>} />
@@ -205,8 +210,26 @@ export default async function AttendancePage({
         </Card>
       )}
 
+      {/* Month summary strip */}
+      {emp && myMonthRows.length > 0 && (
+        <div className="mb-6 grid grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-emerald-50 p-3.5 text-center ring-1 ring-emerald-100">
+            <p className="text-xl font-extrabold text-emerald-600">{mPresent}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{<Pa>Present days</Pa>}</p>
+          </div>
+          <div className="rounded-2xl bg-amber-50 p-3.5 text-center ring-1 ring-amber-100">
+            <p className="text-xl font-extrabold text-amber-600">{mHalf}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{<Pa>Half-days</Pa>}</p>
+          </div>
+          <div className="rounded-2xl bg-sky-50 p-3.5 text-center ring-1 ring-sky-100">
+            <p className="text-xl font-extrabold text-sky-600">{otApprovedHours}h</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{<Pa>OT approved</Pa>}</p>
+          </div>
+        </div>
+      )}
+
       {/* Manual punch / OT request forms */}
-      {emp && <RequestPunchForm recent={myRequests.map((r) => ({ id: r.id, type: r.type, date: r.date, time: r.time, hours: r.hours, status: r.status }))} />}
+      {emp && <RequestPunchForm otApprovedHours={otApprovedHours} recent={myRequests.map((r) => ({ id: r.id, type: r.type, date: r.date, time: r.time, hours: r.hours, status: r.status }))} />}
 
       {/* Monthly log table (own) */}
       {emp && monthlyRows.length > 0 && (

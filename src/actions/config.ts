@@ -35,6 +35,8 @@ export async function saveGeofenceAction(_prev: ActionState, formData: FormData)
   const lat = parseFloat(String(formData.get("geoLat") ?? ""));
   const lng = parseFloat(String(formData.get("geoLng") ?? ""));
   const radius = parseFloat(String(formData.get("geoRadius") ?? "200"));
+  const geoFacility = (String(formData.get("geoFacility") ?? "").trim() || null);
+  const geoAddress = (String(formData.get("geoAddress") ?? "").trim() || null);
   if (enabled && (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)) {
     return { error: await bt("Set factory GPS location first (use the 📍 my-location button).") };
   }
@@ -45,6 +47,8 @@ export async function saveGeofenceAction(_prev: ActionState, formData: FormData)
       geoLat: Number.isFinite(lat) ? lat : null,
       geoLng: Number.isFinite(lng) ? lng : null,
       geoRadius: Number.isFinite(radius) && radius >= 25 && radius <= 5000 ? radius : 200,
+      geoFacility,
+      geoAddress,
     },
   });
   revalidatePath("/settings");

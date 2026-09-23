@@ -74,3 +74,14 @@ export function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: n
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
 }
+
+/** "just now", "10m ago", "3h ago", "2d ago", or dd MMM for older. */
+export function timeAgo(d: Date | string): string {
+  const t = typeof d === "string" ? new Date(d) : d;
+  const s = Math.max(0, (Date.now() - t.getTime()) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 86400 * 7) return `${Math.floor(s / 86400)}d ago`;
+  return t.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}

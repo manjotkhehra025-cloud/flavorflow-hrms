@@ -177,3 +177,17 @@ export async function deleteEmployeeAction(employeeId: string) {
   revalidatePath("/employees");
   redirect("/employees");
 }
+
+/** Staff: change one employee's weekly-off day (inline, fire-and-forget). */
+export async function setWeeklyOffAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireStaff();
+  const id = String(formData.get("employeeId") ?? "");
+  const weeklyOff = parseInt(String(formData.get("weeklyOff") ?? "0"), 10);
+  const res = await db.employee.updateMany({
+    where: { id, companyId: me.companyId },
+    data: { weeklyOff: Number.isFinite(weeklyOff) && weeklyOff >= 0 && weeklyOff <= 6 ? weeklyOff : 0 },
+  });
+  if (res.count === 0) return { error: await bt("Employee not found.") };
+  revalidatePath("/team");
+  return { success: await bt("Weekly off updated ✔") };
+}

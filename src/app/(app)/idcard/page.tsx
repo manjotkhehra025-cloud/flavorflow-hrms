@@ -5,8 +5,10 @@ import { requireUser } from "@/lib/auth";
 import { fmtDate, initials } from "@/lib/utils";
 import { Card, PageHeader, Badge, inputCls } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { GatePassForm } from "./GatePassForm";
+
 import { PrintButton } from "./PrintButton";
+import { GatePassForm } from "./GatePassForm";
+import { KycLocker } from "@/components/KycLocker";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +49,7 @@ export default async function IdCardPage({
     : [];
 
   const name = employee ? `${employee.firstName} ${employee.lastName}` : "";
+  const myDocs = employee && employee.id === me.employeeId ? await db.kycDoc.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: "desc" } }) : [];
   const roleChip = employee?.users[0]?.role === "ADMIN" ? "Super Admin" : employee?.users[0]?.role === "HR" ? "HR Manager" : null;
   const qr = employee
     ? await QRCode.toDataURL(`${BASE_URL}/verify/${employee.code}`, { margin: 1, width: 140, color: { dark: "#0a1628" } })
@@ -150,7 +153,7 @@ export default async function IdCardPage({
               <InfoRow k={<Pa>DOJ</Pa>} v={fmtDate(employee.joinDate)} />
               <InfoRow k={<Pa>DOB</Pa>} v={employee.dateOfBirth ? fmtDate(employee.dateOfBirth) : "—"} />
               <InfoRow k={<Pa>Blood Group</Pa>} v={employee.bloodGroup ?? "—"} highlight />
-              <InfoRow k={<Pa>Emergency Contact</Pa>} v={employee.emergencyPhone ?? "—"} />
+              <InfoRow k={<Pa>Emergency Contact</Pa>} v={employee.emergencyPhone ? `${employee.emergencyName ? employee.emergencyName + " · " : ""}${employee.emergencyPhone}` : "—"} />
               <InfoRow k="Shift" v={employee.shift ? `${employee.shift.name} (${employee.shift.startTime})` : "General Day (08:00)"} />
             </div>
 
@@ -174,6 +177,12 @@ export default async function IdCardPage({
               <span className="text-emerald-400">{<Pa>SECURITY VERIFIED</Pa>}</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {employee && employee.id === me.employeeId && (
+        <div className="mx-auto mt-5 max-w-md">
+          <KycLocker docs={myDocs.map((d) => ({ id: d.id, docType: d.docType, refNumber: d.refNumber }))} />
         </div>
       )}
 

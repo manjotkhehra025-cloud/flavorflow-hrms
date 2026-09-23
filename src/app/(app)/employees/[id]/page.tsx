@@ -10,6 +10,7 @@ import { getLeaveBalances, balanceRemaining } from "@/lib/balances";
 import { ProfileForms } from "./ProfileForms";
 import { PaySection } from "./PaySection";
 import { LetterSection } from "./LetterSection";
+import { AdminResetButton } from "@/components/PasswordCards";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { AvatarImg } from "@/components/AvatarImg";
 
@@ -50,7 +51,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       department: true,
       designation: true,
       shift: true,
-      users: { select: { email: true, role: true, isActive: true } },
+      users: { select: { id: true, email: true, role: true, isActive: true } },
       advances: { orderBy: { givenDate: "desc" } },
       salaryRevisions: { orderBy: { createdAt: "desc" }, take: 12 },
     },
@@ -58,7 +59,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   if (!employee) notFound();
 
   const monthStart = new Date(Date.UTC(todayDate().getUTCFullYear(), todayDate().getUTCMonth(), 1));
-  const [attendance, leaves, balances, shifts, leaveTypes, letters] = await Promise.all([
+  const [attendance, leaves, balances, shifts, leaveTypes, letters, kycDocs] = await Promise.all([
     db.attendance.findMany({
       where: { employeeId: employee.id, date: { gte: monthStart } },
       orderBy: { date: "desc" },
@@ -74,6 +75,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     db.shift.findMany({ where: { companyId: me.companyId }, orderBy: { startTime: "asc" } }),
     db.leaveType.findMany({ where: { companyId: me.companyId }, orderBy: { name: "asc" } }),
     db.letter.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: "desc" } }),
+    db.kycDoc.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: "desc" } }),
   ]);
 
   const bindToggle = updateEmployeeStatusAction.bind(
@@ -143,6 +145,9 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               v={employee.users[0] ? `${employee.users[0].email} (${employee.users[0].role})` : "No account"}
             />
           </dl>
+          {employee.users[0] && me.role !== "EMPLOYEE" && (
+            <AdminResetButton userId={employee.users[0].id} name={employee.firstName} />
+          )}
 
           <ProfileForms
             employee={{
@@ -193,6 +198,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
           <LetterSection
             employeeId={employee.id}
+            canEdit={me.role !== "EMPLOYEE"}
+            kycDocs={kycDocs.map((d) => ({ id: d.id, docType: d.docType, refNumber: d.refNumber, createdAt: d.createdAt.toISOString() }))}
             letters={letters.map((l) => ({ id: l.id, serial: l.serial, type: l.type, issuedTo: l.issuedTo, createdAt: l.createdAt.toISOString() }))}
           />
         </Card>

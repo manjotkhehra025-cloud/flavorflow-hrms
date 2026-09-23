@@ -6,13 +6,32 @@ import { saveGeofenceAction } from "@/actions/config";
 import type { ActionState } from "@/actions/auth";
 import { Card } from "@/components/ui";
 
-export function GeofenceCard({ initial }: { initial: { enabled: boolean; lat: number | null; lng: number | null; radius: number } }) {
+export function GeofenceCard({ initial }: { initial: { enabled: boolean; lat: number | null; lng: number | null; radius: number; facility?: string | null; address?: string | null } }) {
   const [eda, formAction, pending] = useActionState<ActionState, FormData>(saveGeofenceAction, {});
   const [enabled, setEnabled] = useState(initial.enabled);
   const [lat, setLat] = useState(initial.lat?.toFixed(6) ?? "");
   const [lng, setLng] = useState(initial.lng?.toFixed(6) ?? "");
   const [locating, setLocating] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [facility, setFacility] = useState(initial.facility ?? "");
+  const [address, setAddress] = useState(initial.address ?? "");
+  const [mapLink, setMapLink] = useState("");
+
+  /** Accept a Google/OSM link or plain "lat,lng" text and extract coordinates. */
+  function parseLink(v: string) {
+    setMapLink(v);
+    const str = decodeURIComponent(v.trim());
+    const m =
+      str.match(/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/) ||
+      str.match(/[?&](?:q|ll|query)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/) ||
+      str.match(/^\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*$/) ||
+      str.match(/center[=:]\s*(-?\d+\.\d+)\s*[,%]\s*(-?\d+\.\d+)/);
+    if (m) {
+      setLat((+m[1]).toFixed(6));
+      setLng((+m[2]).toFixed(6));
+      setNote("✓ Link parsed — coordinates filled");
+    }
+  }
 
   function useMyLocation() {
     setLocating(true); setNote(null);
@@ -40,8 +59,34 @@ export function GeofenceCard({ initial }: { initial: { enabled: boolean; lat: nu
           <Tt>ON</Tt>
         </label>
       </div>
+      <div className="mb-3 flex flex-wrap items-end gap-2.5">
+        <label className="flex-1 min-w-52">
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Tt>Facility / Gate name</Tt></span>
+          <input value={facility} onChange={(e) => setFacility(e.target.value)} placeholder="Main Gate — GD Foods" className="input w-full text-xs" />
+        </label>
+        <label className="flex-2 min-w-64">
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Tt>Address chip (shown on punch screen)</Tt></span>
+          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="V.P.O. Khadur Sahib, Tarn Taran" className="input w-full text-xs" />
+        </label>
+      </div>
+      <label className="mb-3 block">
+        <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Tt>Paste Google Maps link (auto-fills GPS)</Tt></span>
+        <input value={mapLink} onChange={(e) => parseLink(e.target.value)} placeholder="https://maps.google.com/… @30.3469,74.1234,17z" className="input w-full font-mono text-xs" />
+      </label>
+      {lat && lng && (
+        <div className="mb-3 overflow-hidden rounded-2xl ring-1 ring-slate-200">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=16&size=640x180&markers=${lat},${lng},red-pushpin`}
+            alt="Factory location preview"
+            className="h-36 w-full object-cover"
+          />
+        </div>
+      )}
       <form action={formAction} className="flex flex-wrap items-end gap-2.5">
         <input type="hidden" name="geofenceEnabled" value={enabled ? "on" : "off"} readOnly={false} />
+        <input type="hidden" name="geoFacility" value={facility} />
+        <input type="hidden" name="geoAddress" value={address} />
         <label>
           <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Tt>Latitude</Tt></span>
           <input name="geoLat" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="30.346912" className="input w-32 font-mono text-xs" inputMode="decimal" />

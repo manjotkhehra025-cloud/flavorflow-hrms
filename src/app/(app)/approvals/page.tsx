@@ -6,23 +6,27 @@ import { fmtDate, fmtTime, initials, cx } from "@/lib/utils";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { decideLeaveAction } from "@/actions/leaves";
+import { decideSwapAction } from "@/actions/swaps";
+import { timeAgo } from "@/lib/utils";
 import { decideGatePassAction, decidePunchRequestAction, verifyGatePassAction } from "@/actions/requests";
 
 export const dynamic = "force-dynamic";
 
 const TABS = [
+  { key: "all", label: "All" },
   { key: "leave", label: "Leave Requests" },
   { key: "punch", label: "Manual Punch" },
   { key: "ot", label: "Overtime (OT)" },
   { key: "gate", label: "Gate Pass" },
+  { key: "swaps", label: "Shift Swaps" },
 ] as const;
 
 export default async function ApprovalsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const me = await requireStaff();
   const { tab } = await searchParams;
-  const active = TABS.some((t) => t.key === tab) ? (tab as (typeof TABS)[number]["key"]) : "leave";
+  const active = TABS.some((t) => t.key === tab) ? (tab as (typeof TABS)[number]["key"]) : "all";
 
-  const [leaves, punches, gates] = await Promise.all([
+  const [leaves, punches, swaps, gates] = await Promise.all([
     db.leaveRequest.findMany({
       where: { companyId: me.companyId, status: "PENDING" },
       include: { employee: true, leaveType: true },
@@ -31,6 +35,11 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
     db.punchRequest.findMany({
       where: { companyId: me.companyId, status: "PENDING" },
       include: { employee: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    db.shiftSwapRequest.findMany({
+      where: { companyId: me.companyId, status: "PENDING" },
+      include: { requester: true, peer: true },
       orderBy: { createdAt: "asc" },
     }),
     db.gatePass.findMany({
@@ -48,8 +57,11 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
     punch: punchManual.length,
     ot: punchOT.length,
     gate: gatesPending.length,
+    swaps: swaps.length,
+    all: 0, // overwritten below with total
   };
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  counts.all = leaves.length + punchManual.length + punchOT.length + gatesPending.length + swaps.length;
+  const total = counts.all;
 
   return (
     <div>
@@ -78,6 +90,104 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
       </div>
 
       <Card className="p-5">
+        {/* ALL TAB — one unified queue across every request type */}
+        {active === "all" && (
+          total === 0 ? (
+            <Blank />
+          ) : (
+            <ul className="space-y-2.5">
+              {leaves.map((l) => (
+                <li key={`l${l.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                  <Badge tone="amber">Leave</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-slate-800">{l.employee.firstName} {l.employee.lastName}</div>
+                    <div className="text-xs text-slate-500">{l.leaveType.name} · {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} ({l.days}d){l.reason ? ` · "${l.reason}"` : ""} · {timeAgo(l.createdAt)}</div>
+                  </div>
+                  <Actions
+                    approve={async () => { "use server"; await decideLeaveAction(l.id, "APPROVED"); }}
+                    reject={async () => { "use server"; await decideLeaveAction(l.id, "REJECTED"); }}
+                  />
+                </li>
+              ))}
+              {punchManual.map((p) => (
+                <li key={`p${p.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                  <Badge tone="blue">{p.type === "MANUAL_IN" ? "Punch In" : "Punch Out"}</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-slate-800">{p.employee.firstName} {p.employee.lastName}</div>
+                    <div className="text-xs text-slate-500">{fmtDate(p.date)} at {p.time}{p.reason ? ` · "${p.reason}"` : ""} · {timeAgo(p.createdAt)}</div>
+                  </div>
+                  <Actions
+                    approve={async () => { "use server"; await decidePunchRequestAction(p.id, true); }}
+                    reject={async () => { "use server"; await decidePunchRequestAction(p.id, false); }}
+                  />
+                </li>
+              ))}
+              {punchOT.map((p) => (
+                <li key={`o${p.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                  <Badge tone="green">OT</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-slate-800">{p.employee.firstName} {p.employee.lastName}</div>
+                    <div className="text-xs text-slate-500">{fmtDate(p.date)} · {p.hours}h OT{p.reason ? ` · "${p.reason}"` : ""} · {timeAgo(p.createdAt)}</div>
+                  </div>
+                  <Actions
+                    approve={async () => { "use server"; await decidePunchRequestAction(p.id, true); }}
+                    reject={async () => { "use server"; await decidePunchRequestAction(p.id, false); }}
+                  />
+                </li>
+              ))}
+              {gatesPending.map((g) => (
+                <li key={`g${g.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                  <Badge tone="blue">Gate Pass</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-slate-800">{g.employee.firstName} {g.employee.lastName}</div>
+                    <div className="text-xs text-slate-500">{fmtDate(g.date)} · out {g.exitAt}{g.returnAt ? ` · back ${g.returnAt}` : ""}{g.reason ? ` · "${g.reason}"` : ""} · {timeAgo(g.createdAt)}</div>
+                  </div>
+                  <Actions
+                    approve={async () => { "use server"; await decideGatePassAction(g.id, true); }}
+                    reject={async () => { "use server"; await decideGatePassAction(g.id, false); }}
+                  />
+                </li>
+              ))}
+              {swaps.map((w) => (
+                <li key={`w${w.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                  <Badge tone="slate">Swap</Badge>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-slate-800">{w.requester.firstName} ↔ {w.peer.firstName}</div>
+                    <div className="text-xs text-slate-500">{fmtDate(w.date)}{w.note ? ` · "${w.note}"` : ""} · {timeAgo(w.createdAt)}</div>
+                  </div>
+                  <Actions
+                    approve={async () => { "use server"; await decideSwapAction(w.id, true); }}
+                    reject={async () => { "use server"; await decideSwapAction(w.id, false); }}
+                  />
+                </li>
+              ))}
+            </ul>
+          )
+        )}
+
+        {/* SWAPS TAB */}
+        {active === "swaps" && (
+          swaps.length === 0 ? (
+            <Blank />
+          ) : (
+            <ul className="space-y-2.5">
+              {swaps.map((w) => (
+                <li key={w.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0a1628] text-base">🔁</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-slate-800">{w.requester.firstName} {w.requester.lastName} <span className="text-slate-400">↔</span> {w.peer.firstName} {w.peer.lastName}</div>
+                    <div className="text-xs text-slate-500">{fmtDate(w.date)}{w.note ? ` · "${w.note}"` : ""}</div>
+                  </div>
+                  <Actions
+                    approve={async () => { "use server"; await decideSwapAction(w.id, true); }}
+                    reject={async () => { "use server"; await decideSwapAction(w.id, false); }}
+                  />
+                </li>
+              ))}
+            </ul>
+          )
+        )}
+
         {/* LEAVE TAB */}
         {active === "leave" && (
           leaves.length === 0 ? (
