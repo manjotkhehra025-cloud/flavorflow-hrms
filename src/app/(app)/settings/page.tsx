@@ -1,6 +1,7 @@
 import { pht } from "@/lib/i18n";
 import { Pa } from "@/components/Pa";
-import { savePayRulesAction } from "@/actions/config";
+import { savePayRulesAction, saveGeofenceAction } from "@/actions/config";
+import { GeofenceCard } from "./GeofenceCard";
 import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { fmtTime } from "@/lib/utils";
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const me = await requireStaff();
 
-  const companyRules = await db.company.findUnique({ where: { id: me.companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true, punchSelfieRequired: true } });
+  const companyRules = await db.company.findUnique({ where: { id: me.companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true, punchSelfieRequired: true, geofenceEnabled: true, geoLat: true, geoLng: true, geoRadius: true } });
   const [shifts, leaveTypes, empCounts] = await Promise.all([
     db.shift.findMany({
       where: { companyId: me.companyId },
@@ -30,6 +31,13 @@ export default async function SettingsPage() {
   return (
     <div>
       <PageHeader title={<Pa>Settings & Shifts</Pa>} subtitle={<Pa>Factory policy configuration — shifts, leave quotas & staff categories.</Pa>} />
+
+      <GeofenceCard initial={{
+        enabled: companyRules?.geofenceEnabled ?? false,
+        lat: companyRules?.geoLat ?? null,
+        lng: companyRules?.geoLng ?? null,
+        radius: companyRules?.geoRadius ?? 200,
+      }} />
 
       {/* Pay rules (payroll engine) */}
       <Card className="mb-6 p-5">

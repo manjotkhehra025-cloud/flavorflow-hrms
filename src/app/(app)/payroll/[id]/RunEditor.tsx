@@ -19,6 +19,7 @@ export type EditRow = {
   paymentMode: string; bank: string | null;
   pfEnabled: boolean; esiEnabled: boolean;
   pfEmployee: number; pfEmployer: number; esiEmployee: number; esiEmployer: number;
+  offWorkDays: number; offWorkPay: number; category: string;
   netPay: number; employeeId: string;
 };
 
@@ -36,7 +37,7 @@ function net(r: EditRow, o: { ot?: number; adv?: number; ded?: number; earn?: nu
   const ded = o.ded ?? r.otherDeduction;
   const earn = o.earn ?? r.otherEarning;
   const st = statutory(r, earn);
-  return { ot, pf: st.pf, esi: st.esi, net: Math.max(0, r.baseAmount + ot + earn - st.pf - st.esi - adv - ded) };
+  return { ot, pf: st.pf, esi: st.esi, net: Math.max(0, r.baseAmount + ot + r.offWorkPay + earn - st.pf - st.esi - adv - ded) };
 }
 
 export function RunEditor({ runId, rows }: { runId: string; month: string; rows: EditRow[] }) {
@@ -110,6 +111,7 @@ export function RunEditor({ runId, rows }: { runId: string; month: string; rows:
                     </td>
                     <td className="px-2 py-2.5 text-right font-semibold text-slate-700">{fmtINR(r.baseAmount)}
                       {r.deductions > 0 && <div className="text-[10px] text-rose-500">−{fmtINR(r.deductions)} <Tt>LOP</Tt></div>}
+                      {r.offWorkPay > 0 && <div className="text-[10px] font-bold text-emerald-600">+{fmtINR(r.offWorkPay)} <Tt>off-duty pay</Tt></div>}
                     </td>
                     <td className="px-2 py-2.5">
                       <div className="flex items-center justify-center gap-1">

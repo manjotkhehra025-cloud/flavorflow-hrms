@@ -13,6 +13,7 @@ export type PayslipData = {
   fullBase: number; // monthly: base+LOP; daily: baseAmount
   baseHint: string; // e.g. "₹ 11,000 / 30 days" or "20 days × ₹450"
   otHours: number; otRate: number; otAmount: number;
+  offWorkDays: number; offWorkPay: number;
   otherEarning: number; otherEarningNote: string | null;
   lopDays: number; lopPerDay: number; lopAmount: number;
   pfEmployee: number; pfEmployer: number;
@@ -66,6 +67,9 @@ export function Payslip({ d }: { d: PayslipData }) {
               <Row k={<Pa>Base pay</Pa>} h={d.baseHint} v={fmtINR(d.fullBase)} />
               {d.otAmount > 0 && (
                 <Row k={<Pa>Overtime</Pa>} h={`${d.otHours}h × ₹${d.otRate}`} v={"+" + fmtINR(d.otAmount)} good />
+              )}
+              {d.offWorkPay > 0 && (
+                <Row k={<Pa>Weekly-off duty pay</Pa>} h={`${d.offWorkDays} off-day(s) worked`} v={"+" + fmtINR(d.offWorkPay)} good />
               )}
               {d.otherEarning > 0 && (
                 <Row k={<Pa>Reward / bonus</Pa>} h={d.otherEarningNote ?? undefined} v={"+" + fmtINR(d.otherEarning)} good />

@@ -48,8 +48,12 @@ export default async function AttendancePage({
         where: { employeeId_date: { employeeId: emp.id, date: todayDate() } },
       })
     : null;
-  const company = await db.company.findUnique({ where: { id: me.companyId }, select: { punchSelfieRequired: true } });
+  const company = await db.company.findUnique({ where: { id: me.companyId }, select: { punchSelfieRequired: true, geofenceEnabled: true, geoLat: true, geoLng: true, geoRadius: true } });
   const selfieOn = !!company?.punchSelfieRequired;
+  const geo = company?.geofenceEnabled && company.geoLat != null && company.geoLng != null
+    ? { lat: company.geoLat, lng: company.geoLng, radius: company.geoRadius }
+    : null;
+  const smartPunch = selfieOn || !!geo;
 
   const dayRows = staff
     ? await db.attendance.findMany({
@@ -140,15 +144,21 @@ export default async function AttendancePage({
             </div>
           </div>
           <div className="flex gap-2">
-            {!selfieOn && !myToday?.checkIn && (
+            {!smartPunch && !myToday?.checkIn && (
               <form action={checkInAction}>
                 <button className="btn-brand"><Icon name="fingerprint" className="h-4 w-4" />{<Pa>Punch in</Pa>}</button>
               </form>
             )}
-            {!selfieOn && myToday?.checkIn && !myToday.checkOut && (
+            {!smartPunch && myToday?.checkIn && !myToday.checkOut && (
               <form action={checkOutAction}>
                 <button className="btn-ghost"><Icon name="fingerprint" className="h-4 w-4" />{<Pa>Punch out</Pa>}</button>
               </form>
+            )}
+            {smartPunch && !myToday?.checkIn && (
+              <div className="w-44"><PunchWithSelfie mode="in" selfieRequired={selfieOn} geofence={geo} /></div>
+            )}
+            {smartPunch && myToday?.checkIn && !myToday.checkOut && (
+              <div className="w-44"><PunchWithSelfie mode="out" selfieRequired={selfieOn} geofence={geo} /></div>
             )}
           </div>
         </Card>

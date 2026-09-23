@@ -25,7 +25,7 @@ export default async function PayrollRunPage({ params }: { params: Promise<{ id:
             select: {
               id: true, code: true, firstName: true, lastName: true, salaryType: true,
               baseSalary: true, dailyRate: true, otRate: true, bankAccount: true, ifsc: true,
-              pfEnabled: true, esiEnabled: true,
+              pfEnabled: true, esiEnabled: true, category: true,
               department: { select: { name: true } },
               advances: true,
             },
@@ -55,6 +55,7 @@ export default async function PayrollRunPage({ params }: { params: Promise<{ id:
     otHours: r.otHours, otRate: r.otRate, otAmount: r.otAmount,
     advanceBalance: r.employee.advances.reduce((s, a) => s + (a.amount - a.repaid), 0),
     pfEnabled: r.employee.pfEnabled, esiEnabled: r.employee.esiEnabled,
+    offWorkDays: r.offWorkDays, offWorkPay: r.offWorkPay, category: r.employee.category,
     pfEmployee: r.pfEmployee, pfEmployer: r.pfEmployer, esiEmployee: r.esiEmployee, esiEmployer: r.esiEmployer,
     advanceRecover: r.advanceRecover,
     otherDeduction: r.otherDeduction, otherDeductionNote: r.otherDeductionNote,

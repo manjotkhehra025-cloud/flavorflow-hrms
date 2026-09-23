@@ -33,6 +33,11 @@ model Company {
   lateGraceMins      Int @default(15)
   latesPerCut        Int @default(0)
   punchSelfieRequired Boolean @default(false)
+  // Phase F2: factory geofence punch
+  geofenceEnabled Boolean @default(false)
+  geoLat          Float?
+  geoLng          Float?
+  geoRadius       Float @default(200) // metres
   punchRequests    PunchRequest[]
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
@@ -187,6 +192,9 @@ model Attendance {
   checkOut   DateTime?
   status     AttendanceStatus @default(PRESENT)
   selfiePath String? // Phase E5: punch selfie (verify person, audit)
+  punchLat   Float?
+  punchLng   Float?
+  punchDist  Float? // metres from factory gate at punch time (audit)
   note       String?
 
   @@unique([employeeId, date])
@@ -366,6 +374,8 @@ model PayrollRow {
   pfEmployer         Int          @default(0) // employer share (company cost)
   esiEmployee        Int          @default(0) // 0.75% of gross (ex-OT)
   esiEmployer        Int          @default(0) // 3.25% (company cost)
+  offWorkDays        Float        @default(0) // weekly-off/holiday days actually worked (payable extra for YELLOW_CARD)
+  offWorkPay         Int          @default(0) // ₹ extra paid for those days
   netPay             Int          @default(0)
   paymentMode        String       @default("BANK") // BANK | CASH
   shareLink          PayslipLink?

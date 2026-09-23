@@ -40,6 +40,8 @@ export type CalcRow = {
   pfEmployer: number;
   esiEmployee: number;
   esiEmployer: number;
+  offWorkDays: number;
+  offWorkPay: number;
   advanceBalance: number;
   advanceRecover: number;
   otherDeduction: number;
@@ -192,7 +194,7 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     const att = attMap.get(emp.id) ?? new Set<string>();
     const lvs = leaveMap.get(emp.id) ?? new Set<string>();
 
-    let present = 0, leave = 0, absent = 0, off = 0;
+    let present = 0, leave = 0, absent = 0, off = 0, offWork = 0;
     const joinD = dstr(emp.joinDate);
     for (let i = 0; i < dim; i++) {
       const day = new Date(start.getTime() + i * DAY);
@@ -201,9 +203,10 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       const dow = day.getUTCDay();
       const rosterCell = rosterMap.get(emp.id + "|" + k);
       if (rosterCell?.isOff) { off++; continue; } // explicit roster off beats attendance
-      if (att.has(k)) { present++; continue; }
+      const isOffDay = dow === emp.weeklyOff || holidaySet.has(k);
+      if (att.has(k)) { if (isOffDay) { present++; offWork++; } else present++; continue; }
       if (lvs.has(k)) { leave++; continue; }
-      if (dow === emp.weeklyOff || holidaySet.has(k)) { off++; continue; }
+      if (isOffDay) { off++; continue; }
       absent++;
     }
 
@@ -253,6 +256,12 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     }
 
     const gross = baseAmount - lopAmount;
+    // Phase F1: yellow-card weekly-off/holiday duty pay — monthly: base/dim × off-worked days; daily: already in base (present pays)
+    let offWorkPay = 0, offWorkDays = 0;
+    if (emp.category === "YELLOW_CARD" && offWork > 0) {
+      offWorkDays = offWork;
+      if (monthly) offWorkPay = Math.round((dim > 0 ? (emp.baseSalary ?? 0) / dim : 0) * offWork);
+    }
     const advBalance = advMap.get(emp.id) ?? 0;
     const cap = Math.round(Math.max(0, gross) * 0.25); // recovery cap: 25% of gross before extras
     const advanceRecover = Math.min(cap, advBalance);
@@ -279,6 +288,8 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       otRate,
       otAmount: 0,
       deductions: lopAmount,
+      offWorkDays,
+      offWorkPay,
       pfEmployee: stat.pfEmployee,
       pfEmployer: stat.pfEmployer,
       esiEmployee: stat.esiEmployee,
@@ -287,7 +298,7 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       advanceRecover,
       otherDeduction: 0,
       otherEarning: 0,
-      netPay: Math.max(0, gross - stat.pfEmployee - stat.esiEmployee - advanceRecover),
+      netPay: Math.max(0, gross + offWorkPay - stat.pfEmployee - stat.esiEmployee - advanceRecover),
       needsSetup: false,
     });
   }

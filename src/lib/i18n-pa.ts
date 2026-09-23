@@ -674,4 +674,20 @@ export const PA: Record<string, string> = {
   "Punch Out": "ਆਉਟ-ਪੰਚ",
   "Photo": "ਫੋਟੋ",
   "Selfie punch camera (every punch needs a photo)": "ਸੈਲਫ਼ੀ-ਪੰਚ ਕੈਮਰਾ (ਹਰ ਪੰਚ ਨਾਲ ਫੋਟੋ)",
+
+  // ---------- Phase F: off-duty pay + geofence ----------
+  "off-duty pay": "ਆਫ਼-ਡਿਊਟੀ ਪੇ",
+  "Weekly-off duty pay": "ਹਫ਼ਤੇਵਾਰ-ਛੁੱਟੀ ਡਿਊਟੀ ਪੇ",
+  "off-day(s) worked": "ਛੁੱਟੀ-ਦਿਨ ਕੰਮ",
+  "off-duty day(s)": "ਛੁੱਟੀ-ਦਿਨ ਡਿਊਟੀ",
+  "Factory geofence 📍": "ਫ਼ੈਕਟਰੀ ਜਿਓਫ਼ੈਂਸ 📍",
+  "Punch sirf factory ke andar — GPS check every punch.": "ਪੰਚ ਸਿਰਫ਼ ਫ਼ੈਕਟਰੀ ਅੰਦਰ — ਹਰ ਪੰਚ ਉੱਤੇ GPS ਚੈੱਕ।",
+  "Latitude": "ਅਕਸ਼ਾਂਸ਼",
+  "Longitude": "ਦੇਸ਼ਾਂਤਰ",
+  "Radius (metres)": "ਘੇਰਾ (ਮੀਟਰ)",
+  "Use my location (stand at factory gate)": "ਮੇਰਾ ਸਥਾਨ ਵਰਤੋ (ਫ਼ੈਕਟਰੀ ਗੇਟ ਤੇ ਖੜ੍ਹ ਕੇ)",
+  "Save geofence": "ਜਿਓਫ਼ੈਂਸ ਸੇਵ ਕਰੋ",
+  "Geofence saved ✔ — punches outside the radius will be blocked.": "ਜਿਓਫ਼ੈਂਸ ਸੇਵ ਹੋ ਗਿਆ ✔ — ਹੱਦ ਤੋੋ ਬਾਹਰ ਪੰਚ ਰੁਕ ਜਾਵੇਗੀ।",
+  "Set factory GPS location first (use the 📍 my-location button).": "ਪਹਿਲਾਂ ਫ਼ੈਕਟਰੀ GPS ਸਥਾਨ ਸੈੱਟ ਕਰੋ (📍 ਬਟਨ ਵਰਤੋ)।",
+  "📡 Locating…": "📡 ਲੋਕੇਟ ਹੋ ਰਿਹਾ…",
 };

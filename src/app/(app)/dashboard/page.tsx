@@ -26,7 +26,11 @@ function greeting(): string {
 
 export default async function DashboardPage() {
   const me = await requireUser();
-  const company = await db.company.findUnique({ where: { id: me.companyId }, select: { punchSelfieRequired: true } });
+  const company = await db.company.findUnique({ where: { id: me.companyId }, select: { punchSelfieRequired: true, geofenceEnabled: true, geoLat: true, geoLng: true, geoRadius: true } });
+  const geo = company?.geofenceEnabled && company.geoLat != null && company.geoLng != null
+    ? { lat: company.geoLat, lng: company.geoLng, radius: company.geoRadius }
+    : null;
+  const useSmartPunch = company?.punchSelfieRequired || !!geo;
   const today = todayDate();
   const staff = me.role !== "EMPLOYEE";
 
@@ -216,33 +220,33 @@ export default async function DashboardPage() {
               )}
             </div>
 
-            <div className={company?.punchSelfieRequired ? "" : "mx-auto mt-6 max-w-xs"}>
-              {company?.punchSelfieRequired && !myAttendance?.checkIn && (
-                <PunchWithSelfie mode="in" selfieRequired={true} />
+            <div className={useSmartPunch ? "" : "mx-auto mt-6 max-w-xs"}>
+              {useSmartPunch && !myAttendance?.checkIn && (
+                <PunchWithSelfie mode="in" selfieRequired={!!company?.punchSelfieRequired} geofence={geo} />
               )}
-              {company?.punchSelfieRequired && myAttendance?.checkIn && !myAttendance.checkOut && (
-                <PunchWithSelfie mode="out" selfieRequired={true} />
+              {useSmartPunch && myAttendance?.checkIn && !myAttendance.checkOut && (
+                <PunchWithSelfie mode="out" selfieRequired={!!company?.punchSelfieRequired} geofence={geo} />
               )}
-              {company?.punchSelfieRequired && myAttendance?.checkIn && myAttendance.checkOut && (
+              {useSmartPunch && myAttendance?.checkIn && myAttendance.checkOut && (
                 <div className="mx-auto mt-6 max-w-xs rounded-2xl bg-emerald-500/10 py-3.5 text-center text-sm font-bold text-emerald-300 ring-1 ring-emerald-400/25">
                   ✓ Shift completed — great work today!
                 </div>
               )}
-              {!company?.punchSelfieRequired && !myAttendance?.checkIn && (
+              {!useSmartPunch && !myAttendance?.checkIn && (
                 <form action={checkInAction}>
                   <button className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-4 text-base font-bold text-white shadow-[0_10px_30px_-6px_rgb(16_185_129_/_60%)] transition hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.98]">
                     <Icon name="fingerprint" className="h-6 w-6" /> Punch In
                   </button>
                 </form>
               )}
-              {!company?.punchSelfieRequired && myAttendance?.checkIn && !myAttendance.checkOut && (
+              {!useSmartPunch && myAttendance?.checkIn && !myAttendance.checkOut && (
                 <form action={checkOutAction}>
                   <button className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-4 text-base font-bold text-white shadow-[0_10px_30px_-6px_rgb(16_185_129_/_60%)] transition hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.98]">
                     <Icon name="fingerprint" className="h-6 w-6" /> Punch Out
                   </button>
                 </form>
               )}
-              {!company?.punchSelfieRequired && myAttendance?.checkIn && myAttendance.checkOut && (
+              {!useSmartPunch && myAttendance?.checkIn && myAttendance.checkOut && (
                 <div className="rounded-2xl bg-emerald-500/10 py-3.5 text-center text-sm font-bold text-emerald-300 ring-1 ring-emerald-400/25">
                   ✓ Shift completed — great work today!
                 </div>
