@@ -158,8 +158,12 @@ export async function decidePunchRequestAction(id: string, approve: boolean) {
             note: "Manual check-in approved",
           },
         });
-      } else if (!existing.checkIn) {
-        await db.attendance.update({ where: { id: existing.id }, data: { checkIn: stamp, note: "Manual check-in approved" } });
+      } else {
+        // Row exists: staff approved the correction — always overwrite with requested time.
+        await db.attendance.update({
+          where: { id: existing.id },
+          data: { checkIn: stamp, status: "PRESENT", note: `Manual check-in → ${req.time} approved` },
+        });
       }
     } else {
       // MANUAL_OUT
@@ -174,8 +178,11 @@ export async function decidePunchRequestAction(id: string, approve: boolean) {
             note: "Manual check-out approved",
           },
         });
-      } else if (!existing.checkOut) {
-        await db.attendance.update({ where: { id: existing.id }, data: { checkOut: stamp, note: "Manual check-out approved" } });
+      } else {
+        await db.attendance.update({
+          where: { id: existing.id },
+          data: { checkOut: stamp, status: "PRESENT", note: `Manual check-out → ${req.time} approved` },
+        });
       }
     }
   }
