@@ -17,6 +17,9 @@ export function RunView({ runId, rows }: { runId: string; month: string; rows: E
             <Icon name="download" className="h-3.5 w-3.5" /> <Pa>{label}</Pa>
           </a>
         ))}
+        <a href={`/api/payroll/${runId}/neft`} className={btnGhost} download>
+          <Icon name="download" className="h-3.5 w-3.5" /> 🏦 <Pa>NEFT bank file</Pa>
+        </a>
       </Card>
 
       <Card className="p-0 overflow-hidden">
@@ -50,7 +53,7 @@ export function RunView({ runId, rows }: { runId: string; month: string; rows: E
                   <td className="px-2 py-2.5 text-right text-slate-600">{r.otAmount > 0 ? fmtINR(r.otAmount) : "—"}
                     {r.otHours > 0 && <div className="text-[10px] text-slate-400">{r.otHours}h × ₹{r.otRate}</div>}</td>
                   <td className="px-2 py-2.5 text-right text-emerald-600">
-                    {[r.offWorkPay > 0 ? "+" + fmtINR(r.offWorkPay) : "", r.otherEarning > 0 ? "+" + fmtINR(r.otherEarning) : ""].filter(Boolean).join(" + ") || "—"}
+                    {[r.daAmount > 0 ? "DA " + fmtINR(r.daAmount) : "", r.offWorkPay > 0 ? "+" + fmtINR(r.offWorkPay) : "", r.otherEarning > 0 ? "+" + fmtINR(r.otherEarning) : ""].filter(Boolean).join(" + ") || "—"}
                     {r.offWorkDays > 0 && <div className="text-[9.5px] text-slate-400">{r.offWorkDays} <Pa>off-duty day(s)</Pa></div>}
                   </td>
                   <td className="px-2 py-2.5 text-right text-rose-600">{(r.deductions + r.otherDeduction + r.pfEmployee + r.esiEmployee) > 0 ? "−" + fmtINR(r.deductions + r.otherDeduction + r.pfEmployee + r.esiEmployee) : "—"}

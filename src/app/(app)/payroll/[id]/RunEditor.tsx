@@ -21,6 +21,7 @@ export type EditRow = {
   pfEmployee: number; pfEmployer: number; esiEmployee: number; esiEmployer: number;
   offWorkDays: number; offWorkPay: number; category: string;
   netPay: number; employeeId: string;
+  daAmount: number;
 };
 
 function statutory(r: EditRow, earn: number) {
@@ -37,7 +38,7 @@ function net(r: EditRow, o: { ot?: number; adv?: number; ded?: number; earn?: nu
   const ded = o.ded ?? r.otherDeduction;
   const earn = o.earn ?? r.otherEarning;
   const st = statutory(r, earn);
-  return { ot, pf: st.pf, esi: st.esi, net: Math.max(0, r.baseAmount + ot + r.offWorkPay + earn - st.pf - st.esi - adv - ded) };
+  return { ot, pf: st.pf, esi: st.esi, net: Math.max(0, r.baseAmount + r.daAmount + ot + r.offWorkPay + earn - st.pf - st.esi - adv - ded) };
 }
 
 export function RunEditor({ runId, rows }: { runId: string; month: string; rows: EditRow[] }) {

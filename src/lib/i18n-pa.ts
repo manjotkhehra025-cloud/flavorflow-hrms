@@ -690,4 +690,16 @@ export const PA: Record<string, string> = {
   "Geofence saved ✔ — punches outside the radius will be blocked.": "ਜਿਓਫ਼ੈਂਸ ਸੇਵ ਹੋ ਗਿਆ ✔ — ਹੱਦ ਤੋੋ ਬਾਹਰ ਪੰਚ ਰੁਕ ਜਾਵੇਗੀ।",
   "Set factory GPS location first (use the 📍 my-location button).": "ਪਹਿਲਾਂ ਫ਼ੈਕਟਰੀ GPS ਸਥਾਨ ਸੈੱਟ ਕਰੋ (📍 ਬਟਨ ਵਰਤੋ)।",
   "📡 Locating…": "📡 ਲੋਕੇਟ ਹੋ ਰਿਹਾ…",
+
+  // ---------- Phase G: half-day, OT pay, DA, advance EMI, NEFT ----------
+  "Half day (0.5) — single day only, half pay": "ਅੱਧਾ ਦਿਨ (0.5) — ਸਿਰਫ਼ ਇਕੋ ਦਿਨ, ਅੱਧੀ ਪੇ",
+  "Half-day leave is for a single day — set the same start & end date.": "ਅੱਧੀ-ਦਿਨ ਦੀ ਛੁੱਟੀ ਇਕੋ ਦਿਨ ਲਈ ਹੈ — ਸ਼ੁਰੂ ਤੇ ਆਖਰੀ ਤਾਰੀਖ ਇਕੋ ਰੱਖੋ।",
+  "OT multiplier ×": "OT ਗੁਣਕ ×",
+  "DA % (monthly staff)": "DA % (ਮਹੀਨਾਵਾਰ ਕਰਮਚਾਰੀ)",
+  "0 = no DA": "0 = ਕੋਈ DA ਨਹੀਂ",
+  "Shift hours / day": "ਦਿਨ ਦੇ ਸ਼ਿਫਟ ਘੰਟੇ",
+  "Dearness allowance": "ਮਹਿੰਗਾਈ ਭੱਤਾ",
+  "NEFT bank file": "NEFT ਬੈਂਕ ਫਾਈਲ",
+  "EMI ₹/month (optional)": "EMI ₹/ਮਹੀਨਾ (ਚਾਹਵਾਂ)",
+  "EMI": "EMI",
 };

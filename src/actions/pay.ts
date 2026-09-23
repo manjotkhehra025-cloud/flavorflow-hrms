@@ -87,9 +87,11 @@ export async function addAdvanceAction(_prev: ActionState, formData: FormData): 
   const dRaw = String(formData.get("givenDate") ?? "").trim();
   const givenDate = dRaw ? new Date(dRaw + "T00:00:00.000Z") : new Date();
   const reason = (String(formData.get("reason") ?? "").trim() || null);
+  const emiRaw = toInt(formData.get("emi"));
+  const emi = emiRaw && emiRaw > 0 ? Math.min(emiRaw, amount) : null;
 
   await db.advance.create({
-    data: { companyId: me.companyId, employeeId, amount, givenDate, reason, createdById: me.id },
+    data: { companyId: me.companyId, employeeId, amount, givenDate, reason, emi, createdById: me.id },
   });
   revalidatePath(`/employees/${employeeId}`);
   return { success: await bt("Advance recorded 🪙") };

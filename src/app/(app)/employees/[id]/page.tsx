@@ -179,6 +179,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               id: a.id,
               amount: a.amount,
               repaid: a.repaid,
+              emi: a.emi,
               givenDate: fmtDate(a.givenDate),
               reason: a.reason,
             }))}

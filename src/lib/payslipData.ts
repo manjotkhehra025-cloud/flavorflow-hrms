@@ -28,6 +28,7 @@ export function buildPayslipData(row: RowFull, lang: "en" | "pa"): PayslipData {
     fullBase,
     baseHint: monthly ? `₹ ${fullBase.toLocaleString("en-IN")} / ${dim} days` : `${row.presentDays} days × ₹${e.dailyRate ?? 0}`,
     otHours: row.otHours, otRate: row.otRate, otAmount: row.otAmount,
+    daAmount: row.daAmount, halfDays: row.halfDays,
     offWorkDays: row.offWorkDays, offWorkPay: row.offWorkPay,
     otherEarning: row.otherEarning, otherEarningNote: row.otherEarningNote,
     lopDays: row.lopDays, lopPerDay: monthly && dim > 0 ? Math.round((e.baseSalary ?? 0) / dim) : 0, lopAmount: row.deductions,

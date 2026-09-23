@@ -25,6 +25,7 @@ type Props = {
     id: string;
     amount: number;
     repaid: number;
+    emi: number | null;
     givenDate: string; // dd MMM yyyy
     reason: string | null;
   }[];
@@ -175,7 +176,7 @@ export function PaySection({ employee, advances }: Props) {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-bold text-slate-800">{fmt(a.amount)}</div>
                     <div className="truncate text-[11px] text-slate-500">
-                      <Tt>given</Tt> {a.givenDate}{a.reason ? ` · ${a.reason}` : ""} ·{" "}
+                      <Tt>given</Tt> {a.givenDate}{a.reason ? ` · ${a.reason}` : ""}{a.emi ? ` · ` : ""}{a.emi && <span className="font-bold text-indigo-600"><Tt>EMI</Tt> ₹{a.emi}/mo</span>} ·{" "}
                       {balance === 0 ? (
                         <span className="font-semibold text-emerald-600"><Tt>fully recovered</Tt> ✓</span>
                       ) : (
@@ -213,6 +214,7 @@ export function PaySection({ employee, advances }: Props) {
           <label className="flex-[2] min-w-[140px]">
             <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Tt>Reason (optional)</Tt></span>
             <input name="reason" className={inputCls} placeholder={ph("e.g. family need")} />
+            <input name="emi" type="number" min={0} inputMode="numeric" className={inputCls} placeholder={ph("EMI ₹/month (optional)")} title="Fixed monthly recovery; empty = auto 25% rule" />
           </label>
           <button type="submit" className={`${btnBrand} !px-3.5`} disabled={advPending}>
             {advPending ? "…" : <Tt>+ Add advance</Tt>}

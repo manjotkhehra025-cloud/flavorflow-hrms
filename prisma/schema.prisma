@@ -27,12 +27,16 @@ model Company {
   leaveRequests    LeaveRequest[]
   holidays         Holiday[]
   shifts           Shift[]
-  gatePasses       GatePass[]
+  gatePasses     GatePass[]
   // Phase E3/E4: pay rules
   dailyPaidLeaveDays Int @default(0)
   lateGraceMins      Int @default(15)
   latesPerCut        Int @default(0)
   punchSelfieRequired Boolean @default(false)
+  // Phase G: DA + OT-rate rules
+  daPercent   Int   @default(0) // dearnee allowance % of earned basic (monthly staff)
+  otMultiplier Float @default(1.5)
+  shiftHours  Float  @default(9) // hours in one full paid day (OT rate base)
   // Phase F2: factory geofence punch
   geofenceEnabled Boolean @default(false)
   geoLat          Float?
@@ -154,7 +158,7 @@ model Employee {
   users            User[]
   attendances      Attendance[]
   leaveRequests    LeaveRequest[]
-  gatePasses       GatePass[]
+  gatePasses     GatePass[]
   punchRequests    PunchRequest[]
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
@@ -162,7 +166,7 @@ model Employee {
   tickets          Ticket[]
   starAwards       StarAward[]
   advances         Advance[]
-  payrollRows      PayrollRow[]
+    payrollRows      PayrollRow[]
   salaryRevisions  SalaryRevision[]
   shiftAssignments ShiftAssignment[]
 
@@ -231,6 +235,7 @@ model LeaveRequest {
   fromDate    DateTime    @db.Date
   toDate      DateTime    @db.Date
   days        Int
+  halfDay     Boolean @default(false) // single-day half leave (0.5 pay)
   reason      String?
   status      LeaveStatus @default(PENDING)
   approverId  String?
@@ -313,6 +318,7 @@ model Advance {
   employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   amount      Int // ₹ given
   repaid      Int      @default(0) // ₹ recovered so far (monthly PayrollRow deductions)
+  emi         Int?     // fixed monthly recovery ₹; null = auto (25%-of-gross cap)
   givenDate   DateTime @db.Date
   reason      String?
   createdById String?
@@ -374,6 +380,8 @@ model PayrollRow {
   pfEmployer         Int          @default(0) // employer share (company cost)
   esiEmployee        Int          @default(0) // 0.75% of gross (ex-OT)
   esiEmployer        Int          @default(0) // 3.25% (company cost)
+  daAmount           Int          @default(0) // dearnee allowance ₹ (monthly staff, company daPercent)
+  halfDays           Float        @default(0) // approved half-day leaves in month
   offWorkDays        Float        @default(0) // weekly-off/holiday days actually worked (payable extra for YELLOW_CARD)
   offWorkPay         Int          @default(0) // ₹ extra paid for those days
   netPay             Int          @default(0)

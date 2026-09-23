@@ -53,6 +53,7 @@ export default async function PayrollRunPage({ params }: { params: Promise<{ id:
     absentDays: r.absentDays, offDays: r.offDays, lopDays: r.lopDays,
     baseAmount: r.baseAmount, deductions: r.deductions,
     otHours: r.otHours, otRate: r.otRate, otAmount: r.otAmount,
+    daAmount: r.daAmount, halfDays: r.halfDays,
     advanceBalance: r.employee.advances.reduce((s, a) => s + (a.amount - a.repaid), 0),
     pfEnabled: r.employee.pfEnabled, esiEnabled: r.employee.esiEnabled,
     offWorkDays: r.offWorkDays, offWorkPay: r.offWorkPay, category: r.employee.category,

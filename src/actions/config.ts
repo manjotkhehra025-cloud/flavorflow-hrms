@@ -17,9 +17,12 @@ export async function savePayRulesAction(_prev: ActionState, formData: FormData)
   const dailyPaidLeaveDays = toInt(formData.get("dailyPaidLeaveDays"), 0);
   const lateGraceMins = toInt(formData.get("lateGraceMins"), 15);
   const latesPerCut = toInt(formData.get("latesPerCut"), 0);
+  const daPercent = Math.max(0, Math.min(50, toInt(formData.get("daPercent"), 0) ?? 0));
+  const otMultiplier = Math.max(1, Math.min(3, Number(formData.get("otMultiplier") ?? 1.5) || 1.5));
+  const shiftHours = Math.max(4, Math.min(12, Number(formData.get("shiftHours") ?? 9) || 9));
   await db.company.update({
     where: { id: me.companyId },
-    data: { dailyPaidLeaveDays, lateGraceMins, latesPerCut, punchSelfieRequired: formData.get("punchSelfieRequired") === "on" },
+    data: { dailyPaidLeaveDays, lateGraceMins, latesPerCut, daPercent, otMultiplier, shiftHours, punchSelfieRequired: formData.get("punchSelfieRequired") === "on" },
   });
   revalidatePath("/settings");
   return { success: await bt("Pay rules saved ✔") };

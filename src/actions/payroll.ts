@@ -54,6 +54,8 @@ export async function computePayrollAction(_prev: ActionState, formData: FormDat
         otRate: r.otRate,
         otAmount: r.otAmount,
         deductions: r.deductions,
+        daAmount: r.daAmount,
+        halfDays: r.halfDays,
         pfEmployee: r.pfEmployee,
         pfEmployer: r.pfEmployer,
         esiEmployee: r.esiEmployee,
@@ -105,7 +107,7 @@ export async function saveRowAdjustmentsAction(_prev: ActionState, formData: For
       row.baseAmount,
       otherEarning,
     );
-    const net = Math.max(0, row.baseAmount + otAmount + row.offWorkPay + otherEarning - stat.pfEmployee - stat.esiEmployee - advanceRecover - otherDeduction);
+    const net = Math.max(0, row.baseAmount + row.daAmount + otAmount + row.offWorkPay + otherEarning - stat.pfEmployee - stat.esiEmployee - advanceRecover - otherDeduction);
     await db.payrollRow.update({
       where: { id: row.id },
       data: {

@@ -31,6 +31,9 @@ export async function applyLeaveAction(_prev: ActionState, formData: FormData): 
   const to = toDateOnly(parsed.data.toDate);
   if (to < from) return { error: await bt("End date can't be before start date.") };
 
+  const halfDay = formData.get("halfDay") === "on";
+  if (halfDay && from.getTime() !== to.getTime()) return { error: await bt("Half-day leave is for a single day — set the same start & end date.") };
+
   const days = dayDiffInclusive(from, to);
   if (days > 30) return { error: await bt("Leave longer than 30 days needs admin entry.") };
 
@@ -52,6 +55,7 @@ export async function applyLeaveAction(_prev: ActionState, formData: FormData): 
       fromDate: from,
       toDate: to,
       days,
+      halfDay,
       reason: parsed.data.reason,
     },
   });

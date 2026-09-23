@@ -144,7 +144,7 @@ export default async function LeavesPage() {
                         <Badge tone={TONE[l.status]}>{l.status}</Badge>
                       </div>
                       <div className="mt-0.5 text-xs text-slate-500">
-                        {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} · {l.days}d{l.reason ? ` · "${l.reason}"` : ""}
+                        {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} · {l.halfDay ? "½" : l.days + "d"}{l.reason ? ` · "${l.reason}"` : ""}
                       </div>
                       {l.status === "PENDING" && (
                         <div className="mt-2 flex gap-2">
@@ -188,7 +188,7 @@ export default async function LeavesPage() {
                           {l.employee.firstName} {l.employee.lastName}
                         </div>
                         <div className="text-xs text-slate-500">
-                          {l.leaveType.name} · {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} ({l.days}d){l.reason ? ` · "${l.reason}"` : ""}
+                          {l.leaveType.name} · {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} ({l.halfDay ? "½ day" : l.days + "d"}){l.reason ? ` · "${l.reason}"` : ""}
                         </div>
                       </div>
                       <div className="flex gap-2">

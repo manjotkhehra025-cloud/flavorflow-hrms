@@ -55,7 +55,7 @@ export async function getLeaveBalances(
         status: { in: ["PENDING", "APPROVED"] },
         fromDate: { gte: yearStart, lt: yearEnd },
       },
-      select: { leaveTypeId: true, status: true, days: true },
+      select: { leaveTypeId: true, status: true, days: true, halfDay: true },
     }),
     db.leaveAdjustment.findMany({
       where: { employeeId: employee.id, createdAt: { gte: yearStart, lt: yearEnd } },
@@ -66,7 +66,7 @@ export async function getLeaveBalances(
   const used = new Map<string, number>();
   const pending = new Map<string, number>();
   for (const r of reqs) {
-    const days = Prisma.Decimal.isDecimal(r.days) ? Number(r.days) : Number(r.days ?? 0);
+    const days = (Prisma.Decimal.isDecimal(r.days) ? Number(r.days) : Number(r.days ?? 0)) * ((r as { halfDay?: boolean }).halfDay ? 0.5 : 1);
     if (r.status === "APPROVED") used.set(r.leaveTypeId, (used.get(r.leaveTypeId) ?? 0) + days);
     else pending.set(r.leaveTypeId, (pending.get(r.leaveTypeId) ?? 0) + days);
   }

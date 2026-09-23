@@ -25,6 +25,8 @@ export type CalcRow = {
   baseSalary: number | null;
   dailyRate: number | null;
   otRateLive: number | null;
+  daAmount: number;
+  halfDays: number;
   payableDays: number;
   presentDays: number;
   leaveDays: number;
@@ -101,7 +103,7 @@ export async function calculatePayroll(companyId: string, month: string): Promis
   const dim = daysInMonth(month);
   const endPlus = new Date(Date.UTC(y, m - 1, dim + 1)); // exclusive
 
-  const rules = await db.company.findUnique({ where: { id: companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true } });
+  const rules = await db.company.findUnique({ where: { id: companyId }, select: { dailyPaidLeaveDays: true, lateGraceMins: true, latesPerCut: true, daPercent: true, otMultiplier: true, shiftHours: true } });
   const [employees, attendance, leaves, holidays, advances, shifts] = await Promise.all([
     db.employee.findMany({
       where: { companyId, status: "ACTIVE" },
@@ -111,10 +113,10 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     db.attendance.findMany({ where: { companyId, date: { gte: start, lt: endPlus }, checkIn: { not: null } }, select: { employeeId: true, date: true, checkIn: true } }),
     db.leaveRequest.findMany({
       where: { companyId, status: "APPROVED", fromDate: { lt: endPlus }, toDate: { gte: start } },
-      select: { employeeId: true, fromDate: true, toDate: true },
+      select: { employeeId: true, fromDate: true, toDate: true, halfDay: true },
     }),
     db.holiday.findMany({ where: { companyId, date: { gte: start, lt: endPlus } }, select: { date: true } }),
-    db.advance.findMany({ where: { companyId }, select: { employeeId: true, amount: true, repaid: true } }),
+    db.advance.findMany({ where: { companyId }, select: { employeeId: true, amount: true, repaid: true, emi: true, givenDate: true }, orderBy: { givenDate: "asc" } }),
     db.shift.findMany({ where: { companyId } }),
   ]);
   const roster = await db.shiftAssignment.findMany({
@@ -125,11 +127,18 @@ export async function calculatePayroll(companyId: string, month: string): Promis
   for (const a of roster) {
     rosterMap.set(a.employeeId + "|" + dstr(a.date), { isOff: a.isOff, startTime: a.shift?.startTime ?? null });
   }
+  const otReqs = await db.punchRequest.findMany({
+    where: { companyId, type: "OT", status: "APPROVED", date: { gte: start, lt: endPlus }, hours: { not: null } },
+    select: { employeeId: true, hours: true },
+  });
+  const otHoursMap = new Map<string, number>();
+  for (const ot of otReqs) otHoursMap.set(ot.employeeId, (otHoursMap.get(ot.employeeId) ?? 0) + (ot.hours ?? 0));
+
   const yearStart = new Date(Date.UTC(y, 0, 1));
   const leavesEarlier = quotaEnabled(rules?.dailyPaidLeaveDays)
     ? await db.leaveRequest.findMany({
         where: { companyId, status: "APPROVED", fromDate: { lt: start }, toDate: { gte: yearStart } },
-        select: { employeeId: true, fromDate: true, toDate: true },
+        select: { employeeId: true, fromDate: true, toDate: true, halfDay: true },
       })
     : [];
   const usedBeforeMap = new Map<string, number>();
@@ -139,6 +148,7 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     for (; cur <= to; cur = new Date(cur.getTime() + DAY)) {
       usedBeforeMap.set(lv.employeeId, (usedBeforeMap.get(lv.employeeId) ?? 0) + 1);
     }
+    if (lv.halfDay) usedBeforeMap.set(lv.employeeId, (usedBeforeMap.get(lv.employeeId) ?? 0) - 0.5);
   }
 
   // earliest check-in per employee+day (for the late-mark rule)
@@ -162,8 +172,16 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     void a.checkIn; // late-check needs the shift start — computed per-employee below
   }
   const leaveMap = new Map<string, Set<string>>();
+  const halfMap = new Map<string, Set<string>>();
   const totalLeaveDays = new Map<string, number>();
   for (const lv of leaves) {
+    if (lv.halfDay) {
+      const k = dstr(lv.fromDate);
+      if (!halfMap.has(lv.employeeId)) halfMap.set(lv.employeeId, new Set());
+      halfMap.get(lv.employeeId)!.add(k);
+      totalLeaveDays.set(lv.employeeId, (totalLeaveDays.get(lv.employeeId) ?? 0) + 0.5);
+      continue;
+    }
     let cur = new Date(Math.max(lv.fromDate.getTime(), start.getTime()));
     const to = new Date(Math.min(lv.toDate.getTime(), endPlus.getTime() - 1));
     let n = 0;
@@ -176,9 +194,10 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     totalLeaveDays.set(lv.employeeId, (totalLeaveDays.get(lv.employeeId) ?? 0) + n);
   }
   const holidaySet = new Set(holidays.map((h) => dstr(h.date)));
-  const advMap = new Map<string, number>();
+  const advListMap = new Map<string, { amount: number; repaid: number; emi: number | null }[]>();
   for (const a of advances) {
-    advMap.set(a.employeeId, (advMap.get(a.employeeId) ?? 0) + (a.amount - a.repaid));
+    if (!advListMap.has(a.employeeId)) advListMap.set(a.employeeId, []);
+    advListMap.get(a.employeeId)!.push(a);
   }
   const defaultShift = shifts[0] ?? null;
 
@@ -193,8 +212,9 @@ export async function calculatePayroll(companyId: string, month: string): Promis
     void shiftH(shift); // (shift length reserved for upcoming half-day logic)
     const att = attMap.get(emp.id) ?? new Set<string>();
     const lvs = leaveMap.get(emp.id) ?? new Set<string>();
+    const halfLvs = halfMap.get(emp.id) ?? new Set<string>();
 
-    let present = 0, leave = 0, absent = 0, off = 0, offWork = 0;
+    let present = 0, leave = 0, absent = 0, off = 0, offWork = 0, half = 0;
     const joinD = dstr(emp.joinDate);
     for (let i = 0; i < dim; i++) {
       const day = new Date(start.getTime() + i * DAY);
@@ -206,6 +226,7 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       const isOffDay = dow === emp.weeklyOff || holidaySet.has(k);
       if (att.has(k)) { if (isOffDay) { present++; offWork++; } else present++; continue; }
       if (lvs.has(k)) { leave++; continue; }
+      if (halfLvs.has(k)) { half++; continue; } // approved half-day leave: 0.5 paid melt
       if (isOffDay) { off++; continue; }
       absent++;
     }
@@ -234,8 +255,8 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       lateCount.set(emp.id, lates);
     }
 
-    const workedDays = present + leave + off; // days eligible for pay before LOP
-    const lopDays = absent;
+    const workedDays = present + leave + off + half * 0.5; // days eligible for pay before LOP
+    const lopDays = absent + half * 0.5; // monthly: an approved half leave still costs 0.5 day; daily: handled via paid-leave quota
     let payableDays: number, baseAmount: number, lopAmount: number;
 
     if (monthly) {
@@ -247,8 +268,8 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       // E3: daily-rate — present days + paid approved-leave (up to company annual quota)
       const quota = rules?.dailyPaidLeaveDays ?? 0;
       let paidLeave = 0;
-      if (quota > 0 && leave > 0) {
-        paidLeave = Math.min(leave, Math.max(0, quota - (usedBeforeMap.get(emp.id) ?? 0)));
+      if (quota > 0 && (leave > 0 || half > 0)) {
+        paidLeave = Math.min(leave + half * 0.5, Math.max(0, quota - (usedBeforeMap.get(emp.id) ?? 0)));
       }
       payableDays = present + paidLeave;
       baseAmount = (emp.dailyRate ?? 0) * payableDays;
@@ -262,11 +283,25 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       offWorkDays = offWork;
       if (monthly) offWorkPay = Math.round((dim > 0 ? (emp.baseSalary ?? 0) / dim : 0) * offWork);
     }
-    const advBalance = advMap.get(emp.id) ?? 0;
+    // Phase G1: approved OT hours → ₹ (employee otRate wins; else auto rate × company multiplier)
+    let otRate = autoOtRate(emp);
+    const otHours = otHoursMap.get(emp.id) ?? 0;
+    if (!(emp.otRate && emp.otRate > 0) && otRate > 0) otRate = Math.round(otRate * (rules?.otMultiplier ?? 1.5));
+    const otAmount = Math.round(otHours * otRate);
+    // Phase G2: dearnee allowance — % of earned basic (monthly staff)
+    const daAmount = monthly && (rules?.daPercent ?? 0) > 0 ? Math.round(Math.max(0, gross) * (rules!.daPercent / 100)) : 0;
+    // Phase G3: advance recovery — per-advance EMI if set, up to the 25%-of-gross cap overall
+    const advs = advListMap.get(emp.id) ?? [];
     const cap = Math.round(Math.max(0, gross) * 0.25); // recovery cap: 25% of gross before extras
-    const advanceRecover = Math.min(cap, advBalance);
-    const otRate = autoOtRate(emp);
-    const stat = computeStatutory(emp, Math.max(0, gross), 0);
+    let capLeft = cap, advanceRecover = 0, advBalance = 0;
+    for (const a of advs) {
+      const bal = a.amount - a.repaid;
+      advBalance += bal;
+      if (bal <= 0 || capLeft <= 0) continue;
+      const take = Math.min(bal, a.emi ?? cap, capLeft);
+      advanceRecover += take; capLeft -= take;
+    }
+    const stat = computeStatutory(emp, Math.max(0, gross) + daAmount, otAmount); // PF on basic+DA; ESI on wages incl. OT
 
     rows.push({
       employeeId: emp.id,
@@ -284,10 +319,12 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       offDays: off,
       lopDays,
       baseAmount: Math.max(0, gross),
-      otHours: 0,
+      otHours,
       otRate,
-      otAmount: 0,
+      otAmount,
       deductions: lopAmount,
+      daAmount,
+      halfDays: half,
       offWorkDays,
       offWorkPay,
       pfEmployee: stat.pfEmployee,
@@ -298,7 +335,7 @@ export async function calculatePayroll(companyId: string, month: string): Promis
       advanceRecover,
       otherDeduction: 0,
       otherEarning: 0,
-      netPay: Math.max(0, gross + offWorkPay - stat.pfEmployee - stat.esiEmployee - advanceRecover),
+      netPay: Math.max(0, gross + offWorkPay + otAmount + daAmount - stat.pfEmployee - stat.esiEmployee - advanceRecover),
       needsSetup: false,
     });
   }
