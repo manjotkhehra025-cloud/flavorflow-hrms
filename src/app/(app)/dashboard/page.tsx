@@ -225,7 +225,11 @@ export default async function DashboardPage() {
 
             <div className="mx-auto mt-6 max-w-xs">
               {myAttendance?.checkIn ? (
-                <LiveTimer checkInIso={myAttendance.checkIn.toISOString()} shiftHours={shiftHours} />
+                <LiveTimer
+                  checkInIso={myAttendance.checkIn.toISOString()}
+                  shiftHours={shiftHours}
+                  checkedOut={!!myAttendance.checkOut}
+                />
               ) : (
                 <div className="mx-auto flex h-40 w-40 flex-col items-center justify-center rounded-full border-[9px] border-white/[0.08] text-center">
                   <Icon name="fingerprint" className="h-10 w-10 text-emerald-400/70" />
