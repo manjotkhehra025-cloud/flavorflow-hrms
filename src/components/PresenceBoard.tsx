@@ -49,7 +49,7 @@ export async function PresenceBoard({ companyId, today }: { companyId: string; t
           <p className="text-xs text-slate-500">
             In today: <b className="text-emerald-600">{presentCount}/{employees.length}</b>
             {leaveCount > 0 && <> · <b className="text-amber-600">{leaveCount} on leave</b></>}
-            {holidayToday && <> · 🎉 {holidayToday.name}</>}
+            {holidayToday && <> · {holidayToday.name}</>}
           </p>
         </div>
         <div className="flex gap-3 text-[10px] font-medium text-slate-500">

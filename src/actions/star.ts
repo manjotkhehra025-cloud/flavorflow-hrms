@@ -27,5 +27,5 @@ export async function pickStarAction(employeeId: string, month: string, note: st
   });
   revalidatePath("/star");
   revalidatePath("/dashboard");
-  return { success: `⭐ ${emp.firstName} ${emp.lastName} — Star of the Month declared!` };
+  return { success: `${emp.firstName} ${emp.lastName} — Star of the Month declared!` };
 }

@@ -74,7 +74,7 @@ export async function publishCycleAction(cycleId: string): Promise<ActionState> 
   revalidatePath("/kra/manage");
   revalidatePath("/kra");
   revalidatePath("/tops");
-  return { success: await bt("KRA published — employees can now update their progress! 🎯") };
+  return { success: await bt("KRA published — employees can now update their progress!") };
 }
 
 /** Employee self-update (OPEN) ya HR override (OPEN/SCORING). */

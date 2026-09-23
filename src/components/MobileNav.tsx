@@ -17,7 +17,7 @@ export function MobileTopBar({ name, right }: { name: string; right?: React.Reac
         <HLogo className="h-8 w-8" />
         <div className="leading-tight">
           <span className="block text-sm font-extrabold tracking-tight text-white">{<Tt>HRMate</Tt>}</span>
-          <span className="block text-[10px] text-emerald-400/80"><Tt>Sat Sri Akal</Tt>, {name.split(" ")[0]} 🙏</span>
+          <span className="block text-[10px] text-emerald-400/80"><Tt>Sat Sri Akal</Tt>, {name.split(" ")[0]}</span>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -44,7 +44,7 @@ const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0
   { href: "/kra", label: "KRA", icon: "target" },
   { href: "/helpdesk", label: "Helpdesk", icon: "chat" },
   { href: "/payslips", label: "Payslips", icon: "wallet" },
-  { href: "/star", label: "Star ⭐", icon: "star", staffOnly: true },
+  { href: "/star", label: "Employee of the Month", icon: "star", staffOnly: true },
   { href: "/settings", label: "Settings & Shifts", icon: "sliders", staffOnly: true },
 ];
 

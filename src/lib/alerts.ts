@@ -14,7 +14,7 @@ export async function getAlerts(me: { companyId: string; role: string; employeeI
       db.shiftSwapRequest.findMany({ where: { companyId: me.companyId, status: "PENDING" }, include: { requester: true, peer: true }, orderBy: { createdAt: "desc" }, take: 10 }),
     ]);
     for (const r of leaves) items.push({ kind: "leaf", title: await bt("Leave request"), body: `${r.employee.firstName} ${r.employee.lastName ?? ""} · ${r.days}${r.halfDay ? " (½)" : ""}d`, href: "/approvals", at: r.createdAt });
-    for (const r of punches) items.push({ kind: "clock", title: r.type === "OT" ? await bt("OT request") : await bt("Manual punch"), body: `${r.employee.firstName} · ${r.type}${r.hours ? ` ${r.hours}h` : ""}`, href: "/approvals", at: r.createdAt });
+    for (const r of punches) items.push({ kind: "clock", title: r.type === "OT" ? await bt("OT request") : await bt("Manual punch"), body: `${r.employee.firstName} · ${r.type === "MANUAL_IN" ? (await bt("Punch In")) : r.type === "MANUAL_OUT" ? (await bt("Punch Out")) : r.type}${r.hours ? ` ${r.hours}h` : ""}`, href: "/approvals", at: r.createdAt });
     for (const r of gates) items.push({ kind: "badge", title: await bt("Gate pass"), body: `${r.employee.firstName} · ${r.exitAt}`, href: "/approvals", at: r.createdAt });
     for (const r of swaps) items.push({ kind: "calendar", title: await bt("Shift swap"), body: `${r.requester.firstName} ↔ ${r.peer.firstName}`, href: "/roster?tab=swaps", at: r.createdAt });
   } else if (me.employeeId) {

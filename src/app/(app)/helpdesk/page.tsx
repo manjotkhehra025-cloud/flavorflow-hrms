@@ -18,7 +18,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
   if (!me.employeeId) {
     return (
       <div>
-        <PageHeader title={<Pa>Helpdesk 💬</Pa>} subtitle={<Pa>Complaints and suggestions — straight to HR</Pa>} />
+        <PageHeader title={<Pa>Helpdesk</Pa>} subtitle={<Pa>Complaints and suggestions — straight to HR</Pa>} />
         <Card className="p-5">
           <EmptyState icon="chat" title={<Pa>Account not linked</Pa>} hint={<Pa>First link your login to an employee profile using the dashboard 'Link your login' card — then Helpdesk will open.</Pa>} />
         </Card>
@@ -52,7 +52,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <PageHeader title={<Pa>Helpdesk 💬</Pa>} subtitle={staff ? <Pa>Team complaints & suggestions — reply and resolve</Pa> : <Pa>Complaints & suggestions — straight to HR</Pa>} />
+      <PageHeader title={<Pa>Helpdesk</Pa>} subtitle={staff ? <Pa>Team complaints & suggestions — reply and resolve</Pa> : <Pa>Complaints & suggestions — straight to HR</Pa>} />
 
       {staff && (
         <div className="flex gap-1 rounded-2xl bg-slate-200/60 p-1">
@@ -61,7 +61,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
             {countOf("OPEN") > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[10px] font-bold text-white">{countOf("OPEN")}</span>}
           </Link>
           <Link href="/helpdesk?tab=mine" className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeTab === "mine" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
-            💬 <Pa>My tickets</Pa>
+            <Pa>My tickets</Pa>
           </Link>
         </div>
       )}
@@ -72,7 +72,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
           <Card className="p-5">
             <h3 className="mb-4 text-sm font-bold text-slate-900"><Pa>My tickets</Pa> ({myTickets.length})</h3>
             {myTickets.length === 0 ? (
-              <EmptyState icon="chat" title={<Pa>No tickets yet</Pa>} hint={<Pa>Machine, salary, uniform, canteen or safety — raise one with the form above 💬</Pa>} />
+              <EmptyState icon="chat" title={<Pa>No tickets yet</Pa>} hint={<Pa>Machine, salary, uniform, canteen or safety — raise one with the form above</Pa>} />
             ) : (
               <ul className="space-y-2.5">
                 {myTickets.map((t) => {
@@ -119,7 +119,7 @@ export default async function HelpdeskPage({ searchParams }: { searchParams: Pro
             ))}
           </div>
           {inboxTickets.length === 0 ? (
-            <EmptyState icon="check" title={<Pa>All clear 🎉</Pa>} hint={<Pa>No tickets in this filter.</Pa>} />
+            <EmptyState icon="check" title={<Pa>All clear</Pa>} hint={<Pa>No tickets in this filter.</Pa>} />
           ) : (
             <ul className="space-y-2.5">
               {inboxTickets.map((t) => {

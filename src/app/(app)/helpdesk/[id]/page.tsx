@@ -51,7 +51,7 @@ export default async function TicketThreadPage({ params }: { params: Promise<{ i
                     await setTicketStatusAction(t.id, "IN_PROGRESS");
                   }}
                 >
-                  <button className="rounded-lg bg-amber-500/90 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-amber-500 active:scale-95">{<Pa>⚙️ In progress</Pa>}</button>
+                  <button className="rounded-lg bg-amber-500/90 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-amber-500 active:scale-95">{<Pa>In progress</Pa>}</button>
                 </form>
               )}
               {t.status !== "RESOLVED" && (

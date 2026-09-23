@@ -156,7 +156,7 @@ export default async function TopsPage({ searchParams }: { searchParams: Promise
                 {vistaCols.map(({ e, present, hours, ot, leaves, kra }) => {
                   const maxWorkDays = 7 - holidayDays - 1; // week minus offs & holidays approximation
                   const score = Math.round((present / Math.max(maxWorkDays, 1)) * 100);
-                  const PERF = score >= 90 ? { tone: "green" as const, chip: "⭐ Star" } : score >= 70 ? { tone: "blue" as const, chip: "Good" } : score >= 50 ? { tone: "amber" as const, chip: "Low" } : { tone: "red" as const, chip: "Poor" };
+                  const PERF = score >= 90 ? { tone: "green" as const, chip: "Star" } : score >= 70 ? { tone: "blue" as const, chip: "Good" } : score >= 50 ? { tone: "amber" as const, chip: "Low" } : { tone: "red" as const, chip: "Poor" };
                   return (
                     <tr key={e.id} className="border-b border-slate-50 transition hover:bg-slate-50/60">
                       <td className="td">
@@ -197,7 +197,7 @@ export default async function TopsPage({ searchParams }: { searchParams: Promise
           </div>
         )}
         <div className="border-t border-slate-100 px-5 py-3 text-[11px] text-slate-400 print:block">
-          <Pa>✨ Star Performer auto-marked at ≥90% attendance · OT counts only approved requests · Generated via HRMate</Pa> {new Date().toLocaleDateString("en-IN")}
+          <Pa>Star Performer auto-marked at ≥90% attendance · OT counts only approved requests · Generated via HRMate</Pa> {new Date().toLocaleDateString("en-IN")}
         </div>
       </Card>
     </div>

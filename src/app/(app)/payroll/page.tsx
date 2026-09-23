@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 function statusBadge(status: string) {
   if (status === "LOCKED") return <Badge tone="green">🔒 <Pa>LOCKED</Pa></Badge>;
   if (status === "APPROVED") return <Badge tone="amber"><Pa>APPROVED</Pa></Badge>;
-  return <Badge tone="slate">🧾 <Pa>DRAFT</Pa></Badge>;
+  return <Badge tone="slate"><Pa>DRAFT</Pa></Badge>;
 }
 
 export default async function PayrollPage({ searchParams }: { searchParams: Promise<{ err?: string }> }) {
@@ -60,7 +60,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
   return (
     <div className="space-y-6">
       <PageHeader
-        title={<Pa>Payroll 🧾</Pa>}
+        title={<Pa>Payroll</Pa>}
         subtitle={<Pa>Monthly salary & daily-rate payouts — attendance picked up automatically.</Pa>}
       />
 
@@ -86,7 +86,7 @@ export default async function PayrollPage({ searchParams }: { searchParams: Prom
             <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"><Pa>Month</Pa></span>
             <input type="month" name="month" defaultValue={defaultMonth} required className="input" />
           </label>
-          <button type="submit" className={btnBrand}>⚙️ <Pa>Compute payroll</Pa></button>
+          <button type="submit" className={btnBrand}><Pa>Compute payroll</Pa></button>
           {(shirtsCount + dailyCount) === 0 && (
             <span className="text-xs text-amber-600"><Pa>No salary set for anyone yet — set it on each employee profile first.</Pa></span>
           )}

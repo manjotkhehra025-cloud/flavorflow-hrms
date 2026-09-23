@@ -90,7 +90,7 @@ export function Payslip({ d }: { d: PayslipData }) {
               {d.lopAmount > 0 ? (
                 <Row k={<Pa>Absent (LOP)</Pa>} h={`${d.lopDays} days × ₹${d.lopPerDay}`} v={"−" + fmtINR(d.lopAmount)} bad />
               ) : (
-                <div style={{ fontSize: 11, color: "#64748b", padding: "4px 0" }}><Pa>No absent deduction 🎉</Pa></div>
+                <div style={{ fontSize: 11, color: "#64748b", padding: "4px 0" }}><Pa>No absent deduction</Pa></div>
               )}
               {d.pfEmployee > 0 && (
                 <Row k={<Pa>Provident Fund (12%)</Pa>} v={"−" + fmtINR(d.pfEmployee)} bad />

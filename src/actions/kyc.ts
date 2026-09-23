@@ -25,7 +25,7 @@ export async function addKycDocAction(_prev: ActionState, formData: FormData): P
   if (refNumber.length < 4) return { error: await bt("Document number looks too short.") };
   await db.kycDoc.create({ data: { companyId: me.companyId, employeeId, docType, refNumber } });
   revalidatePath("/letters");
-  return { success: await bt("Document saved to locker 🪪") };
+  return { success: await bt("Document saved to locker") };
 }
 
 export async function deleteKycDocAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

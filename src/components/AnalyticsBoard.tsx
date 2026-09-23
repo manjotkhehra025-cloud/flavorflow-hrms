@@ -28,10 +28,10 @@ export function AnalyticsBoard({ data }: { data: AnalyticsUi }) {
   const sparkMax = Math.max(1, ...data.sparkline);
 
   const tiles = [
-    { n: data.tiles.present, l: "Present+duty", c: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100", icon: "🟢" },
-    { n: data.tiles.late, l: "Late marks", c: "text-rose-600", bg: "bg-rose-50 border-rose-100", icon: "⏰" },
-    { n: data.tiles.half, l: "Half-days", c: "text-amber-600", bg: "bg-amber-50 border-amber-100", icon: "🌗" },
-    { n: data.tiles.absent, l: "Absents", c: "text-slate-500", bg: "bg-slate-50 border-slate-100", icon: "⛔" },
+    { n: data.tiles.present, l: "Present+duty", c: "text-emerald-600", bg: "bg-emerald-50 border-emerald-100", icon: "" },
+    { n: data.tiles.late, l: "Late marks", c: "text-rose-600", bg: "bg-rose-50 border-rose-100", icon: "" },
+    { n: data.tiles.half, l: "Half-days", c: "text-amber-600", bg: "bg-amber-50 border-amber-100", icon: "" },
+    { n: data.tiles.absent, l: "Absents", c: "text-slate-500", bg: "bg-slate-50 border-slate-100", icon: "" },
   ];
 
   function downloadCsv() {
@@ -44,16 +44,16 @@ export function AnalyticsBoard({ data }: { data: AnalyticsUi }) {
   }
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <section className="print-area overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <header className="border-b border-slate-100 bg-gradient-to-r from-[#0a1628] to-[#102b42] px-5 py-4 text-white">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-extrabold tracking-tight">📊 <Tt>Attendance analytics</Tt></h2>
+            <h2 className="text-base font-extrabold tracking-tight"><Tt>Attendance analytics</Tt></h2>
             <p className="text-[11px] font-semibold text-slate-400">{data.label} — <Tt>punch-ins counted till today</Tt></p>
           </div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={downloadCsv} className="rounded-xl bg-emerald-500 px-3 py-1.5 text-xs font-extrabold text-white shadow transition hover:brightness-110">⬇ <Tt>CSV</Tt></button>
-            <button type="button" onClick={() => window.print()} className="rounded-xl bg-white/10 px-3 py-1.5 text-xs font-extrabold text-slate-200 ring-1 ring-white/20 transition hover:bg-white/15">🖨 <Tt>Print</Tt></button>
+          <div className="flex items-center gap-2 print:hidden">
+            <button type="button" onClick={downloadCsv} className="rounded-xl bg-emerald-500 px-3 py-1.5 text-xs font-extrabold text-white shadow transition hover:brightness-110"><Tt>CSV</Tt></button>
+            <button type="button" onClick={() => window.print()} className="rounded-xl bg-white/10 px-3 py-1.5 text-xs font-extrabold text-slate-200 ring-1 ring-white/20 transition hover:bg-white/15"><Tt>Print</Tt></button>
           </div>
         </div>
         {/* sparkline of daily punch-ins */}
@@ -106,9 +106,9 @@ export function AnalyticsBoard({ data }: { data: AnalyticsUi }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search employee / dept…"
-            className="mb-2 w-full rounded-xl bg-slate-50 px-3.5 py-2 text-xs outline-none ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-emerald-400"
+            className="mb-2 w-full rounded-xl bg-slate-50 px-3.5 py-2 text-xs outline-none ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-emerald-400 print:hidden"
           />
-          <div className="max-h-72 overflow-y-auto rounded-2xl ring-1 ring-slate-100">
+          <div className="max-h-72 overflow-y-auto rounded-2xl ring-1 ring-slate-100 print:max-h-none print:overflow-visible">
             <table className="w-full text-left text-xs">
               <thead className="sticky top-0 bg-slate-50 text-[10px] font-extrabold uppercase tracking-wide text-slate-400">
                 <tr>

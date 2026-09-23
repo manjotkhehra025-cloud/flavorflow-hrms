@@ -13,7 +13,7 @@ export async function createPostAction(_prev: ActionState, formData: FormData): 
   if (body.length > 1500) return { error: await bt("Post too long (max 1500 characters).") };
   await db.socialPost.create({ data: { companyId: me.companyId, authorId: me.id, body } });
   revalidatePath("/social");
-  return { success: await bt("Posted to the wall 📣") };
+  return { success: await bt("Posted to the wall") };
 }
 
 export async function toggleLikeAction(postId: string) {
@@ -35,7 +35,7 @@ export async function commentAction(postId: string, formData: FormData): Promise
   if (body.length > 400) return { error: await bt("Comment too long.") };
   await db.postComment.create({ data: { postId, userId: me.id, body } });
   revalidatePath("/social");
-  return { success: await bt("Comment added 💬") };
+  return { success: await bt("Comment added") };
 }
 
 export async function deletePostAction(id: string) {

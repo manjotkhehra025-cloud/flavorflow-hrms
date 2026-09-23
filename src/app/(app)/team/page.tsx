@@ -71,7 +71,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900"><Tt>Live Team</Tt> 👥</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900"><Tt>Live Team</Tt></h1>
           <p className="text-sm text-slate-500"><Tt>Who's on the floor right now, on a single screen.</Tt></p>
         </div>
         <div className="flex gap-1 rounded-2xl bg-slate-100 p-1">
@@ -105,7 +105,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                   <td className="px-4 py-2.5 text-slate-600">{l.type}</td>
                 </tr>
               ))}
-              {leaveRows.length === 0 && <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-400"><Tt>No approved leaves in the next 14 days 🎉</Tt></td></tr>}
+              {leaveRows.length === 0 && <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-400"><Tt>No approved leaves in the next 14 days</Tt></td></tr>}
             </tbody>
           </table>
         </div>

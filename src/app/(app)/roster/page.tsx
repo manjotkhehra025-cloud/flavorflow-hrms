@@ -58,7 +58,7 @@ export default async function RosterPage({ searchParams }: { searchParams: Promi
   return (
     <div className="space-y-5">
       <PageHeader
-        title={<Pa>Duty roster 🗓️</Pa>}
+        title={<Pa>Duty roster</Pa>}
         subtitle={<Pa>Assign weekly shifts & offs — payroll & late-mark rules use these automatically.</Pa>}
       />
       <div className="flex gap-1 rounded-2xl bg-slate-100 p-1 w-fit">

@@ -16,7 +16,7 @@ export function RequestPunchForm({ recent, otApprovedHours = 0 }: { recent: Req[
 
   return (
     <Card className="mb-6 p-5">
-      <h3 className="text-sm font-bold text-slate-900">{<Tt>✍️ Manual Punch / OT Request</Tt>}</h3>
+      <h3 className="text-sm font-bold text-slate-900">{<Tt>Manual Punch / OT Request</Tt>}</h3>
       <p className="mb-4 text-xs text-slate-500">Missed a punch? Or overtime? Your manager will review & approve it.</p>
 
       {state.error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{state.error}</p>}

@@ -23,7 +23,7 @@ export function PayslipShareButtons({ rowId }: { rowId: string }) {
         <form action={formAction}>
           <input type="hidden" name="rowId" value={rowId} />
           <button type="submit" className={btn} disabled={pending}>
-            {pending ? "…" : <><Tt>📲 Share link</Tt></>}
+            {pending ? "…" : <><Tt>Share link</Tt></>}
           </button>
         </form>
       )}
@@ -35,7 +35,7 @@ export function PayslipShareButtons({ rowId }: { rowId: string }) {
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-black text-white transition hover:bg-emerald-700"
           >
-            🟢 <Tt>WhatsApp</Tt>
+            <Tt>WhatsApp</Tt>
           </a>
           <button type="button" onClick={copy} className={btn}>🔗 <Tt>Copy</Tt></button>
         </>

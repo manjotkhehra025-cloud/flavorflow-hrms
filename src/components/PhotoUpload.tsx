@@ -54,7 +54,7 @@ export function PhotoUpload({ employeeId, hasPhoto }: { employeeId: string; hasP
             const f = input.files?.[0];
             if (!f) return;
             setBusy(true);
-            setLocalMsg(f.size > 1024 * 1024 ? "Compressing photo… ⏳" : null);
+            setLocalMsg(f.size > 1024 * 1024 ? "Compressing photo…" : null);
             try {
               const small = await compressImage(f);
               if (small.size > 4 * 1024 * 1024) {

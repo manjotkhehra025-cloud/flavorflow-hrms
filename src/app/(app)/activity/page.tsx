@@ -29,7 +29,7 @@ export default async function ActivityPage() {
               </Link>
             </li>
           ))}
-          {items.length === 0 && <li className="px-4 py-10 text-center text-sm text-slate-400"><Tt>All quiet for now. ✨</Tt></li>}
+          {items.length === 0 && <li className="px-4 py-10 text-center text-sm text-slate-400"><Tt>All quiet for now.</Tt></li>}
         </ul>
       </div>
     </div>

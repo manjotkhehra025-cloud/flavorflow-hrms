@@ -11,7 +11,7 @@ export function ActivityFeed({ items }: { items: FeedItem[] }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h3 className="text-sm font-extrabold text-slate-800">⚡ <Tt>Recent activity</Tt></h3>
+        <h3 className="text-sm font-extrabold text-slate-800"><Tt>Recent activity</Tt></h3>
         <Link href="/activity" className="text-xs font-semibold text-emerald-600 hover:underline"><Tt>View all →</Tt></Link>
       </header>
       <ul className="divide-y divide-slate-100">
@@ -28,7 +28,7 @@ export function ActivityFeed({ items }: { items: FeedItem[] }) {
             </Link>
           </li>
         ))}
-        {items.length === 0 && <li className="px-4 py-8 text-center text-sm text-slate-400"><Tt>All quiet for now. ✨</Tt></li>}
+        {items.length === 0 && <li className="px-4 py-8 text-center text-sm text-slate-400"><Tt>All quiet for now.</Tt></li>}
       </ul>
     </section>
   );

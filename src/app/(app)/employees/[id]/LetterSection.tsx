@@ -56,7 +56,7 @@ export function LetterSection({ employeeId, letters, kycDocs, canEdit }: { emplo
       {/* KYC document locker */}
       <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5">
         <div className="mb-2 flex items-center justify-between">
-          <h5 className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{<Tt>KYC Document Locker</Tt>} 🪪</h5>
+          <h5 className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{<Tt>KYC Document Locker</Tt>}</h5>
           <span className="text-[10px] font-semibold text-slate-400">{kycDocs.length} <Tt>docs</Tt></span>
         </div>
         {kycDocs.length > 0 && (

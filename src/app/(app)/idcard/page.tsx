@@ -64,7 +64,7 @@ export default async function IdCardPage({
       {staff && (
         <Card className="mb-5 p-4">
           <form className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-semibold text-slate-500">{<Pa>👥 Select Employee:</Pa>}</span>
+            <span className="text-xs font-semibold text-slate-500">{<Pa>Select Employee:</Pa>}</span>
             <select name="emp" defaultValue={employee?.id ?? ""} className={inputCls + " !w-auto min-w-64"}>
               {!me.employeeId && <option value="">—</option>}
               {allEmployees.map((e) => (

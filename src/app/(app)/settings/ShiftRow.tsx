@@ -9,10 +9,10 @@ import { inputCls } from "@/components/ui";
 
 function shiftTone(startTime: string): { label: string; emoji: string } {
   const h = parseInt(startTime.split(":")[0] ?? "9", 10);
-  if (h >= 5 && h < 12) return { label: "Morning", emoji: "🌅" };
-  if (h >= 12 && h < 17) return { label: "Evening", emoji: "🌇" };
-  if (h >= 21 || h < 5) return { label: "Night", emoji: "🌙" };
-  return { label: "Evening", emoji: "🌇" };
+  if (h >= 5 && h < 12) return { label: "Morning", emoji: "" };
+  if (h >= 12 && h < 17) return { label: "Evening", emoji: "" };
+  if (h >= 21 || h < 5) return { label: "Night", emoji: "" };
+  return { label: "Evening", emoji: "" };
 }
 
 export function ShiftRow({ id, name, startTime, durationH, count }: { id: string; name: string; startTime: string; durationH: number; count: number }) {

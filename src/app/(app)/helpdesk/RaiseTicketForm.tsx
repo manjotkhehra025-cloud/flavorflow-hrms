@@ -55,7 +55,7 @@ export function RaiseTicketForm() {
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/60">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm font-bold text-slate-800">{<Tt>New ticket ✍️</Tt>}</p>
+        <p className="text-sm font-bold text-slate-800">{<Tt>New ticket</Tt>}</p>
         <button onClick={() => setOpen(false)} className="text-xs font-semibold text-slate-400 hover:text-slate-600">{<Tt>Cancel ✕</Tt>}</button>
       </div>
 

@@ -11,7 +11,7 @@ export function ChangePasswordCard() {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(changePasswordAction, {});
   return (
     <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="text-sm font-bold text-slate-900">🔐 <Tt>Change my PIN / password</Tt></h3>
+      <h3 className="text-sm font-bold text-slate-900"><Tt>Change my PIN / password</Tt></h3>
       <p className="mt-0.5 text-xs text-slate-500"><Tt>Same login works on the phone app. Minimum 6 characters.</Tt></p>
       <form action={formAction} className="mt-3 flex flex-wrap items-end gap-2.5">
         <label>
@@ -51,7 +51,7 @@ export function AdminResetButton({ userId, name }: { userId: string; name: strin
         }
         className="rounded-xl bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-100 disabled:opacity-50"
       >
-        {pending ? "…" : `🔑 Reset ${name.split(" ")[0]}'s password`}
+        {pending ? "…" : `Reset ${name.split(" ")[0]}'s password`}
       </button>
       {temp && (
         <div className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs ring-1 ring-emerald-200">

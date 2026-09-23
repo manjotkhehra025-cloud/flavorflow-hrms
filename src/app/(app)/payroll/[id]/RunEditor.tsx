@@ -188,7 +188,7 @@ export function RunEditor({ runId, rows }: { runId: string; month: string; rows:
           {confirmLock ? (
             <>
               <button type="submit" className={btnBrand} disabled={lockPending} onClick={(e) => { if (dirty) { e.preventDefault(); alert("You have unsaved adjustments — press Save first, then lock."); } }}>
-                {lockPending ? "…" : <Tt>✅ Yes — approve & lock payroll</Tt>}
+                {lockPending ? "…" : <Tt>Yes — approve & lock payroll</Tt>}
               </button>
               <button type="button" className={btnGhost} onClick={() => setConfirmLock(false)}><Tt>Cancel</Tt></button>
             </>

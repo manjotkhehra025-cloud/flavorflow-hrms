@@ -23,7 +23,7 @@ export default async function MyKraPage() {
   if (!me.employeeId) {
     return (
       <div>
-        <PageHeader title={<Pa>My KRA 🎯</Pa>} subtitle={<Pa>Quarterly targets & auto-score</Pa>} />
+        <PageHeader title={<Pa>My KRA</Pa>} subtitle={<Pa>Quarterly targets & auto-score</Pa>} />
         <Card className="p-5">
           <EmptyState icon="chart" title={<Pa>Account not linked</Pa>} hint={<Pa>Link your login to an employee profile via the dashboard 'Link account' card — your KRA will show up here.</Pa>} />
         </Card>
@@ -51,13 +51,13 @@ export default async function MyKraPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={<Pa>My KRA 🎯</Pa>}
+        title={<Pa>My KRA</Pa>}
         subtitle={<Pa>Quarterly weightage targets — HR publishes them, you update progress, the score is automatic</Pa>}
       />
 
       {cycles.length === 0 && (
         <Card className="p-5">
-          <EmptyState icon="chart" title={<Pa>No KRA assigned yet</Pa>} hint={<Pa>Once HR publishes the quarter cycle, your goals will appear here 🎯</Pa>} />
+          <EmptyState icon="chart" title={<Pa>No KRA assigned yet</Pa>} hint={<Pa>Once HR publishes the quarter cycle, your goals will appear here</Pa>} />
         </Card>
       )}
 
@@ -125,7 +125,7 @@ function KraView({ bucket, canEdit }: { bucket: { cycle: { year: number; quarter
           </div>
           <p className="mt-3 text-xs text-slate-400">
             {cycle.status === "OPEN" && "Update your progress — HR finalizes the score at quarter end"}
-            {cycle.status === "SCORING" && "⏳ HR review in progress — edits are frozen"}
+            {cycle.status === "SCORING" && "HR review in progress — edits are frozen"}
           </p>
         </div>
       </div>

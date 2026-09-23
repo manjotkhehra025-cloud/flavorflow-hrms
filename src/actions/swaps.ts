@@ -22,7 +22,7 @@ export async function createSwapRequestAction(_prev: ActionState, formData: Form
   await db.shiftSwapRequest.create({ data: { companyId: me.companyId, requesterId: me.employeeId, peerId, date: toDateOnly(date), note } });
   revalidatePath("/roster");
   revalidatePath("/approvals");
-  return { success: await bt("Swap request sent 🔁") };
+  return { success: await bt("Swap request sent") };
 }
 
 export async function decideSwapAction(id: string, approve: boolean) {

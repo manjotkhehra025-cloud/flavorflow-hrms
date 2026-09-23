@@ -32,7 +32,7 @@ export function SwapPanel({ staff, myEmployeeId, peers, swaps }: Props) {
           action={async (fd) => { await formAction(fd); formRef.current?.reset(); }}
           className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
         >
-          <h2 className="text-sm font-extrabold text-slate-800"><Tt>Request a shift swap</Tt> 🔁</h2>
+          <h2 className="text-sm font-extrabold text-slate-800"><Tt>Request a shift swap</Tt></h2>
           <p className="mt-0.5 text-xs text-slate-500"><Tt>Swap your duty with a teammate for one day — HR must approve.</Tt></p>
           <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
             <label className="block">
@@ -64,7 +64,7 @@ export function SwapPanel({ staff, myEmployeeId, peers, swaps }: Props) {
         <ul className="divide-y divide-slate-100">
           {pendingList.map((s) => (
             <li key={s.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0a1628] text-base">🔁</span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0a1628] text-base"></span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-slate-800">{s.requester} <span className="text-slate-400">↔</span> {s.peer}</p>
                 <p className="truncate text-xs text-slate-500">{s.date}{s.note ? ` · ${s.note}` : ""}</p>
@@ -87,7 +87,7 @@ export function SwapPanel({ staff, myEmployeeId, peers, swaps }: Props) {
               )}
             </li>
           ))}
-          {pendingList.length === 0 && <li className="px-4 py-8 text-center text-sm text-slate-400"><Tt>No pending swap requests ✅</Tt></li>}
+          {pendingList.length === 0 && <li className="px-4 py-8 text-center text-sm text-slate-400"><Tt>No pending swap requests</Tt></li>}
         </ul>
       </section>
 

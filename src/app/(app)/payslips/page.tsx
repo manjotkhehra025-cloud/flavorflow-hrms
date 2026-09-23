@@ -16,7 +16,7 @@ export default async function MyPayslipsPage() {
   if (!me.employeeId) {
     return (
       <div className="space-y-4">
-        <PageHeader title={<Pa>My payslips 🧾</Pa>} subtitle={<Pa>Your salary slips appear here after payroll is approved & locked.</Pa>} />
+        <PageHeader title={<Pa>My payslips</Pa>} subtitle={<Pa>Your salary slips appear here after payroll is approved & locked.</Pa>} />
         <Card className="p-8 text-center text-sm text-slate-400">
           <Pa>Your login is not linked to an employee profile yet — ask HR.</Pa>
         </Card>
@@ -34,11 +34,11 @@ export default async function MyPayslipsPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title={<Pa>My payslips 🧾</Pa>} subtitle={<Pa>Salary slips become visible here once payroll is locked.</Pa>} />
+      <PageHeader title={<Pa>My payslips</Pa>} subtitle={<Pa>Salary slips become visible here once payroll is locked.</Pa>} />
 
       {rows.length === 0 ? (
         <Card className="p-10 text-center">
-          <div className="text-4xl">🧾</div>
+          <div className="text-4xl"></div>
           <p className="mt-2 text-sm text-slate-500"><Pa>No payslips yet — they appear after your first locked payroll.</Pa></p>
         </Card>
       ) : (

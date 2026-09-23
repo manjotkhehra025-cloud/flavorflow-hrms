@@ -76,7 +76,7 @@ export default async function PayrollRunPage({ params }: { params: Promise<{ id:
           : <Pa>Locked — payslips live for employees. Download Excel pack below.</Pa>}
         actions={(
           <>
-            {run.status === "DRAFT" ? <Badge tone="slate">🧾 <Pa>DRAFT</Pa></Badge> : <Badge tone="green">🔒 <Pa>LOCKED</Pa></Badge>}
+            {run.status === "DRAFT" ? <Badge tone="slate"><Pa>DRAFT</Pa></Badge> : <Badge tone="green">🔒 <Pa>LOCKED</Pa></Badge>}
             <Link href="/payroll" className={btnGhost}><Icon name="chevron-down" className="h-3.5 w-3.5 rotate-90" /> <Pa>All runs</Pa></Link>
           </>
         )}

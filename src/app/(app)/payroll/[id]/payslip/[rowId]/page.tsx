@@ -32,7 +32,7 @@ export default async function PayslipPage({ params }: { params: Promise<{ id: st
     <div className="mx-auto max-w-2xl space-y-4 print:space-y-0">
       <div className="flex items-center justify-between print:hidden">
         <Link href={`/payroll/${id}`} className={btnGhost}><Icon name="chevron-down" className="h-3.5 w-3.5 rotate-90" /> <Pa>Back to run</Pa></Link>
-        <PrintButton label={<Pa>🖨 Print / save PDF</Pa>} />
+        <PrintButton label={<Pa>Print / save PDF</Pa>} />
       </div>
       <div className="print-area">
         <Payslip d={data} />

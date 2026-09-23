@@ -58,7 +58,7 @@ export default async function LateReportPage({
                   {shiftCount === 0 ? (
                     <EmptyState icon="clock" title={<Pa>No shifts configured yet</Pa>} hint={<Pa>Add a shift in Settings — late-ins will be detected automatically against shift start time</Pa>} />
                   ) : (
-                    <EmptyState icon="check" title={<Pa>Everyone on time 🎉</Pa>} hint={`No late check-ins in ${label}`} />
+                    <EmptyState icon="check" title={<Pa>Everyone on time</Pa>} hint={`No late check-ins in ${label}`} />
                 )}
                 </td></tr>
               )}

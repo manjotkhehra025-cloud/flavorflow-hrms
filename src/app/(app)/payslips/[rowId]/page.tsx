@@ -35,7 +35,7 @@ export default async function MyPayslipPage({ params }: { params: Promise<{ rowI
         <Link href="/payslips" className={btnGhost}><Icon name="chevron-down" className="h-3.5 w-3.5 rotate-90" /> <Pa>All payslips</Pa></Link>
         <span className="inline-flex items-center gap-1.5">
           <PayslipShareButtons rowId={row.id} />
-          <PrintButton label={<Pa>🖨 Print / save PDF</Pa>} />
+          <PrintButton label={<Pa>Print / save PDF</Pa>} />
         </span>
       </div>
       <Payslip d={data} />

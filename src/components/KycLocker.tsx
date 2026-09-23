@@ -14,7 +14,7 @@ export function KycLocker({ docs }: { docs: Doc[] }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <header className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-        <h3 className="text-sm font-extrabold text-slate-800">🪪 <Tt>My Document Locker</Tt></h3>
+        <h3 className="text-sm font-extrabold text-slate-800"><Tt>My Document Locker</Tt></h3>
         <span className="text-[10px] font-semibold text-slate-400">{docs.length} <Tt>saved</Tt></span>
       </header>
       <div className="p-4">

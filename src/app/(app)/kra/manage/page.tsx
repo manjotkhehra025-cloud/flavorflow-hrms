@@ -60,7 +60,7 @@ export default async function KraManagePage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <PageHeader title={<Pa>KRA Manage 🎯</Pa>} subtitle={<Pa>Quarterly weightage targets — set → publish → score → lock</Pa>} />
+      <PageHeader title={<Pa>KRA Manage</Pa>} subtitle={<Pa>Quarterly weightage targets — set → publish → score → lock</Pa>} />
 
       {/* Cycle picker */}
       <div className="flex flex-wrap items-center gap-2">

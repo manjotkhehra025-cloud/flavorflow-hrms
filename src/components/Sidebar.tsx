@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   { href: "/kra", label: "KRA", icon: "target" as const },
   { href: "/helpdesk", label: "Helpdesk", icon: "chat" as const },
   { href: "/payslips", label: "Payslips", icon: "wallet" as const },
-  { href: "/star", label: "Star ⭐", icon: "star" as const, staffOnly: true },
+  { href: "/star", label: "Employee of the Month", icon: "star" as const, staffOnly: true },
   { href: "/settings", label: "Settings", icon: "sliders" as const, staffOnly: true },
 ];
 

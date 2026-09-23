@@ -32,14 +32,14 @@ export function SocialWall({ posts, placeholder }: { posts: Post[]; placeholder:
         <div className="mt-2 flex items-center justify-between">
           <span className="text-xs font-semibold aria-live">{state?.error ? <span className="text-rose-600">{state.error}</span> : <span className="text-emerald-600">{state?.success}</span>}</span>
           <button disabled={pending} className="rounded-xl bg-[#0a1628] px-4 py-2 text-xs font-extrabold text-emerald-300 shadow transition hover:brightness-110 disabled:opacity-50">
-            {pending ? "…" : <Tt>Post 🚀</Tt>}
+            {pending ? "…" : <Tt>Post</Tt>}
           </button>
         </div>
       </form>
 
       {posts.length === 0 && (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 py-12 text-center">
-          <p className="text-3xl">📣</p>
+          <p className="text-3xl"></p>
           <p className="mt-1 text-sm font-semibold text-slate-500"><Tt>No posts yet — be the first!</Tt></p>
         </div>
       )}
@@ -91,14 +91,14 @@ function PostCard({ post }: { post: Post }) {
             post.liked ? "bg-emerald-50 text-emerald-600" : "text-slate-500 hover:bg-slate-50"
           )}
         >
-          <span className={cx("text-sm", post.liked && "scale-110")}>{post.liked ? "💚" : "🤍"}</span> {post.likes > 0 && post.likes} <Tt>Like</Tt>
+          <span className={cx("text-sm", post.liked && "scale-110")}>{post.liked ? "" : ""}</span> {post.likes > 0 && post.likes} <Tt>Like</Tt>
         </button>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:bg-slate-50"
         >
-          💬 {post.comments.length > 0 && post.comments.length} <Tt>Comments</Tt>
+          {post.comments.length > 0 && post.comments.length} <Tt>Comments</Tt>
         </button>
       </div>
 

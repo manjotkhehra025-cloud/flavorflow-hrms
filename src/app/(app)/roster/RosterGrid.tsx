@@ -128,7 +128,7 @@ export function RosterGrid({
                             {shifts.map((s) => (
                               <option key={s.id} value={s.id}>{s.name} · {s.startTime}</option>
                             ))}
-                            <option value="__OFF">🚫 <Tt>OFF</Tt></option>
+                            <option value="__OFF"><Tt>OFF</Tt></option>
                           </select>
                         </td>
                       );

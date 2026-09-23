@@ -97,68 +97,73 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
           ) : (
             <ul className="space-y-2.5">
               {leaves.map((l) => (
-                <li key={`l${l.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                  <Badge tone="amber">Leave</Badge>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-slate-800">{l.employee.firstName} {l.employee.lastName}</div>
-                    <div className="text-xs text-slate-500">{l.leaveType.name} · {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} ({l.days}d){l.reason ? ` · "${l.reason}"` : ""} · {timeAgo(l.createdAt)}</div>
+                <li key={`l${l.id}`} className="rounded-xl bg-slate-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge tone="amber">Leave</Badge>
+                    <span className="text-[11px] font-semibold text-slate-400">{timeAgo(l.createdAt)}</span>
                   </div>
-                  <Actions
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{l.employee.firstName} {l.employee.lastName}</div>
+                  <div className="text-xs leading-relaxed text-slate-500">{l.leaveType.name} · {fmtDate(l.fromDate)} – {fmtDate(l.toDate)} ({l.days}d){l.reason ? ` · "${l.reason}"` : ""}</div>
+                  <div className="mt-2 flex justify-end"><Actions
                     approve={async () => { "use server"; await decideLeaveAction(l.id, "APPROVED"); }}
                     reject={async () => { "use server"; await decideLeaveAction(l.id, "REJECTED"); }}
-                  />
+                  /></div>
                 </li>
               ))}
               {punchManual.map((p) => (
-                <li key={`p${p.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                  <Badge tone="blue">{p.type === "MANUAL_IN" ? "Punch In" : "Punch Out"}</Badge>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-slate-800">{p.employee.firstName} {p.employee.lastName}</div>
-                    <div className="text-xs text-slate-500">{fmtDate(p.date)} at {p.time}{p.reason ? ` · "${p.reason}"` : ""} · {timeAgo(p.createdAt)}</div>
+                <li key={`p${p.id}`} className="rounded-xl bg-slate-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge tone="blue">{p.type === "MANUAL_IN" ? "Punch In" : "Punch Out"}</Badge>
+                    <span className="text-[11px] font-semibold text-slate-400">{timeAgo(p.createdAt)}</span>
                   </div>
-                  <Actions
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{p.employee.firstName} {p.employee.lastName}</div>
+                  <div className="text-xs leading-relaxed text-slate-500">{fmtDate(p.date)} at {p.time}{p.reason ? ` · "${p.reason}"` : ""}</div>
+                  <div className="mt-2 flex justify-end"><Actions
                     approve={async () => { "use server"; await decidePunchRequestAction(p.id, true); }}
                     reject={async () => { "use server"; await decidePunchRequestAction(p.id, false); }}
-                  />
+                  /></div>
                 </li>
               ))}
               {punchOT.map((p) => (
-                <li key={`o${p.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                  <Badge tone="green">OT</Badge>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-slate-800">{p.employee.firstName} {p.employee.lastName}</div>
-                    <div className="text-xs text-slate-500">{fmtDate(p.date)} · {p.hours}h OT{p.reason ? ` · "${p.reason}"` : ""} · {timeAgo(p.createdAt)}</div>
+                <li key={`o${p.id}`} className="rounded-xl bg-slate-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge tone="green">OT</Badge>
+                    <span className="text-[11px] font-semibold text-slate-400">{timeAgo(p.createdAt)}</span>
                   </div>
-                  <Actions
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{p.employee.firstName} {p.employee.lastName}</div>
+                  <div className="text-xs leading-relaxed text-slate-500">{fmtDate(p.date)} · {p.hours}h OT{p.reason ? ` · "${p.reason}"` : ""}</div>
+                  <div className="mt-2 flex justify-end"><Actions
                     approve={async () => { "use server"; await decidePunchRequestAction(p.id, true); }}
                     reject={async () => { "use server"; await decidePunchRequestAction(p.id, false); }}
-                  />
+                  /></div>
                 </li>
               ))}
               {gatesPending.map((g) => (
-                <li key={`g${g.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                  <Badge tone="blue">Gate Pass</Badge>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-slate-800">{g.employee.firstName} {g.employee.lastName}</div>
-                    <div className="text-xs text-slate-500">{fmtDate(g.date)} · out {g.exitAt}{g.returnAt ? ` · back ${g.returnAt}` : ""}{g.reason ? ` · "${g.reason}"` : ""} · {timeAgo(g.createdAt)}</div>
+                <li key={`g${g.id}`} className="rounded-xl bg-slate-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge tone="blue">Gate Pass</Badge>
+                    <span className="text-[11px] font-semibold text-slate-400">{timeAgo(g.createdAt)}</span>
                   </div>
-                  <Actions
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{g.employee.firstName} {g.employee.lastName}</div>
+                  <div className="text-xs leading-relaxed text-slate-500">{fmtDate(g.date)} · out {g.exitAt}{g.returnAt ? ` · back ${g.returnAt}` : ""}{g.reason ? ` · "${g.reason}"` : ""}</div>
+                  <div className="mt-2 flex justify-end"><Actions
                     approve={async () => { "use server"; await decideGatePassAction(g.id, true); }}
                     reject={async () => { "use server"; await decideGatePassAction(g.id, false); }}
-                  />
+                  /></div>
                 </li>
               ))}
               {swaps.map((w) => (
-                <li key={`w${w.id}`} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                  <Badge tone="slate">Swap</Badge>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-slate-800">{w.requester.firstName} ↔ {w.peer.firstName}</div>
-                    <div className="text-xs text-slate-500">{fmtDate(w.date)}{w.note ? ` · "${w.note}"` : ""} · {timeAgo(w.createdAt)}</div>
+                <li key={`w${w.id}`} className="rounded-xl bg-slate-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge tone="slate">Swap</Badge>
+                    <span className="text-[11px] font-semibold text-slate-400">{timeAgo(w.createdAt)}</span>
                   </div>
-                  <Actions
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{w.requester.firstName} ↔ {w.peer.firstName}</div>
+                  <div className="text-xs leading-relaxed text-slate-500">{fmtDate(w.date)}{w.note ? ` · "${w.note}"` : ""}</div>
+                  <div className="mt-2 flex justify-end"><Actions
                     approve={async () => { "use server"; await decideSwapAction(w.id, true); }}
                     reject={async () => { "use server"; await decideSwapAction(w.id, false); }}
-                  />
+                  /></div>
                 </li>
               ))}
             </ul>
@@ -173,7 +178,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
             <ul className="space-y-2.5">
               {swaps.map((w) => (
                 <li key={w.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 px-4 py-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0a1628] text-base">🔁</span>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0a1628] text-base"></span>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-slate-800">{w.requester.firstName} {w.requester.lastName} <span className="text-slate-400">↔</span> {w.peer.firstName} {w.peer.lastName}</div>
                     <div className="text-xs text-slate-500">{fmtDate(w.date)}{w.note ? ` · "${w.note}"` : ""}</div>
@@ -335,7 +340,7 @@ export default async function ApprovalsPage({ searchParams }: { searchParams: Pr
 
 function Blank() {
   return (
-    <EmptyState icon="check" title={<Pa>No pending requests</Pa>} hint={<Pa>All clear — no waiting requests ✨</Pa>} />
+    <EmptyState icon="check" title={<Pa>No pending requests</Pa>} hint={<Pa>All clear — no waiting requests</Pa>} />
   );
 }
 

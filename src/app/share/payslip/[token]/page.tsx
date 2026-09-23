@@ -24,7 +24,7 @@ export default async function SharedPayslipPage({ params }: { params: Promise<{ 
       <div style={{ maxWidth: 560, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <div style={{ fontWeight: 900, fontSize: 13, color: "#0a1628" }}>HRMate <span style={{ color: "#059669" }}>●</span></div>
-          <PrintButton label="🖨 Print" />
+          <PrintButton label="Print" />
         </div>
         <Payslip d={data} />
         <p style={{ marginTop: 10, fontSize: 9.5, color: "#94a3b8", textAlign: "center" }}>

@@ -33,7 +33,7 @@ export default async function SocialPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900"><Tt>Social Wall</Tt> 📣</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900"><Tt>Social Wall</Tt></h1>
         <p className="text-sm text-slate-500">
           <Tt>Shout-outs, birthday wishes, team moments — visible to everyone at</Tt> {me.companyName}.
         </p>

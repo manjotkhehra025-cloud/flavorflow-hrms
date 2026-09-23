@@ -55,7 +55,7 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  // Star of the Month (all users) + helpdesk signals
+  // Employee of the Month (all users) + helpdesk signals
   const [latestStar, openTickets, myTicketsForUnread] = await Promise.all([
     db.starAward.findFirst({
       where: { companyId: me.companyId },
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
         <div className="relative">
           <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400/90">{fmtDate(today)}</p>
           <h1 className="mt-1.5 text-2xl font-extrabold tracking-tight md:text-3xl">
-            <Pa>{greeting()}</Pa>, {me.name.split(" ")[0]}! 👋
+            <Pa>{greeting()}</Pa>, {me.name.split(" ")[0]}!
           </h1>
           <p className="mt-1 text-sm text-slate-400">
             <Pa>Welcome to HRMate</Pa> · {me.companyName}
@@ -148,13 +148,13 @@ export default async function DashboardPage() {
               <Icon name="leaf" className="h-3.5 w-3.5" /> <Pa>Apply Leave</Pa>
             </Link>
             {isWeeklyOff && (
-              <span className="chip-dark !text-sky-300 ring-sky-400/25!">{<Pa>🌴 Weekly off today</Pa>}</span>
+              <span className="chip-dark !text-sky-300 ring-sky-400/25!">{<Pa>Weekly off today</Pa>}</span>
             )}
           </div>
         </div>
       </div>
 
-      {/* ===== Star of the Month shine ===== */}
+      {/* ===== Employee of the Month shine ===== */}
       {latestStar && (
         <div className="relative overflow-hidden rounded-3xl bg-[#0a1628] p-5 text-white shadow-[var(--shadow-pop)]">
           <div className="pointer-events-none absolute -right-12 -top-14 h-40 w-40 rounded-full bg-amber-400/25 blur-3xl" />
@@ -169,12 +169,12 @@ export default async function DashboardPage() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-amber-300">
-                <Pa>⭐ Star of the Month</Pa> · {(() => { const [y, m] = latestStar.month.split("-").map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-IN", { month: "short", year: "numeric" }); })()}
+                <Pa>Employee of the Month</Pa> · {(() => { const [y, m] = latestStar.month.split("-").map(Number); return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-IN", { month: "short", year: "numeric" }); })()}
               </p>
               <p className="mt-0.5 truncate text-base font-extrabold">
                 {latestStar.employee.firstName} {latestStar.employee.lastName}
               </p>
-              {latestStar.note && <p className="mt-0.5 truncate text-xs text-slate-400">{latestStar.note} 🏆</p>}
+              {latestStar.note && <p className="mt-0.5 truncate text-xs text-slate-400">{latestStar.note}</p>}
             </div>
             {staff && (
               <Link href="/star" className="shrink-0 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-amber-200 ring-1 ring-amber-300/25 transition hover:bg-white/15 active:scale-95">
@@ -188,14 +188,14 @@ export default async function DashboardPage() {
       {/* ===== Helpdesk strip ===== */}
       {staff && openTickets > 0 && (
         <Link href="/helpdesk?tab=inbox" className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 transition hover:bg-amber-100/70 active:scale-[0.99]">
-          <span className="text-lg">💬</span>
+          <span className="text-lg"></span>
           <span className="text-sm font-bold text-amber-800">{openTickets} <Pa>open helpdesk tickets — your team is waiting</Pa></span>
           <span className="ml-auto text-xs font-bold text-amber-600">{<Pa>View →</Pa>}</span>
         </Link>
       )}
       {!staff && myUnreadReplies > 0 && (
         <Link href="/helpdesk" className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 transition hover:bg-emerald-100/70 active:scale-[0.99]">
-          <span className="text-lg">💬</span>
+          <span className="text-lg"></span>
           <span className="text-sm font-bold text-emerald-800">You have {myUnreadReplies} helpdesk ticket{myUnreadReplies > 1 ? "s" : ""} with new HR replies!</span>
           <span className="ml-auto text-xs font-bold text-emerald-600">{<Pa>View →</Pa>}</span>
         </Link>
