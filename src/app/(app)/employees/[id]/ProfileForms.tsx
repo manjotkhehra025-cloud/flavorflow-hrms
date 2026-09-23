@@ -10,9 +10,12 @@ import { Icon } from "@/components/icons";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+type DeptOpt = { id: string; name: string; parentId?: string | null };
 type Emp = {
   id: string;
   category: string;
+  departmentId?: string | null;
+  designationId?: string | null;
   weeklyOff: number;
   shiftId: string | null;
   bloodGroup: string | null;
@@ -27,11 +30,15 @@ export function ProfileForms({
   shifts,
   leaveTypes,
   isYellow,
+  departments = [],
+  designations = [],
 }: {
   employee: Emp;
   shifts: { id: string; name: string }[];
   leaveTypes: { id: string; name: string; quota: number }[];
   isYellow: boolean;
+  departments?: DeptOpt[];
+  designations?: { id: string; title: string }[];
 }) {
   const ph = useT();
   const [editState, editAction, editPending] = useActionState<ActionState, FormData>(updateEmployeeDetailsAction, {});
@@ -56,8 +63,26 @@ export function ProfileForms({
             <label className="col-span-2 block text-xs font-semibold text-slate-600">
               Staff category
               <select name="category" defaultValue={employee.category} className={inputCls + " mt-1"}>
-                <option value="OFFICIAL">{<Tt>🔵 Official Staff</Tt>}</option>
-                <option value="YELLOW_CARD">{<Tt>🟡 Yellow Card</Tt>}</option>
+                <option value="OFFICIAL">{<Tt>Official Staff</Tt>}</option>
+                <option value="YELLOW_CARD">{<Tt>Yellow Card</Tt>}</option>
+              </select>
+            </label>
+            <label className="block text-xs font-semibold text-slate-600">
+              <Tt>Department</Tt>
+              <select name="departmentId" defaultValue={employee.departmentId ?? ""} className={inputCls + " mt-1"}>
+                <option value="">—</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-xs font-semibold text-slate-600">
+              <Tt>Designation</Tt>
+              <select name="designationId" defaultValue={employee.designationId ?? ""} className={inputCls + " mt-1"}>
+                <option value="">—</option>
+                {designations.map((d) => (
+                  <option key={d.id} value={d.id}>{d.title}</option>
+                ))}
               </select>
             </label>
             <label className="block text-xs font-semibold text-slate-600">

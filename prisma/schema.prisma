@@ -158,25 +158,40 @@ model User {
 }
 
 model Department {
-  id        String  @id @default(cuid())
+  id        String       @id @default(cuid())
   companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name      String
+  parentId  String?
+  parent    Department?  @relation("SubDepartments", fields: [parentId], references: [id], onDelete: SetNull)
+  subDepartments Department[] @relation("SubDepartments")
 
   employees Employee[]
+  designations Designation[]
 
   @@unique([companyId, name])
 }
 
 model Designation {
-  id        String  @id @default(cuid())
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  title     String
+  id           String              @id @default(cuid())
+  companyId    String
+  company      Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title        String
+  // Which staff type typically holds this title; BOTH when generic (e.g. Manager).
+  category     DesignationCategory @default(BOTH)
+  // Optional home department (e.g. "Lab Assistant" under Quality).
+  departmentId String?
+  department   Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
 
   employees Employee[]
 
   @@unique([companyId, title])
+}
+
+enum DesignationCategory {
+  OFFICIAL
+  YELLOW_CARD
+  BOTH
 }
 
 enum EmployeeStatus {

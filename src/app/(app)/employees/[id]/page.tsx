@@ -11,6 +11,7 @@ import { ProfileForms } from "./ProfileForms";
 import { PaySection } from "./PaySection";
 import { LetterSection } from "./LetterSection";
 import { AdminResetButton } from "@/components/PasswordCards";
+import { LoginCreateCard } from "@/components/LoginCreateCard";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { AvatarImg } from "@/components/AvatarImg";
 
@@ -59,7 +60,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   if (!employee) notFound();
 
   const monthStart = new Date(Date.UTC(todayDate().getUTCFullYear(), todayDate().getUTCMonth(), 1));
-  const [attendance, leaves, balances, shifts, leaveTypes, letters, kycDocs] = await Promise.all([
+  const [attendance, leaves, balances, shifts, leaveTypes, letters, kycDocs, deptsAll, desigsAll] = await Promise.all([
     db.attendance.findMany({
       where: { employeeId: employee.id, date: { gte: monthStart } },
       orderBy: { date: "desc" },
@@ -76,6 +77,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     db.leaveType.findMany({ where: { companyId: me.companyId }, orderBy: { name: "asc" } }),
     db.letter.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: "desc" } }),
     db.kycDoc.findMany({ where: { employeeId: employee.id }, orderBy: { createdAt: "desc" } }),
+    db.department.findMany({ where: { companyId: me.companyId }, orderBy: { name: "asc" } }),
+    db.designation.findMany({ where: { companyId: me.companyId }, orderBy: { title: "asc" } }),
   ]);
 
   const bindToggle = updateEmployeeStatusAction.bind(
@@ -148,11 +151,16 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           {employee.users[0] && me.role !== "EMPLOYEE" && (
             <AdminResetButton userId={employee.users[0].id} name={employee.firstName} />
           )}
+          {!employee.users[0] && me.role !== "EMPLOYEE" && (
+            <LoginCreateCard employeeId={employee.id} name={employee.firstName} />
+          )}
 
           <ProfileForms
             employee={{
               id: employee.id,
               category: employee.category,
+              departmentId: employee.departmentId,
+              designationId: employee.designationId,
               weeklyOff: employee.weeklyOff,
               shiftId: employee.shiftId,
               bloodGroup: employee.bloodGroup,
@@ -163,6 +171,11 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             }}
             shifts={shifts.map((s) => ({ id: s.id, name: s.name }))}
             leaveTypes={leaveTypes.map((t) => ({ id: t.id, name: t.name, quota: t.daysPerYear }))}
+            departments={(() => {
+              const labelOf = (d: (typeof deptsAll)[number]) => d.parentId ? `${deptsAll.find((p) => p.id === d.parentId)?.name ?? ""} › ${d.name}` : d.name;
+              return [...deptsAll].sort((a, b) => (labelOf(a) < labelOf(b) ? -1 : 1)).map((d) => ({ id: d.id, name: labelOf(d) }));
+            })()}
+            designations={desigsAll.map((d) => ({ id: d.id, title: d.title }))}
             isYellow={isYellow}
           />
 

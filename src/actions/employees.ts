@@ -140,6 +140,8 @@ export async function updateEmployeeDetailsAction(_prev: ActionState, formData: 
   const weeklyOff = parseInt((formData.get("weeklyOff") as string) ?? "0", 10);
   const data = {
     category: formData.get("category") === "YELLOW_CARD" ? ("YELLOW_CARD" as const) : ("OFFICIAL" as const),
+    departmentId: emptyToUndefined((formData.get("departmentId") as string) ?? "") ?? null,
+    designationId: emptyToUndefined((formData.get("designationId") as string) ?? "") ?? null,
     weeklyOff: Number.isFinite(weeklyOff) && weeklyOff >= 0 && weeklyOff <= 6 ? weeklyOff : 0,
     shiftId: emptyToUndefined((formData.get("shiftId") as string) ?? "") ?? null,
     bloodGroup: emptyToUndefined(((formData.get("bloodGroup") as string) ?? "").trim()),
@@ -190,4 +192,37 @@ export async function setWeeklyOffAction(_prev: ActionState, formData: FormData)
   if (res.count === 0) return { error: await bt("Employee not found.") };
   revalidatePath("/team");
   return { success: await bt("Weekly off updated ✔") };
+}
+
+/** Staff: create a login & link it to an existing employee (super-admin/admin flow). */
+export async function createLoginForEmployeeAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireStaff();
+  const employeeId = String(formData.get("employeeId") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const roleRaw = String(formData.get("role") ?? "EMPLOYEE");
+  const role = roleRaw === "ADMIN" || roleRaw === "HR" ? roleRaw : "EMPLOYEE";
+  if (!employeeId || !email || !email.includes("@")) return { error: await bt("Valid email required.") };
+  if (password.length < 6) return { error: await bt("PIN/password must be at least 6 characters.") };
+  const emp = await db.employee.findFirst({ where: { id: employeeId, companyId: me.companyId } });
+  if (!emp) return { error: await bt("Employee not found.") };
+  const existingForEmp = await db.user.findFirst({ where: { employeeId: emp.id } });
+  if (existingForEmp) return { error: await bt(`Login already linked: ${existingForEmp.email}`) };
+  const existingEmail = await db.user.findFirst({ where: { companyId: me.companyId, email } });
+  if (existingEmail) return { error: await bt("That email already has a login — pick another.") };
+
+  const bcrypt2 = (await import("bcryptjs")).default;
+  const passwordHash = await bcrypt2.hash(password, 10);
+  await db.user.create({
+    data: {
+      companyId: me.companyId,
+      email,
+      name: `${emp.firstName} ${emp.lastName ?? ""}`.trim(),
+      role,
+      employeeId: emp.id,
+      passwordHash,
+    },
+  });
+  revalidatePath(`/employees/${employeeId}`);
+  return { success: await bt("Login created & linked ✔ — share the password once.") };
 }
