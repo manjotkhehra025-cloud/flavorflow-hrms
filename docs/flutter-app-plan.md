@@ -139,3 +139,18 @@ next begins.
    approve those three and P0+P1 coding begins.
 
 — Changelog: v1 initial plan (2026-09-24)
+
+---
+
+## Progress log
+
+**2026-09-24** — P1 mockups APPROVED (mockups/p1-splash.png, p1-login.png, p1-setpass.png).
+
+**P0 DONE + live-verified:**
+- `GET /api/auth/me` — mustChangePassword, locale, approveScope (canApprove),
+  permission booleans (app hides locked features exactly like web).
+- `POST /api/auth/set-password` — self-chosen first password, old credential dies.
+- `GET /api/approvals` — routed inbox (SM→group A, AGM→group B, admin→ALL).
+- `POST /api/approvals/decide` {kind,id,action} — route-checked (cross-route 403, replay 404).
+- Tested live: SM sees only Production requests, AGM only Mechanical, cross-decide 403,
+  successful decide flips status, set-password full circle (flag→set→old login 401→new login 200).
