@@ -1,35 +1,27 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="hr-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#10d9a0"/>
-      <stop offset="0.55" stop-color="#0ea5a4"/>
-      <stop offset="1" stop-color="#0369a1"/>
+    <linearGradient id="hm-a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#059669"/>
     </linearGradient>
-    <linearGradient id="hr-h" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#d1fae5"/>
-    </linearGradient>
-    <linearGradient id="hr-drop" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#fde68a"/>
-      <stop offset="1" stop-color="#f59e0b"/>
+    <linearGradient id="hm-b" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#0f766e"/>
     </linearGradient>
   </defs>
 
-  <!-- squircle plate -->
-  <rect x="2" y="2" width="60" height="60" rx="17" fill="url(#hr-bg)"/>
-  <rect x="4.5" y="4.5" width="55" height="55" rx="14.5" fill="none" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1"/>
+  <!-- right outer swoosh (emerald) — top-right down to bottom crutch -->
+  <path d="M44 6 C57 12 58 30 32 55" fill="none" stroke="url(#hm-a)" stroke-width="5.5" stroke-linecap="round"/>
+  <!-- left outer swoosh (deep teal) — top-left down around to same bottom crutch (cradle) -->
+  <path d="M21 7 C5 15 6 36 32 55" fill="none" stroke="url(#hm-b)" stroke-width="5.5" stroke-linecap="round"/>
 
-  <!-- H built from two people silhouettes sharing one heart-beat bar -->
-  <!-- left person: head + body stroke -->
-  <circle cx="22" cy="17.5" r="4.6" fill="url(#hr-h)"/>
-  <path d="M22 24.5c-3.4 0-5.2 2.2-5.2 5.6V46a3 3 0 0 0 6 0V34h0v-9.5z" fill="url(#hr-h)"/>
-  <!-- right person -->
-  <circle cx="42" cy="17.5" r="4.6" fill="url(#hr-h)"/>
-  <path d="M42 24.5c3.4 0 5.2 2.2 5.2 5.6V46a3 3 0 0 1-6 0V34h0v-9.5z" fill="url(#hr-h)"/>
-  <!-- crossbar: joined hands (the H bridge) -->
-  <path d="M22.8 31.5h18.4a3.2 3.2 0 0 1 0 6.4H22.8a3.2 3.2 0 1 1 0-6.4z" fill="url(#hr-h)" opacity="0.95"/>
-
-  <!-- honey-drop sparkle top-right -->
-  <path d="M52.5 9.5c1.6 2.4 2.4 4 2.4 5.3a2.9 2.9 0 1 1-5.7-.1c.1-1.3 1.6-3 3.3-5.2z" fill="url(#hr-drop)"/>
-  <circle cx="48.5" cy="55" r="2" fill="#fde68a" opacity="0.9"/>
+  <!-- person: head -->
+  <circle cx="32" cy="25.5" r="4.6" fill="url(#hm-a)"/>
+  <!-- person body: heart-V (two arms raised meeting at the crutch) -->
+  <path d="M19.5 31.5
+           C23 28.6 28.5 28.6 32 32.2
+           C35.5 28.6 41 28.6 44.5 31.5
+           C42.5 37 37.5 42.5 32 47
+           C26.5 42.5 21.5 37 19.5 31.5 Z"
+        fill="url(#hm-b)"/>
 </svg>
