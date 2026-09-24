@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
     where: { id: me.companyId },
     select: { geofenceEnabled: true, geoLat: true, geoLng: true, geoRadius: true, name: true },
   });
+  let punchDist: number | null = null;
   if (c?.geofenceEnabled && c.geoLat != null && c.geoLng != null) {
     if (lat == null || lng == null) {
       return NextResponse.json({ error: "Location is required to punch inside the factory." }, { status: 400 });
@@ -98,7 +99,9 @@ export async function POST(req: NextRequest) {
         { status: 422 },
       );
     }
+    punchDist = Math.round(dist);
   }
+  const geo = lat != null && lng != null ? { punchLat: lat, punchLng: lng, punchDist } : {};
 
   const existing = await db.attendance.findUnique({
     where: { employeeId_date: { employeeId: me.employeeId, date } },
@@ -108,16 +111,19 @@ export async function POST(req: NextRequest) {
     if (existing?.checkIn) return NextResponse.json({ error: "Already checked in" }, { status: 409 });
     const record = await db.attendance.upsert({
       where: { employeeId_date: { employeeId: me.employeeId, date } },
-      create: { companyId: me.companyId, employeeId: me.employeeId, date, checkIn: new Date(), status: "PRESENT" },
-      update: { checkIn: new Date(), status: "PRESENT" },
+      create: {
+        companyId: me.companyId, employeeId: me.employeeId, date, checkIn: new Date(), status: "PRESENT",
+        selfiePath: selfieRef ?? null, ...geo,
+      },
+      update: { checkIn: new Date(), status: "PRESENT", selfiePath: selfieRef ?? null, ...geo },
     });
-    return NextResponse.json({ record, selfieRef });
+    return NextResponse.json({ record });
   }
 
   if (action === "checkout") {
     if (!existing?.checkIn) return NextResponse.json({ error: "Check in first" }, { status: 409 });
     if (existing.checkOut) return NextResponse.json({ error: "Already checked out" }, { status: 409 });
-    const record = await db.attendance.update({ where: { id: existing.id }, data: { checkOut: new Date() } });
+    const record = await db.attendance.update({ where: { id: existing.id }, data: { checkOut: new Date(), ...geo } });
     return NextResponse.json({ record });
   }
 
