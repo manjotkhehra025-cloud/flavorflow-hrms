@@ -122,33 +122,33 @@ jobs:
           command: |
             . "$BASH_ENV"
             flutter create . --project-name hrmate --org in.flavorflow --platforms=android
-            python3 - <<'PY'
-            for f in ('android/app/build.gradle.kts','android/app/build.gradle'):
+            python3 - \<<'PY'
+            import re
+            for f in ('android/app/build.gradle.kts', 'android/app/build.gradle'):
                 try:
-                    s=open(f).read()
+                    s = open(f).read()
                 except FileNotFoundError:
                     continue
-                s=(s.replace('minSdkVersion 21','minSdkVersion 23')
-                     .replace('minSdk = 21','minSdk = 23')
-                     .replace('flutter.minSdkVersion','23'))
-
-            # P2: camera/GPS runtime permissions into generated AndroidManifest
-            python3 - <<'PYMAN'
-            p = 'android/app/src/main/AndroidManifest.xml'
-            s = open(p).read()
-            if 'ACCESS_FINE_LOCATION' not in s:
-                perms = """    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
-"""
-                s = s.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
-                              '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n' + perms, 1)
-                open(p, 'w').write(s)
-                print('manifest permissions injected')
-PYMAN
-                open(f,'w').write(s)
+                s = s.replace('minSdkVersion 21', 'minSdkVersion 23') \
+                     .replace('minSdk = 21', 'minSdk = 23') \
+                     .replace('flutter.minSdkVersion', '23')
+                open(f, 'w').write(s)
                 print('minSdk patched in', f)
+
+            mp = 'android/app/src/main/AndroidManifest.xml'
+            ms = open(mp).read()
+            if 'ACCESS_FINE_LOCATION' not in ms:
+                perms = ('    <uses-permission android:name="android.permission.INTERNET"/>\n'
+                         '    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n'
+                         '    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n'
+                         '    <uses-feature android:name="android.hardware.camera" android:required="false"/>\n')
+                ms = ms.replace(
+                    '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+                    '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n' + perms,
+                    1,
+                )
+                open(mp, 'w').write(ms)
+                print('manifest permissions injected')
             PY
             flutter pub get
       - run:
