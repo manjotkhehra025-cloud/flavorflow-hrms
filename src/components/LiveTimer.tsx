@@ -17,23 +17,25 @@ export function LiveTimer({ checkInIso, shiftHours, checkedOut = false }: {
   shiftHours: number;
   checkedOut?: boolean;
 }) {
-  const [now, setNow] = useState<number>(Date.now());
+  const [now, setNow] = useState<number | null>(null); // null until mounted → zero server/client mismatch
 
   useEffect(() => {
+    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+  // While SSR/before mount, hold a stable visual shell (no ticking text to mismatch).
 
   const start = new Date(checkInIso).getTime();
-  const elapsed = Math.max(0, now - start);
+  const elapsed = now === null ? 0 : Math.max(0, now - start);
   const h = Math.floor(elapsed / 3600000);
   const m = Math.floor((elapsed % 3600000) / 60000);
   const s = Math.floor((elapsed % 60000) / 1000);
   const shiftDone = elapsed >= shiftHours * 3600000 || checkedOut;
-  const progress = shiftDone ? 1 : Math.min(elapsed / (shiftHours * 3600000), 1);
+  const progress = now === null ? 0 : (shiftDone ? 1 : Math.min(elapsed / (shiftHours * 3600000), 1));
 
-  // Live device clock for post-shift display (12h, Asia/Calcutta handled by device itself)
-  const d = new Date(now);
+  // Live device clock for post-shift display (12h, device timezone)
+  const d = new Date(now ?? 0);
   let hour = d.getHours();
   const ampm = hour >= 12 ? "PM" : "AM";
   hour = hour % 12 || 12;

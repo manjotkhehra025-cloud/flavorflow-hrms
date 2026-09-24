@@ -827,4 +827,8 @@ export const PA: Record<string, string> = {
   "Yellow Card staff receive EL only — 15 days/year, auto-accruing 1.25/month from join month. Adjust individual balances from the employee profile.": "ਯੈਲੋ ਕਾਰਡ ਸਟਾਫ਼ ਨੂੰ ਸਿਰਫ਼ EL ਮਿਲਦੀ ਹੈ — ਸਾਲਾਨਾ 15 ਦਿਨ, ਜੌੲਨ ਮਹੀਨੇ ਤੋਂ 1.25/ਮਹੀਨਾ ਆਪੇ ਜੁੜਦੀ। ਵਿਅਕਤੀਗਤ ਬਕਾਇਆ ਕਰਮਚਾਰੀ ਪ੍ਰੋਫਾਇਲ ਤੋਂ ਅਡਜੱਸਟ ਕਰੋ।",
   "Shift complete · Live time": "ਸ਼ਿਫ਼ਟ ਪੂਰੀ · ਲਾਈਵ ਸਮਾਂ",
   "Login ready — sign in with this exact email:": "ਲੌਗਿਨ ਤਿਆਰ — ਬਿਲਕੁਲ ਇਸੇ ਈਮੇਲ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ:",
+  "App was just updated — one reload fixes it.": "ਐਪ ਹੁਣੇ-ਹੁਣੇ ਅੱਪਡੇਟ ਹੋਈ — ਇੱਕ ਰੀਲੋਡ ਨਾਲ ਠੀਕ ਹੋ ਜਾਏਗੀ।",
+  "A new version shipped while this page was open. Tap below once and everything works again.": "ਪੇਜ ਖੁੱਲ੍ਹਿਆ ਹੁੰਦਿਆਂ ਨਵਾਂ ਵਰਜ਼ਨ ਆ ਗਿਆ। ਹੇਠਾਂ ਇੱਕ ਵਾਰ ਦਬਾਓ ਤੇ ਸਭ ਦੁਬਾਰਾ ਚੱਲ ਪਏਗਾ।",
+  "Reload now": "ਹੁਣ ਰੀਲੋਡ ਕਰੋ",
+  "Retry view": "ਵਿਊ ਫਿਰ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
 };
