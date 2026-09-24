@@ -149,6 +149,13 @@ jobs:
                 )
                 open(mp, 'w').write(ms)
                 print('manifest permissions injected')
+
+            gp = 'android/gradle.properties'
+            gs = open(gp).read()
+            gs = gs.replace('-Xmx8G', '-Xmx2200m -XX:MaxMetaspaceSize=768m')
+            gs += '\norg.gradle.daemon=false\norg.gradle.parallel=false\n'
+            open(gp, 'w').write(gs)
+            print('gradle heap capped for medium')
             PY
             flutter pub get
       - run:
