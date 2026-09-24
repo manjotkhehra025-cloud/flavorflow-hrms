@@ -8,6 +8,9 @@ import '../features/auth/splash_screen.dart';
 import '../features/home/home_shell.dart';
 import '../features/home/punch_flow.dart';
 import '../features/attendance/attendance_screen.dart';
+import '../features/more/idcard_screen.dart';
+import '../features/more/gatekeeper_screen.dart';
+import '../features/more/roster_screen.dart';
 
 /// Route guard — mirrors the web app exactly:
 ///  booting          → /splash
@@ -49,6 +52,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => PunchFlowScreen(action: state.extra as String? ?? 'checkin'),
       ),
       GoRoute(path: '/attendance', builder: (_, __) => const AttendanceScreen()),
+      GoRoute(path: '/idcard', builder: (_, __) => IdCardScreen()),
+      GoRoute(path: '/gatekeeper', builder: (_, __) => const GatekeeperScreen()),
+      GoRoute(path: '/roster', builder: (_, __) => const RosterScreen()),
     ],
   );
 });

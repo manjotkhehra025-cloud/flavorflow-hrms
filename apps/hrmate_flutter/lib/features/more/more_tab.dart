@@ -65,6 +65,18 @@ class MoreTab extends ConsumerWidget {
           onTap: () => context.push('/attendance'),
         ),
         _Tile(
+          icon: Icons.badge_outlined,
+          title: T.s('My ID card', lang),
+          subtitle: T.s('Digital badge · gate QR · share', lang),
+          onTap: () => context.push('/idcard'),
+        ),
+        _Tile(
+          icon: Icons.calendar_month_outlined,
+          title: T.s('My Roster', lang),
+          subtitle: T.s('Week shifts · swap requests', lang),
+          onTap: () => context.push('/roster'),
+        ),
+        _Tile(
           icon: Icons.outbox_outlined,
           title: T.s('My requests', lang),
           subtitle: T.s('Manual punches & overtime status', lang),
