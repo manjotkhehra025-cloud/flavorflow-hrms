@@ -98,7 +98,7 @@ jobs:
   build-flutter:
     docker:
       - image: cimg/android:2026.08.1-node
-    resource_class: medium
+    resource_class: medium+
     steps:
       - checkout
       - restore_cache:
