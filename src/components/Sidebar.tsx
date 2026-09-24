@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { href: "/team", label: "Live Team", icon: "fingerprint" as const, staffOnly: true },
   { href: "/attendance", label: "Attendance", icon: "clock" as const },
   { href: "/leaves", label: "Leaves", icon: "leaf" as const },
-  { href: "/approvals", label: "Approvals", icon: "check" as const, staffOnly: true },
+  { href: "/approvals", label: "Approvals", icon: "check" as const, staffOnly: true, approverOk: true },
   { href: "/payroll", label: "Payroll", icon: "wallet" as const, staffOnly: true },
   { href: "/roster", label: "Roster", icon: "calendar" as const, staffOnly: true },
   { href: "/idcard", label: "ID Card & Gate Pass", icon: "badge" as const },
@@ -52,9 +52,11 @@ export function HLogo({ className = "h-10 w-10" }: { className?: string }) {
   );
 }
 
-export function Sidebar({ role, name, companyName }: { role: string; name: string; companyName: string }) {
+export function Sidebar({ role, name, companyName, canApprove = false }: { role: string; name: string; companyName: string; canApprove?: boolean }) {
   const pathname = usePathname();
-  const items = NAV_ITEMS.filter((i) => !i.staffOnly || role !== "EMPLOYEE");
+  const items = NAV_ITEMS.filter(
+    (i) => role !== "EMPLOYEE" || !i.staffOnly || ((i as { approverOk?: boolean }).approverOk === true && canApprove),
+  );
 
   return (
     <aside className="sidebar-content hidden w-64 shrink-0 flex-col bg-[#0a1628] lg:fixed lg:inset-y-0 lg:flex">

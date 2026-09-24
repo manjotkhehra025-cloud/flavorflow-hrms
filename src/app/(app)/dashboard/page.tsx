@@ -10,6 +10,7 @@ import { checkInAction, checkOutAction } from "@/actions/attendance";
 import { PunchWithSelfie } from "@/components/PunchWithSelfie";
 import { LiveTimer } from "@/components/LiveTimer";
 import { PresenceBoard } from "@/components/PresenceBoard";
+import { getPerms } from "@/lib/permissions";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { getRecentActivity } from "@/lib/activity";
 import { fmtDate as _fmtDate } from "@/lib/utils";
@@ -210,7 +211,7 @@ export default async function DashboardPage() {
           }))}
         />
       )}
-      {me.employeeId && myEmployee && (
+      {me.employeeId && myEmployee && (await getPerms(me.employeeId)).canPunch && (
         <div className="relative overflow-hidden rounded-3xl bg-[#0a1628] p-6 text-white shadow-[var(--shadow-pop)]">
           <div className="pointer-events-none absolute -left-20 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
           <div className="relative">

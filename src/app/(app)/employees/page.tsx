@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireStaff } from "@/lib/auth";
 import { fmtDate, initials, cx } from "@/lib/utils";
 import { Card, PageHeader, Badge, btnBrand, inputCls } from "@/components/ui";
+import { AdminResetButton } from "@/components/PasswordCards";
 
 export const dynamic = "force-dynamic";
 
@@ -107,8 +108,11 @@ export default async function EmployeesPage({
                   <td className="px-5 py-3 text-slate-600">{fmtDate(e.joinDate)}</td>
                   <td className="px-5 py-3">
                     {e.users.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
-                        ✓ {e.users[0].role === "EMPLOYEE" ? "Login" : e.users[0].role}
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+                          ✓ {e.users[0].role === "EMPLOYEE" ? "Login" : e.users[0].role}
+                        </span>
+                        {me.role === "ADMIN" && <AdminResetButton userId={e.users[0].id} name={e.firstName} compact />}
                       </span>
                     ) : (
                       <span className="text-xs text-slate-300">—</span>

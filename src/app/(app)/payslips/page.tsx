@@ -3,6 +3,7 @@ import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { getPerms } from "@/lib/permissions";
 import { Card, PageHeader } from "@/components/ui";
 import { fmtINR, monthName, monthNamePa } from "@/lib/utils";
 import { getRequestLang } from "@/lib/i18n";
@@ -20,6 +21,18 @@ export default async function MyPayslipsPage() {
         <Card className="p-8 text-center text-sm text-slate-400">
           <Pa>Your login is not linked to an employee profile yet — ask HR.</Pa>
         </Card>
+      </div>
+    );
+  }
+
+  if (!(await getPerms(me.employeeId)).canViewPayslip) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title={<Pa>My payslips</Pa>} subtitle={<Pa>Your salary slips appear here after payroll is approved & locked.</Pa>} />
+        <div className="rounded-2xl border-2 border-dashed border-slate-200 p-10 text-center">
+          <p className="text-sm font-semibold text-slate-600">{<Pa>Payslip viewing is turned off for you</Pa>}</p>
+          <p className="mt-1 text-xs text-slate-400">{<Pa>Ask the super admin to allow this feature.</Pa>}</p>
+        </div>
       </div>
     );
   }

@@ -28,13 +28,13 @@ export function MobileTopBar({ name, right }: { name: string; right?: React.Reac
   );
 }
 
-const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0]["name"]; staffOnly?: boolean }[] = [
+const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0]["name"]; staffOnly?: boolean; approverOk?: boolean }[] = [
   { href: "/social", label: "Social Wall", icon: "chat" },
   { href: "/team", label: "Live Team", icon: "fingerprint", staffOnly: true },
   { href: "/attendance", label: "Attendance & Logs", icon: "clock" },
   { href: "/employees", label: "Employees", icon: "users", staffOnly: true },
   { href: "/idcard", label: "ID Card & Gate Pass", icon: "badge" },
-  { href: "/approvals", label: "Approvals", icon: "check", staffOnly: true },
+  { href: "/approvals", label: "Approvals", icon: "check", staffOnly: true, approverOk: true },
   { href: "/payroll", label: "Payroll", icon: "wallet", staffOnly: true },
   { href: "/roster", label: "Roster", icon: "calendar", staffOnly: true },
   { href: "/holidays", label: "Holidays", icon: "calendar" },
@@ -48,11 +48,11 @@ const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0
   { href: "/settings", label: "Settings & Shifts", icon: "sliders", staffOnly: true },
 ];
 
-export function MobileBottomNav({ employeeId, role }: { employeeId: string | null; role: string }) {
+export function MobileBottomNav({ employeeId, role, canApprove = false }: { employeeId: string | null; role: string; canApprove?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const staff = role !== "EMPLOYEE";
-  const items = MORE_ITEMS.filter((i) => !i.staffOnly || staff);
+  const items = MORE_ITEMS.filter((i) => staff || !i.staffOnly || ((i as { approverOk?: boolean }).approverOk && canApprove));
 
   function Slot({ href, label, icon }: { href: string; label: string; icon: Parameters<typeof Icon>[0]["name"] }) {
     const active = pathname === href || pathname.startsWith(href + "/");
@@ -126,7 +126,7 @@ export function MobileBottomNav({ employeeId, role }: { employeeId: string | nul
             <div className="w-16" />
           )}
 
-          <Slot href={staff ? "/approvals" : "/idcard"} label={staff ? "Approvals" : "My ID"} icon={staff ? "check" : "badge"} />
+          <Slot href={staff || canApprove ? "/approvals" : "/idcard"} label={staff || canApprove ? "Approvals" : "My ID"} icon={staff || canApprove ? "check" : "badge"} />
           <button
             onClick={() => setOpen(true)}
             className={cx(

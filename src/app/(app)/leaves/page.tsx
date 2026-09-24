@@ -2,6 +2,7 @@ import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { getPerms } from "@/lib/permissions";
 import { fmtDate, initials } from "@/lib/utils";
 import { Card, PageHeader, Badge, EmptyState, btnBrand } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -125,11 +126,18 @@ export default async function LeavesPage() {
         {/* Apply + my requests */}
         {me.employeeId && (
           <div className="space-y-6 lg:col-span-2">
+            {(await getPerms(me.employeeId)).canApplyLeave ? (
             <Card className="p-5">
               <h3 className="mb-1 text-sm font-bold text-slate-900">{<Pa>Apply for leave</Pa>}</h3>
               <p className="mb-4 text-xs text-slate-500">{<Pa>Manager reviews and approves.</Pa>}</p>
               <ApplyLeaveForm leaveTypes={leaveTypes} />
             </Card>
+            ) : (
+            <Card className="border-2 border-dashed border-slate-200 p-6 text-center">
+              <p className="text-sm font-semibold text-slate-600">{<Pa>Leave requests are turned off for you</Pa>}</p>
+              <p className="mt-1 text-xs text-slate-400">{<Pa>Ask the super admin to allow this feature.</Pa>}</p>
+            </Card>
+            )}
 
             <Card className="p-5">
               <h3 className="mb-4 text-sm font-bold text-slate-900">{<Pa>My requests</Pa>}</h3>

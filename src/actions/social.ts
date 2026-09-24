@@ -3,11 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { permDenied } from "@/lib/permissions";
 import { bt } from "@/lib/i18n";
 import type { ActionState } from "./auth";
 
 export async function createPostAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireUser();
+  const deny = await permDenied(me.employeeId, "canSocialPost");
+  if (deny) return { error: deny };
   const body = String(formData.get("body") ?? "").trim();
   if (body.length < 3) return { error: await bt("Write at least a few words.") };
   if (body.length > 1500) return { error: await bt("Post too long (max 1500 characters).") };

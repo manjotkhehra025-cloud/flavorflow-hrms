@@ -1,7 +1,8 @@
 import { Pa } from "@/components/Pa";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { requireStaff } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
+import { approverScope, filterByScope } from "@/lib/approve-routing";
 import { fmtDate, fmtTime, initials, cx } from "@/lib/utils";
 import { Card, PageHeader, Badge, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -22,32 +23,51 @@ const TABS = [
 ] as const;
 
 export default async function ApprovalsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const me = await requireStaff();
+  const me = await requireUser();
+  // Designation-routed approvers (Senior Manager / AGM employees) can open this too.
+  const scope = await approverScope(me);
+  if (!scope) {
+    return (
+      <div className="mx-auto max-w-md py-16 text-center">
+        <p className="text-sm text-slate-500"><Pa>Approvals open only for super admin / HR or a department head (Senior Manager, Assistant General Manager).</Pa></p>
+      </div>
+    );
+  }
   const { tab } = await searchParams;
   const active = TABS.some((t) => t.key === tab) ? (tab as (typeof TABS)[number]["key"]) : "all";
+  const empInc = { department: { include: { parent: true } as never }, designation: true } as never;
 
-  const [leaves, punches, swaps, gates] = await Promise.all([
+  const [leavesAll, punchesAll, swapsAll, gatesAll] = await Promise.all([
     db.leaveRequest.findMany({
       where: { companyId: me.companyId, status: "PENDING" },
-      include: { employee: true, leaveType: true },
+      include: { employee: { include: empInc }, leaveType: true },
       orderBy: { createdAt: "asc" },
     }),
     db.punchRequest.findMany({
       where: { companyId: me.companyId, status: "PENDING" },
-      include: { employee: true },
+      include: { employee: { include: empInc } },
       orderBy: { createdAt: "asc" },
     }),
     db.shiftSwapRequest.findMany({
       where: { companyId: me.companyId, status: "PENDING" },
-      include: { requester: true, peer: true },
+      include: { requester: { include: empInc }, peer: true },
       orderBy: { createdAt: "asc" },
     }),
     db.gatePass.findMany({
       where: { companyId: me.companyId, status: { in: ["PENDING", "APPROVED"] }, entryVerifiedAt: null },
-      include: { employee: true },
+      include: { employee: { include: empInc } },
       orderBy: { createdAt: "asc" },
     }),
   ]);
+
+  // Scope filter — department heads see only their group's requests; admins see all.
+  const inScope = (e: { category?: string; department?: unknown }) =>
+    scope === "ALL" || filterByScope([e as never], scope as "A" | "B").length === 1;
+
+  const leaves = leavesAll.filter((l) => inScope(l.employee));
+  const punches = punchesAll.filter((p) => inScope(p.employee));
+  const swaps = swapsAll.filter((s2) => inScope(s2.requester));
+  const gates = gatesAll.filter((g) => inScope(g.employee));
 
   const punchManual = punches.filter((p) => p.type !== "OT");
   const punchOT = punches.filter((p) => p.type === "OT");

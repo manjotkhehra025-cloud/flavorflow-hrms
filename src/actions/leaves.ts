@@ -5,6 +5,8 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser, requireStaff } from "@/lib/auth";
+import { permDenied } from "@/lib/permissions";
+import { canDecideFor } from "@/lib/approve-routing";
 import { toDateOnly, dayDiffInclusive } from "@/lib/utils";
 import type { ActionState } from "./auth";
 
@@ -18,6 +20,8 @@ const leaveSchema = z.object({
 export async function applyLeaveAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireUser();
   if (!me.employeeId) return { error: await bt("Your account is not linked to an employee profile.") };
+  const leaveDeny = await permDenied(me.employeeId, "canApplyLeave");
+  if (leaveDeny) return { error: await bt(leaveDeny) };
 
   const parsed = leaveSchema.safeParse({
     leaveTypeId: formData.get("leaveTypeId"),
@@ -64,11 +68,18 @@ export async function applyLeaveAction(_prev: ActionState, formData: FormData): 
 }
 
 export async function decideLeaveAction(leaveId: string, decision: "APPROVED" | "REJECTED") {
-  const me = await requireStaff();
-  await db.leaveRequest.updateMany({
+  const me = await requireUser();
+  const leave = await db.leaveRequest.findFirst({
     where: { id: leaveId, companyId: me.companyId, status: "PENDING" },
+    include: { employee: { include: { department: { include: { parent: true } }, designation: true } } },
+  });
+  if (!leave) return;
+  if (!(await canDecideFor(me, leave.employee as never))) throw new Error("Not your approval to take — this routes to the department head.");
+  await db.leaveRequest.update({
+    where: { id: leaveId },
     data: { status: decision, approverId: me.id, decidedAt: new Date() },
   });
+  revalidatePath("/approvals");
   revalidatePath("/leaves");
   revalidatePath("/dashboard");
 }

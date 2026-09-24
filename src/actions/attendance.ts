@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { todayDate, distanceMeters } from "@/lib/utils";
+import { permDenied } from "@/lib/permissions";
 
 export type PunchInput = { selfiePath?: string; lat?: number; lng?: number; dist?: number };
 
@@ -17,6 +18,9 @@ export async function checkInGeoAction(input?: PunchInput) {
 }
 
 async function checkInImpl(input?: FormData | string | PunchInput | null) {
+  const permMe = await requireUser();
+  const denyIn = await permDenied(permMe.employeeId, "canPunch");
+  if (denyIn) return { error: denyIn };
   const args: PunchInput = typeof input === "string"
     ? { selfiePath: input }
     : input instanceof FormData
@@ -61,6 +65,9 @@ export async function checkOutGeoAction(input?: PunchInput) {
 }
 
 async function checkOutImpl(input?: FormData | string | PunchInput | null) {
+  const permMe = await requireUser();
+  const denyOut = await permDenied(permMe.employeeId, "canPunch");
+  if (denyOut) return { error: denyOut };
   const args: PunchInput = typeof input === "string"
     ? { selfiePath: input }
     : input instanceof FormData

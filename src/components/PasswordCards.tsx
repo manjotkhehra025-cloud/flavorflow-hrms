@@ -32,10 +32,39 @@ export function ChangePasswordCard() {
 }
 
 /** Staff touch: reset an employee's login — shows the temp password ONCE. */
-export function AdminResetButton({ userId, name }: { userId: string; name: string }) {
+export function AdminResetButton({ userId, name, compact = false }: { userId: string; name: string; compact?: boolean }) {
   const [temp, setTemp] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  if (compact) {
+    // Tiny inline lock-reset for the employees table — password appears inside a small popover note.
+    return (
+      <span className="relative inline-flex items-center">
+        <button
+          type="button"
+          title="Reset password"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              if (!confirm(`Reset ${name.split(" ")[0]}'s password? Their old login will stop working immediately.`)) return;
+              const fd = new FormData();
+              fd.set("userId", userId);
+              const res = await adminResetPasswordAction(fd);
+              if (res.temp) { setTemp(res.temp); setErr(null); } else { setErr(res.error ?? "Failed"); }
+            })
+          }
+          className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-50 text-[10px] font-black text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-100 disabled:opacity-50"
+        >
+          {pending ? "…" : "⟳"}
+        </button>
+        {temp && (
+          <span className="absolute bottom-6 left-0 z-10 w-56 rounded-xl bg-emerald-600 px-3 py-2 text-[11px] font-bold text-white shadow-lg">
+            Temp password: <span className="font-mono tracking-wider">{temp}</span>
+          </span>
+        )}
+      </span>
+    );
+  }
   return (
     <div className="mt-2">
       <button

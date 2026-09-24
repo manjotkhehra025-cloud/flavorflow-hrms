@@ -831,4 +831,11 @@ export const PA: Record<string, string> = {
   "A new version shipped while this page was open. Tap below once and everything works again.": "ਪੇਜ ਖੁੱਲ੍ਹਿਆ ਹੁੰਦਿਆਂ ਨਵਾਂ ਵਰਜ਼ਨ ਆ ਗਿਆ। ਹੇਠਾਂ ਇੱਕ ਵਾਰ ਦਬਾਓ ਤੇ ਸਭ ਦੁਬਾਰਾ ਚੱਲ ਪਏਗਾ।",
   "Reload now": "ਹੁਣ ਰੀਲੋਡ ਕਰੋ",
   "Retry view": "ਵਿਊ ਫਿਰ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
+  "This feature is turned off for you — please ask the super admin to allow it.": "ਇਹ ਫੀਚਰ ਤੁਹਾਡੇ ਲਈ ਬੰਦ ਹੈ — ਇਜਾਜ਼ਤ ਲਈ ਸੁਪਰ ਐਡਮਿਨ ਨਾਲ ਗੱਲ ਕਰੋ।",
+  "Leave requests are turned off for you": "ਤੁਹਾਡੇ ਲਈ ਛੁੱਟੀ ਅਰਜ਼ੀਆਂ ਬੰਦ ਹਨ",
+  "Ask the super admin to allow this feature.": "ਇਹ ਫੀਚਰ ਖੁਲ੍ਹਵਾਉਣ ਲਈ ਸੁਪਰ ਐਡਮਿਨ ਨਾਲ ਗੱਲ ਕਰੋ।",
+  "Gate passes are turned off for you": "ਤੁਹਾਡੇ ਲਈ ਗੇਟ ਪਾਸ ਬੰਦ ਹਨ",
+  "Payslip viewing is turned off for you": "ਤੁਹਾਡੇ ਲਈ ਪੇ-ਸਲਿੱਪ ਵੇਖਣਾ ਬੰਦ ਹੈ",
+  "Posting is turned off for you — you can still read and like posts.": "ਤੁਹਾਡੇ ਲਈ ਪੋਸਟ ਕਰਨਾ ਬੰਦ ਹੈ — ਤੁਸੀਂ ਪੜ੍ਹ ਅਤੇ ਲਾਈਕ ਕਰ ਸਕਦੇ ਹੋ।",
+  "Approvals open only for super admin / HR or a department head (Senior Manager, Assistant General Manager).": "ਅਪ੍ਰੂਵਲ ਸਿਰਫ਼ ਸੁਪਰ ਐਡਮਿਨ / HR ਜਾਂ ਵਿਭਾਗ-ਮੁੱਖੀ (ਸੀਨੀਅਰ ਮੈਨੇਜਰ, ਅਸਿਸਟੈਂਟ ਜਨਰਲ ਮੈਨੇਜਰ) ਲਈ ਹੈ।",
 };

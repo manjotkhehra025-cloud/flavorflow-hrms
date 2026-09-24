@@ -14,6 +14,8 @@ import { AdminResetButton } from "@/components/PasswordCards";
 import { LoginCreateCard } from "@/components/LoginCreateCard";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { AvatarImg } from "@/components/AvatarImg";
+import { PermissionsCard } from "./PermissionsCard";
+import { getPerms } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -301,6 +303,12 @@ export default async function EmployeeDetailPage({ params, searchParams }: { par
             <Link href="/employees" className="text-sm text-slate-500 hover:underline">{<Pa>← Back to employees</Pa>}</Link>
           </div>
         </Card>
+
+          {me.role === "ADMIN" && (
+            <div className="lg:col-span-2">
+              <PermissionsCard employeeId={employee.id} initial={await getPerms(employee.id)} />
+            </div>
+          )}
       </div>
     </div>
   );

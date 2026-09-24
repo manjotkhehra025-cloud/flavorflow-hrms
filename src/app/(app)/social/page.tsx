@@ -4,6 +4,7 @@ import { bt } from "@/lib/i18n";
 import { Tt } from "@/components/LangCtx";
 import { timeAgo } from "@/lib/utils";
 import { SocialWall } from "@/components/SocialWall";
+import { getPerms } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,11 @@ export default async function SocialPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
+      {!(await getPerms(me.employeeId)).canSocialPost && (
+        <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-4 text-center text-xs text-slate-500">
+          <Tt>Posting is turned off for you — you can still read and like posts.</Tt>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-900"><Tt>Social Wall</Tt></h1>
         <p className="text-sm text-slate-500">

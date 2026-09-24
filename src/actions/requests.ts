@@ -5,6 +5,8 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser, requireStaff } from "@/lib/auth";
+import { permDenied } from "@/lib/permissions";
+import { canDecideFor } from "@/lib/approve-routing";
 import { todayDate, toDateOnly } from "@/lib/utils";
 import type { ActionState } from "./auth";
 
@@ -30,6 +32,10 @@ export async function createGatePassAction(_prev: ActionState, formData: FormDat
     employeeId = target.id;
   }
   if (!employeeId) return { error: await bt("Your login isn't linked to an employee profile.") };
+  if (employeeId === me.employeeId) {
+    const gateDeny = await permDenied(me.employeeId, "canGatePass");
+    if (gateDeny) return { error: await bt(gateDeny) };
+  }
 
   const parsed = gatePassSchema.safeParse({
     date: formData.get("date"),
@@ -57,9 +63,13 @@ export async function createGatePassAction(_prev: ActionState, formData: FormDat
 }
 
 export async function decideGatePassAction(id: string, approve: boolean) {
-  const me = await requireStaff();
-  const pass = await db.gatePass.findFirst({ where: { id, companyId: me.companyId } });
+  const me = await requireUser();
+  const pass = await db.gatePass.findFirst({
+    where: { id, companyId: me.companyId },
+    include: { employee: { include: { department: { include: { parent: true } }, designation: true } } },
+  });
   if (!pass || pass.status !== "PENDING") return;
+  if (!(await canDecideFor(me, pass.employee as never))) throw new Error("Not your approval to take.");
 
   await db.gatePass.update({
     where: { id },
@@ -96,6 +106,8 @@ const punchSchema = z.object({
 export async function createPunchRequestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireUser();
   if (!me.employeeId) return { error: await bt("Your login isn't linked to an employee profile.") };
+  const punchDeny = await permDenied(me.employeeId, "canPunch");
+  if (punchDeny) return { error: await bt(punchDeny) };
 
   const parsed = punchSchema.safeParse({
     type: formData.get("type"),
@@ -131,9 +143,13 @@ export async function createPunchRequestAction(_prev: ActionState, formData: For
 }
 
 export async function decidePunchRequestAction(id: string, approve: boolean) {
-  const me = await requireStaff();
-  const req = await db.punchRequest.findFirst({ where: { id, companyId: me.companyId } });
+  const me = await requireUser();
+  const req = await db.punchRequest.findFirst({
+    where: { id, companyId: me.companyId },
+    include: { employee: { include: { department: { include: { parent: true } }, designation: true } } },
+  });
   if (!req || req.status !== "PENDING") return;
+  if (!(await canDecideFor(me, req.employee as never))) throw new Error("Not your approval to take.");
 
   await db.punchRequest.update({
     where: { id },

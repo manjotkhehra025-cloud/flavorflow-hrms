@@ -2,6 +2,7 @@ import { Pa } from "@/components/Pa";
 import QRCode from "qrcode";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { getPerms } from "@/lib/permissions";
 import { fmtDate, initials } from "@/lib/utils";
 import { Card, PageHeader, Badge, inputCls } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -189,10 +190,17 @@ export default async function IdCardPage({
       {/* ===== Gate Pass ===== */}
       {employee && (employee.id === me.employeeId || staff) && (
         <div className="mt-6">
+          {employee.id === me.employeeId && !(await getPerms(me.employeeId)).canGatePass ? (
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 p-6 text-center">
+              <p className="text-sm font-semibold text-slate-600">{<Pa>Gate passes are turned off for you</Pa>}</p>
+              <p className="mt-1 text-xs text-slate-400">{<Pa>Ask the super admin to allow this feature.</Pa>}</p>
+            </div>
+          ) : (
           <GatePassForm isOwner={employee.id === me.employeeId} targetEmployeeId={employee.id} passes={gatePasses.map((g) => ({
             id: g.id, date: fmtDate(g.date), exitAt: g.exitAt, returnAt: g.returnAt,
             reason: g.reason, status: g.status, verified: !!g.entryVerifiedAt,
           }))} />
+          )}
         </div>
       )}
     </div>

@@ -20,6 +20,7 @@ model Company {
 
   users            User[]
   employees        Employee[]
+  permissions      EmployeePermission[]
   departments      Department[]
   designations     Designation[]
   attendances      Attendance[]
@@ -188,6 +189,22 @@ model Designation {
   @@unique([companyId, title])
 }
 
+model EmployeePermission {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String   @unique
+  canPunch       Boolean @default(true)
+  canApplyLeave  Boolean @default(true)
+  canGatePass    Boolean @default(true)
+  canSwapShift   Boolean @default(true)
+  canSocialPost  Boolean @default(true)
+  canViewPayslip Boolean @default(true)
+
+  @@index([companyId])
+}
+
 enum DesignationCategory {
   OFFICIAL
   YELLOW_CARD
@@ -250,6 +267,7 @@ model Employee {
   reports       Employee[]   @relation("Reports")
 
   users            User[]
+  permission       EmployeePermission?
   attendances      Attendance[]
   leaveRequests    LeaveRequest[]
   gatePasses     GatePass[]
