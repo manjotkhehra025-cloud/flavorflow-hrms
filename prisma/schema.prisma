@@ -18,46 +18,46 @@ model Company {
   letterSeq Int      @default(0)
   createdAt DateTime @default(now())
 
-  users            User[]
-  employees        Employee[]
-  permissions      EmployeePermission[]
-  departments      Department[]
-  designations     Designation[]
-  attendances      Attendance[]
-  leaveTypes       LeaveType[]
-  leaveRequests    LeaveRequest[]
-  holidays         Holiday[]
-  shifts           Shift[]
-  gatePasses     GatePass[]
+  users               User[]
+  employees           Employee[]
+  permissions         EmployeePermission[]
+  departments         Department[]
+  designations        Designation[]
+  attendances         Attendance[]
+  leaveTypes          LeaveType[]
+  leaveRequests       LeaveRequest[]
+  holidays            Holiday[]
+  shifts              Shift[]
+  gatePasses          GatePass[]
   // Phase E3/E4: pay rules
-  dailyPaidLeaveDays Int @default(0)
-  lateGraceMins      Int @default(15)
-  latesPerCut        Int @default(0)
-  punchSelfieRequired Boolean @default(false)
+  dailyPaidLeaveDays  Int                  @default(0)
+  lateGraceMins       Int                  @default(15)
+  latesPerCut         Int                  @default(0)
+  punchSelfieRequired Boolean              @default(false)
   // Phase G: DA + OT-rate rules
-  daPercent   Int   @default(0) // dearnee allowance % of earned basic (monthly staff)
-  otMultiplier Float @default(1.5)
-  shiftHours  Float  @default(9) // hours in one full paid day (OT rate base)
+  daPercent           Int                  @default(0) // dearnee allowance % of earned basic (monthly staff)
+  otMultiplier        Float                @default(1.5)
+  shiftHours          Float                @default(9) // hours in one full paid day (OT rate base)
   // Phase F2: factory geofence punch
-  geofenceEnabled Boolean @default(false)
-  geoLat          Float?
-  geoLng          Float?
-  geoRadius       Float @default(200) // metres
-  geoFacility     String? // e.g. "G.D. Foods Mfg. (I) Pvt. Ltd."
-  geoAddress      String? // reverse-geocoded address text
-  punchRequests    PunchRequest[]
-  letters          Letter[]
-  leaveAdjustments LeaveAdjustment[]
-  kraCycles        KraCycle[]
-  tickets          Ticket[]
-  starAwards       StarAward[]
-  advances         Advance[]
-  payrollRuns      PayrollRun[]
-  shiftAssignments ShiftAssignment[]
-  payslipLinks     PayslipLink[]
-  socialPosts      SocialPost[]
-  kycDocs          KycDoc[]
-  shiftSwapRequests ShiftSwapRequest[]
+  geofenceEnabled     Boolean              @default(false)
+  geoLat              Float?
+  geoLng              Float?
+  geoRadius           Float                @default(200) // metres
+  geoFacility         String? // e.g. "G.D. Foods Mfg. (I) Pvt. Ltd."
+  geoAddress          String? // reverse-geocoded address text
+  punchRequests       PunchRequest[]
+  letters             Letter[]
+  leaveAdjustments    LeaveAdjustment[]
+  kraCycles           KraCycle[]
+  tickets             Ticket[]
+  starAwards          StarAward[]
+  advances            Advance[]
+  payrollRuns         PayrollRun[]
+  shiftAssignments    ShiftAssignment[]
+  payslipLinks        PayslipLink[]
+  socialPosts         SocialPost[]
+  kycDocs             KycDoc[]
+  shiftSwapRequests   ShiftSwapRequest[]
 }
 
 enum Role {
@@ -66,15 +66,14 @@ enum Role {
   EMPLOYEE
 }
 
-
 model SocialPost {
-  id        String        @id @default(cuid())
+  id        String   @id @default(cuid())
   companyId String
-  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   authorId  String
-  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   body      String
-  createdAt DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   likes    PostLike[]
   comments PostComment[]
@@ -124,50 +123,52 @@ model ShiftSwapRequest {
 }
 
 model KycDoc {
-  id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  docType     String // AADHAAR | PAN | BANK | ESIC | MEDICAL | OTHER
-  refNumber   String
-  filePath    String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  docType    String // AADHAAR | PAN | BANK | ESIC | MEDICAL | OTHER
+  refNumber  String
+  filePath   String?
+  createdAt  DateTime @default(now())
 
   @@index([companyId, employeeId])
 }
+
 model User {
-  id           String    @id @default(cuid())
-  companyId    String
-  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  email        String    @unique
-  name         String
-  passwordHash String
-  role         Role      @default(EMPLOYEE)
-  isActive     Boolean   @default(true)
-  locale       String    @default("en") // "en" | "pa" — per-user UI language
-  employeeId   String?   @unique
-  employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  createdAt    DateTime  @default(now())
+  id                 String    @id @default(cuid())
+  companyId          String
+  company            Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  email              String    @unique
+  name               String
+  passwordHash       String
+  role               Role      @default(EMPLOYEE)
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  locale             String    @default("en") // "en" | "pa" — per-user UI language
+  employeeId         String?   @unique
+  employee           Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  createdAt          DateTime  @default(now())
 
   approvedLeaves LeaveRequest[] @relation("LeaveApprover")
+  socialPosts    SocialPost[]
+  postLikes      PostLike[]
+  postComments   PostComment[]
 
   @@index([companyId])
-  socialPosts      SocialPost[]
-  postLikes        PostLike[]
-  postComments     PostComment[]
 }
 
 model Department {
-  id        String       @id @default(cuid())
-  companyId String
-  company   Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  name      String
-  parentId  String?
-  parent    Department?  @relation("SubDepartments", fields: [parentId], references: [id], onDelete: SetNull)
+  id             String       @id @default(cuid())
+  companyId      String
+  company        Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name           String
+  parentId       String?
+  parent         Department?  @relation("SubDepartments", fields: [parentId], references: [id], onDelete: SetNull)
   subDepartments Department[] @relation("SubDepartments")
 
-  employees Employee[]
+  employees    Employee[]
   designations Designation[]
 
   @@unique([companyId, name])
@@ -190,17 +191,17 @@ model Designation {
 }
 
 model EmployeePermission {
-  id         String   @id @default(cuid())
-  companyId  String
-  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  employeeId String   @unique
-  canPunch       Boolean @default(true)
-  canApplyLeave  Boolean @default(true)
-  canGatePass    Boolean @default(true)
-  canSwapShift   Boolean @default(true)
-  canSocialPost  Boolean @default(true)
-  canViewPayslip Boolean @default(true)
+  id             String   @id @default(cuid())
+  companyId      String
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId     String   @unique
+  canPunch       Boolean  @default(true)
+  canApplyLeave  Boolean  @default(true)
+  canGatePass    Boolean  @default(true)
+  canSwapShift   Boolean  @default(true)
+  canSocialPost  Boolean  @default(true)
+  canViewPayslip Boolean  @default(true)
 
   @@index([companyId])
 }
@@ -270,7 +271,7 @@ model Employee {
   permission       EmployeePermission?
   attendances      Attendance[]
   leaveRequests    LeaveRequest[]
-  gatePasses     GatePass[]
+  gatePasses       GatePass[]
   punchRequests    PunchRequest[]
   letters          Letter[]
   leaveAdjustments LeaveAdjustment[]
@@ -278,10 +279,10 @@ model Employee {
   tickets          Ticket[]
   starAwards       StarAward[]
   advances         Advance[]
-  kycDocs         KycDoc[]
-  swapRequestsOut ShiftSwapRequest[] @relation("SwapRequester")
-  swapRequestsIn  ShiftSwapRequest[] @relation("SwapPeer")
-    payrollRows      PayrollRow[]
+  kycDocs          KycDoc[]
+  swapRequestsOut  ShiftSwapRequest[]  @relation("SwapRequester")
+  swapRequestsIn   ShiftSwapRequest[]  @relation("SwapPeer")
+  payrollRows      PayrollRow[]
   salaryRevisions  SalaryRevision[]
   shiftAssignments ShiftAssignment[]
 
@@ -350,7 +351,7 @@ model LeaveRequest {
   fromDate    DateTime    @db.Date
   toDate      DateTime    @db.Date
   days        Int
-  halfDay     Boolean @default(false) // single-day half leave (0.5 pay)
+  halfDay     Boolean     @default(false) // single-day half leave (0.5 pay)
   reason      String?
   status      LeaveStatus @default(PENDING)
   approverId  String?
@@ -433,7 +434,7 @@ model Advance {
   employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   amount      Int // ₹ given
   repaid      Int      @default(0) // ₹ recovered so far (monthly PayrollRow deductions)
-  emi         Int?     // fixed monthly recovery ₹; null = auto (25%-of-gross cap)
+  emi         Int? // fixed monthly recovery ₹; null = auto (25%-of-gross cap)
   givenDate   DateTime @db.Date
   reason      String?
   createdById String?

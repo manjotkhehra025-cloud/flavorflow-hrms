@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
@@ -64,14 +65,38 @@ export async function changePasswordAction(_prev: ActionState, formData: FormDat
   return { success: await bt("Password changed ✔ — use it from next login.") };
 }
 
-/** Admin/HR: reset an employee's login to a temporary password (shown once). */
-export async function adminResetPasswordAction(formData: FormData): Promise<{ temp?: string; error?: string }> {
+/** Super admin: reset an employee's login — admin TYPES a starting password (never displayed back); employee must replace it at first login. */
+export async function adminResetPasswordAction(formData: FormData): Promise<{ ok?: boolean; error?: string }> {
   const me = await requireUser();
-  if (me.role === "EMPLOYEE") return { error: await bt("Not authorized.") };
+  if (me.role !== "ADMIN") return { error: await bt("Super admin only.") };
   const userId = String(formData.get("userId") ?? "");
+  const starting = String(formData.get("newPassword") ?? "").trim();
+  if (starting.length < 6) return { error: await bt("Starting password must be at least 6 characters.") };
   const target = await db.user.findFirst({ where: { id: userId, companyId: me.companyId } });
   if (!target) return { error: await bt("User not found.") };
-  const temp = "GDF" + Math.random().toString(36).slice(2, 8).toUpperCase();
-  await db.user.update({ where: { id: target.id }, data: { passwordHash: await bcrypt.hash(temp, 10) } });
-  return { temp };
+  await db.user.update({
+    where: { id: target.id },
+    data: { passwordHash: await bcrypt.hash(starting, 10), mustChangePassword: true },
+  });
+  revalidatePath("/employees");
+  return { ok: true };
+}
+
+/** First-login flow: employee picks THEIR OWN password — then we sign them out so they log in fresh. */
+export async function setInitialPasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireUser();
+  const p1 = String(formData.get("newPassword") ?? "").trim();
+  const p2 = String(formData.get("confirmPassword") ?? "").trim();
+  if (p1.length < 6) return { error: await bt("Your new password must be at least 6 characters.") };
+  if (p1 !== p2) return { error: await bt("Both passwords don't match — type them again.") };
+  const user = await db.user.findUnique({ where: { id: me.id } });
+  if (!user) return { error: await bt("Account not found.") };
+  if (await bcrypt.compare(p1, user.passwordHash)) return { error: await bt("New password can't be the starting one — pick something only you know.") };
+  await db.user.update({
+    where: { id: me.id },
+    data: { passwordHash: await bcrypt.hash(p1, 10), mustChangePassword: false },
+  });
+  // Sign them out: they must log in again with the new password before the dashboard.
+  await clearSessionCookie();
+  redirect("/login?changed=1");
 }

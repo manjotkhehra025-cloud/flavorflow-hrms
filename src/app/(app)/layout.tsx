@@ -1,4 +1,6 @@
 import { requireUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
 import { getRequestLang } from "@/lib/i18n";
 import { LangProvider } from "@/components/LangCtx";
 import { Sidebar } from "@/components/Sidebar";
@@ -11,6 +13,9 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  // First-login / after-reset gate: force the employee to pick their own password before any app screen.
+  const fresh = await db.user.findUnique({ where: { id: user.id }, select: { mustChangePassword: true } });
+  if (fresh?.mustChangePassword) redirect("/set-password");
   const lang = await getRequestLang();
   const alerts = await getAlerts({ companyId: user.companyId, role: user.role, employeeId: user.employeeId });
   const alertItems: AlertUi[] = alerts.items.map((a) => ({ ...a, kind: a.kind as AlertUi["kind"], at: a.at ? a.at.toISOString() : null }));

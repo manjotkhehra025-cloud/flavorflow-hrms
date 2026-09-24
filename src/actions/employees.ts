@@ -116,6 +116,7 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
             name: `${d.firstName} ${d.lastName}`,
             role: d.accountRole,
             passwordHash: await bcrypt.hash(d.tempPassword, 10),
+            mustChangePassword: true,
             employeeId: emp.id,
           },
         });

@@ -43,10 +43,10 @@ function BrandPanel() {
   );
 }
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ setup?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ setup?: string; changed?: string }> }) {
   const user = await getSessionUser();
   if (user) redirect("/dashboard");
-  const { setup } = await searchParams;
+  const { setup, changed } = await searchParams;
 
   return (
     <LangProvider lang={await getRequestLang()}>
@@ -69,7 +69,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
                 Setup complete — sign in with your admin account.
               </p>
             )}
-            <LoginForm />
+                      {changed && (
+            <div className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-[13px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+              <Pa>Your password is saved ✔ — log in with the NEW password.</Pa>
+            </div>
+          )}
+          <LoginForm />
           </div>
         </div>
       </div>

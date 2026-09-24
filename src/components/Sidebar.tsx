@@ -34,20 +34,29 @@ export function HLogo({ className = "h-10 w-10" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className}>
       <defs>
-        <linearGradient id="hlg1" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#34d399" />
-          <stop offset="1" stopColor="#059669" />
+        <linearGradient id="hr-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#10d9a0" />
+          <stop offset="0.55" stopColor="#0ea5a4" />
+          <stop offset="1" stopColor="#0369a1" />
         </linearGradient>
-        <linearGradient id="hlg2" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#6ee7b7" />
-          <stop offset="1" stopColor="#10b981" />
+        <linearGradient id="hr-h" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#d1fae5" />
+        </linearGradient>
+        <linearGradient id="hr-drop" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fde68a" />
+          <stop offset="1" stopColor="#f59e0b" />
         </linearGradient>
       </defs>
-      <rect width="64" height="64" rx="14" fill="url(#hlg1)" />
-      <rect x="16" y="16" width="30" height="8.5" rx="4.25" fill="white" fillOpacity="0.92" />
-      <rect x="16" y="28" width="22" height="8.5" rx="4.25" fill="#0a1628" fillOpacity="0.85" />
-      <rect x="16" y="40" width="27" height="8.5" rx="4.25" fill="white" fillOpacity="0.92" />
-      <circle cx="49.75" cy="46" r="5" fill="url(#hlg2)" stroke="white" strokeWidth="1.5" />
+      <rect x="2" y="2" width="60" height="60" rx="17" fill="url(#hr-bg)" />
+      <rect x="4.5" y="4.5" width="55" height="55" rx="14.5" fill="none" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
+      <circle cx="22" cy="17.5" r="4.6" fill="url(#hr-h)" />
+      <path d="M22 24.5c-3.4 0-5.2 2.2-5.2 5.6V46a3 3 0 0 0 6 0V34h0v-9.5z" fill="url(#hr-h)" />
+      <circle cx="42" cy="17.5" r="4.6" fill="url(#hr-h)" />
+      <path d="M42 24.5c3.4 0 5.2 2.2 5.2 5.6V46a3 3 0 0 1-6 0V34h0v-9.5z" fill="url(#hr-h)" />
+      <path d="M22.8 31.5h18.4a3.2 3.2 0 0 1 0 6.4H22.8a3.2 3.2 0 1 1 0-6.4z" fill="url(#hr-h)" opacity="0.95" />
+      <path d="M52.5 9.5c1.6 2.4 2.4 4 2.4 5.3a2.9 2.9 0 1 1-5.7-.1c.1-1.3 1.6-3 3.3-5.2z" fill="url(#hr-drop)" />
+      <circle cx="48.5" cy="55" r="2" fill="#fde68a" opacity="0.9" />
     </svg>
   );
 }
