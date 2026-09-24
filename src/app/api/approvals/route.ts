@@ -47,11 +47,26 @@ export async function GET(req: NextRequest) {
   const strip = <T extends { firstName: string; lastName: string; code: string }>(e: T) =>
     ({ name: `${e.firstName} ${e.lastName}`, code: e.code });
 
+  // Decide-sheet hint: the requester's remaining balance for that leave type.
+  const { getLeaveBalances, balanceRemaining } = await import("@/lib/balances");
+  const balByEmp = new Map<string, Map<string, number | null>>();
+  for (const l of leaves.filter((x) => inScope(x.employee))) {
+    if (balByEmp.has(l.employeeId)) continue;
+    const m = new Map<string, number | null>();
+    const bals = await getLeaveBalances(
+      { id: l.employee.id, category: l.employee.category, joinDate: l.employee.joinDate },
+      me.companyId,
+    );
+    for (const b of bals) m.set(b.leaveTypeId, balanceRemaining(b));
+    balByEmp.set(l.employeeId, m);
+  }
+
   return NextResponse.json({
     scope,
     leaves: leaves.filter((l) => inScope(l.employee)).map((l) => ({
       id: l.id, kind: "leave", employee: strip(l.employee), type: l.leaveType.name,
-      from: l.fromDate, to: l.toDate, days: l.days, reason: l.reason, at: l.createdAt,
+      from: l.fromDate, to: l.toDate, days: l.days, halfDay: l.halfDay, reason: l.reason, at: l.createdAt,
+      remaining: balByEmp.get(l.employeeId)?.get(l.leaveTypeId) ?? null,
     })),
     punches: punches.filter((p) => inScope(p.employee)).map((p) => ({
       id: p.id, kind: "punch", employee: strip(p.employee), type: p.type,
