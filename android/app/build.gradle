@@ -44,6 +44,26 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
+// Some androidx libraries (core-ktx 1.17.0+, released 2026) demand compileSdk 36
+// and AGP 8.9+. We pin core family to versions compatible with compileSdk 35.
+configurations.all {
+    resolutionStrategy {
+        force 'androidx.core:core:1.16.0'
+        force 'androidx.core:core-ktx:1.16.0'
+    }
+}
+
+dependencies {
+    constraints {
+        implementation('androidx.core:core:1.16.0') {
+            because '1.17.0+ requires compileSdk 36 / AGP 8.9.1; project is on compileSdk 35'
+        }
+        implementation('androidx.core:core-ktx:1.16.0') {
+            because '1.17.0+ requires compileSdk 36 / AGP 8.9.1; project is on compileSdk 35'
+        }
+    }
+}'
+
 try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.text) {
