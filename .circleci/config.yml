@@ -70,12 +70,47 @@ jobs:
           command: |
             ssh "$VPS_USER@$VPS_HOST" 'sudo bash /opt/hrms/app/scripts/post-deploy.sh'
 
+  # ── Native Android wrapper (Capacitor shell around the live app) ──
+  build-android:
+    docker:
+      - image: cimg/android:2025.05.1-node
+    resource_class: medium
+    steps:
+      - checkout
+      - restore_cache:
+          key: gradle-{{ checksum "android/build.gradle" }}-{{ checksum "android/gradle/wrapper/gradle-wrapper.properties" }}
+      - run: npm ci
+      - run: npx cap sync android
+      - run:
+          name: Assemble debug APK
+          working_directory: android
+          command: |
+            chmod +x gradlew
+            ./gradlew --no-daemon assembleDebug
+      - save_cache:
+          key: gradle-{{ checksum "android/build.gradle" }}-{{ checksum "android/gradle/wrapper/gradle-wrapper.properties" }}
+          paths: [~/.gradle]
+      - store_artifacts:
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          destination: HRMate.apk
+      - run:
+          name: Publish APK to GitHub release
+          command: |
+            sudo apt-get update -qq && sudo apt-get install -y -qq gh || true
+            echo "$GITHUB_TOKEN" | gh auth login --with-token
+            gh release delete apk --repo "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME" --yes --cleanup-tag 2>/dev/null || true
+            gh release create apk android/app/build/outputs/apk/debug/app-debug.apk               --repo "$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"               --title "HRMate Android (APK)" --notes "Latest build from $CIRCLE_SHA1" --latest=false
+
 workflows:
   build-deploy:
     jobs:
       - build
       - deploy:
           requires: [build]
+          filters:
+            branches:
+              only: main
+      - build-android:
           filters:
             branches:
               only: main

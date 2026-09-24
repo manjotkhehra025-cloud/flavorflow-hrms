@@ -14,11 +14,39 @@ type Geo = { lat: number; lng: number; radius: number };
 export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode; selfieRequired: boolean; geofence?: Geo | null }) {
   const [stage, setStage] = useState<"idle" | "locating" | "camera" | "working" | "error">("idle");
   const [coords, setCoords] = useState<{ lat: number; lng: number; dist: number } | null>(null);
+  const [geoBlocked, setGeoBlocked] = useState<boolean>(false); // outside fence → button dead
+  const [geoInfo, setGeoInfo] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => () => stopCamera(), []);
+
+  // Live geo-watch: while a fence exists, continuously measure distance and
+  // hard-disable the button when the device is outside the allowed radius.
+  useEffect(() => {
+    if (!geofence || !navigator.geolocation) return;
+    const R = 6371000, r = (d: number) => (d * Math.PI) / 180;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const a =
+          Math.sin(r(pos.coords.latitude - geofence.lat) / 2) ** 2 +
+          Math.cos(r(geofence.lat)) * Math.cos(r(pos.coords.latitude)) * Math.sin(r(pos.coords.longitude - geofence.lng) / 2) ** 2;
+        const dist = 2 * R * Math.asin(Math.sqrt(a));
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude, dist });
+        if (dist > geofence.radius) {
+          setGeoBlocked(true);
+          setGeoInfo((dist / 1000).toFixed(2) + " km");
+        } else {
+          setGeoBlocked(false);
+          setGeoInfo(Math.round(dist) + " m");
+        }
+      },
+      () => { /* silent — one-shot locate() handles errors on tap */ },
+      { enableHighAccuracy: true, maximumAge: 2000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [geofence]);
 
   function stopCamera() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -27,6 +55,11 @@ export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode
 
   function locate() {
     setErr(null); setStage("locating");
+    if (coords && coords.dist <= geofence!.radius) {
+      const c = coords;
+      if (selfieRequired) { setStage("idle"); startCamera(); } else { punch(mode, c); }
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const R = 6371000, r = (d: number) => (d * Math.PI) / 180;
@@ -47,7 +80,13 @@ export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode
   }
 
   async function start() {
-    if (geofence && !coords) { locate(); return; }
+    if (geoBlocked) return; // hard block — touch does nothing outside the fence
+    if (geofence) {
+      if (!coords) { locate(); return; }
+      if (coords.dist > geofence.radius) { setGeoBlocked(true); return; }
+      if (selfieRequired) { setErr(null); startCamera(); } else { punch(mode, coords); }
+      return;
+    }
     if (!selfieRequired) { punch(mode, null); return; }
     setErr(null);
     startCamera();
@@ -103,11 +142,26 @@ export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode
           {err && <p className="mt-2 text-center text-[11px] text-amber-300">{err}</p>}
         </div>
       ) : (
-        <button type="button" onClick={start} disabled={stage === "working" || stage === "locating"} className={btnCls}>
-          <Icon name="fingerprint" className="h-6 w-6" /> {stage === "working" ? "…" : stage === "locating" ? <Tt>📡 Locating…</Tt> : mode === "in" ? <Tt>Punch In</Tt> : <Tt>Punch Out</Tt>}
-          {selfieRequired && stage === "idle" && <span className="text-xs opacity-80">📸</span>}
-          {geofence && stage === "idle" && <span className="text-xs opacity-80">📍</span>}
+        <>
+        <button
+          type="button"
+          onClick={start}
+          disabled={stage === "working" || stage === "locating" || geoBlocked}
+          className={geoBlocked ? btnCls.replace(/bg-[^ ]+/g, "") + " cursor-not-allowed bg-slate-300 text-slate-500" : btnCls}
+          aria-disabled={geoBlocked}
+        >
+          <Icon name="fingerprint" className="h-6 w-6" /> {stage === "working" ? "…" : stage === "locating" ? <Tt>Locating…</Tt> : mode === "in" ? <Tt>Punch In</Tt> : <Tt>Punch Out</Tt>}
         </button>
+        {geofence && (
+          <p className={`mt-2 text-center text-[11px] font-bold ${geoBlocked ? "text-red-300" : geoInfo ? "text-emerald-300" : "text-slate-400"}`}>
+            {geoBlocked
+              ? <Tt>{`Outside factory — come within ${geofence.radius} m of the gate to punch (${geoInfo} away)`}</Tt>
+              : geoInfo
+                ? <Tt>{`Inside factory zone · ${geoInfo} from gate ✔`}</Tt>
+                : <Tt>Checking your location…</Tt>}
+          </p>
+        )}
+        </>
       )}
       {stage === "error" && err && <p className="mt-2 text-center text-[11px] text-amber-300">{err}</p>}
     </div>
