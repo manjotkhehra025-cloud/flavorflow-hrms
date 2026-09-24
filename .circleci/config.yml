@@ -73,7 +73,7 @@ jobs:
   # ── Native Android wrapper (Capacitor shell around the live app) ──
   build-android:
     docker:
-      - image: cimg/android:2025.05.1-node
+      - image: cimg/android:2026.08.1-node
     resource_class: medium
     steps:
       - checkout
