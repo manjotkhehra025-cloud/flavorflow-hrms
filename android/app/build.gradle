@@ -62,7 +62,7 @@ dependencies {
             because '1.17.0+ requires compileSdk 36 / AGP 8.9.1; project is on compileSdk 35'
         }
     }
-}'
+}
 
 try {
     def servicesJSON = file('google-services.json')
