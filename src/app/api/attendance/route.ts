@@ -8,30 +8,97 @@ async function auth(req: NextRequest) {
   return (await getUserFromToken(bearer)) ?? (await getSessionUser());
 }
 
-/** GET /api/attendance — my attendance, newest first (?take=30). */
+/** GET /api/attendance — my attendance, newest first (?take=30) + today/shift block for home. */
 export async function GET(req: NextRequest) {
   const me = await auth(req);
   if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!me.employeeId) return NextResponse.json({ records: [] });
+  if (!me.employeeId) return NextResponse.json({ records: [], today: null });
 
   const take = Math.min(Number(req.nextUrl.searchParams.get("take")) || 30, 90);
-  const records = await db.attendance.findMany({
-    where: { employeeId: me.employeeId },
-    orderBy: { date: "desc" },
-    take,
+  const date = todayDate();
+  const [records, today, emp, pendingPunch, pendingOT] = await Promise.all([
+    db.attendance.findMany({
+      where: { employeeId: me.employeeId },
+      orderBy: { date: "desc" },
+      take,
+    }),
+    db.attendance.findUnique({
+      where: { employeeId_date: { employeeId: me.employeeId, date } },
+    }),
+    db.employee.findUnique({
+      where: { id: me.employeeId },
+      include: { shift: true },
+    }),
+    db.punchRequest.count({
+      where: { employeeId: me.employeeId, status: "PENDING", type: { not: "OT" } },
+    }),
+    db.punchRequest.count({
+      where: { employeeId: me.employeeId, status: "PENDING", type: "OT" },
+    }),
+  ]);
+
+  const chipPending: { key: string; label: string }[] = [];
+  const company = emp?.companyId
+    ? await db.company.findUnique({
+        where: { id: emp.companyId },
+        select: { geofenceEnabled: true, name: true },
+      })
+    : null;
+
+  return NextResponse.json({
+    records,
+    today,
+    shift: emp?.shift
+      ? { name: emp.shift.name, startTime: emp.shift.startTime, durationH: emp.shift.durationH }
+      : { name: "General Day Shift", startTime: "08:00", durationH: 9 },
+    isWeeklyOff: emp ? date.getUTCDay() === emp.weeklyOff : false,
+    geofenceEnabled: company?.geofenceEnabled ?? false,
+    companyName: emp ? company?.name ?? null : null,
+    chips: {
+      pendingOT,
+      pendingPunch,
+    },
   });
-  return NextResponse.json({ records });
 }
 
-/** POST /api/attendance  { "action": "checkin" | "checkout" } */
+/** POST /api/attendance  { "action": "checkin" | "checkout", lat?, lng?, selfieRef? } */
 export async function POST(req: NextRequest) {
   const me = await auth(req);
   if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!me.employeeId) return NextResponse.json({ error: "No employee profile linked" }, { status: 400 });
 
+  // Super-admin feature switch: self punch can be disabled per employee.
+  const { getPerms } = await import("@/lib/permissions");
+  const perms = await getPerms(me.employeeId);
+  if (!perms.canPunch) {
+    return NextResponse.json({ error: "Self punch is turned OFF for you — ask the super admin." }, { status: 403 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const action = body?.action;
+  const lat = typeof body?.lat === "number" ? body.lat : undefined;
+  const lng = typeof body?.lng === "number" ? body.lng : undefined;
+  const selfieRef = typeof body?.selfieRef === "string" ? body.selfieRef : undefined;
   const date = todayDate();
+
+  // Factory geofence enforcement (same rule the web applies).
+  const c = await db.company.findUnique({
+    where: { id: me.companyId },
+    select: { geofenceEnabled: true, geoLat: true, geoLng: true, geoRadius: true, name: true },
+  });
+  if (c?.geofenceEnabled && c.geoLat != null && c.geoLng != null) {
+    if (lat == null || lng == null) {
+      return NextResponse.json({ error: "Location is required to punch inside the factory." }, { status: 400 });
+    }
+    const { distanceMeters } = await import("@/lib/utils");
+    const dist = distanceMeters(lat, lng, c.geoLat, c.geoLng);
+    if (dist > c.geoRadius) {
+      return NextResponse.json(
+        { error: `You're ${Math.round(dist)} m away — move inside the factory geofence (${c.geoRadius} m) to punch.` },
+        { status: 422 },
+      );
+    }
+  }
 
   const existing = await db.attendance.findUnique({
     where: { employeeId_date: { employeeId: me.employeeId, date } },
@@ -44,7 +111,7 @@ export async function POST(req: NextRequest) {
       create: { companyId: me.companyId, employeeId: me.employeeId, date, checkIn: new Date(), status: "PRESENT" },
       update: { checkIn: new Date(), status: "PRESENT" },
     });
-    return NextResponse.json({ record });
+    return NextResponse.json({ record, selfieRef });
   }
 
   if (action === "checkout") {
