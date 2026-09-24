@@ -31,28 +31,9 @@ const NAV_ITEMS = [
 ];
 
 export function HLogo({ className = "h-10 w-10" }: { className?: string }) {
-  // HRMate brand mark — two swooshes cradling a heart-person (approved D-var-1)
-  return (
-    <svg viewBox="0 0 64 64" className={className}>
-      <defs>
-        <linearGradient id="hl-a" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#34d399" />
-          <stop offset="1" stopColor="#059669" />
-        </linearGradient>
-        <linearGradient id="hl-b" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#2dd4bf" />
-          <stop offset="1" stopColor="#0f766e" />
-        </linearGradient>
-      </defs>
-      <path d="M44 6 C57 12 58 30 32 55" fill="none" stroke="url(#hl-a)" strokeWidth="5.5" strokeLinecap="round" />
-      <path d="M21 7 C5 15 6 36 32 55" fill="none" stroke="url(#hl-b)" strokeWidth="5.5" strokeLinecap="round" />
-      <circle cx="32" cy="25.5" r="4.6" fill="url(#hl-a)" />
-      <path
-        d="M19.5 31.5 C23 28.6 28.5 28.6 32 32.2 C35.5 28.6 41 28.6 44.5 31.5 C42.5 37 37.5 42.5 32 47 C26.5 42.5 21.5 37 19.5 31.5 Z"
-        fill="url(#hl-b)"
-      />
-    </svg>
-  );
+  // HRMate brand mark (approved D-var-1 artwork — exact file, no recreation)
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/hrmate-emblem.png" alt="HRMate" className={className} />;
 }
 
 export function Sidebar({ role, name, companyName, canApprove = false }: { role: string; name: string; companyName: string; canApprove?: boolean }) {
