@@ -42,9 +42,10 @@ function SalaryHistory({ revisions }: { revisions: { id: string; effectiveDate: 
   );
 }
 
-export default async function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EmployeeDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ login?: string }> }) {
   const me = await requireStaff();
   const { id } = await params;
+  const { login: justCreatedLogin } = await searchParams;
 
   const employee = await db.employee.findFirst({
     where: { id, companyId: me.companyId },
@@ -90,6 +91,13 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   return (
     <div>
+      {justCreatedLogin && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <Pa>Login ready — sign in with this exact email:</Pa>{" "}
+          <span className="select-all font-mono font-bold">{justCreatedLogin}</span>
+        </div>
+      )}
+
       <PageHeader
         title={`${employee.firstName} ${employee.lastName}`}
         subtitle={`${employee.code} · ${employee.designation?.title ?? "No designation"}`}

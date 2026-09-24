@@ -8,7 +8,7 @@ import { bt } from "@/lib/i18n";
 import { setSessionCookie, clearSessionCookie, signSession, requireUser } from "@/lib/auth";
 
 const loginSchema = z.object({
-  email: z.string().email().toLowerCase(),
+  email: z.string().trim().email().toLowerCase(),
   password: z.string().min(1),
 });
 
@@ -27,7 +27,11 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
   });
 
   if (!user || !user.isActive) return { error: "Invalid credentials." };
-  const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
+  let ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
+  if (!ok && parsed.data.password !== parsed.data.password.trim()) {
+    // Mobile keyboards/autofill often surround passwords with spaces — retry trimmed.
+    ok = await bcrypt.compare(parsed.data.password.trim(), user.passwordHash);
+  }
   if (!ok) return { error: "Invalid credentials." };
 
   const token = await signSession({

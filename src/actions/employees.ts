@@ -29,7 +29,7 @@ const employeeSchema = z.object({
   emergencyPhone: z.string().optional(),
   createAccount: z.boolean().default(false),
   accountRole: z.enum(["HR", "EMPLOYEE"]).default("EMPLOYEE"),
-  tempPassword: z.string().optional(),
+  tempPassword: z.string().transform((v) => v.trim()).optional(),
 });
 
 function emptyToUndefined(v: string | undefined) {
@@ -128,7 +128,7 @@ export async function createEmployeeAction(_prev: ActionState, formData: FormDat
   }
 
   revalidatePath("/employees");
-  redirect(`/employees/${employee.id}`);
+  redirect(`/employees/${employee.id}${d.createAccount && d.email ? `?login=${encodeURIComponent(d.email.toLowerCase())}` : ""}`);
 }
 
 /** Staff edit of profile basics (category, shift, weekly-off, emergency info). */
@@ -199,7 +199,7 @@ export async function createLoginForEmployeeAction(_prev: ActionState, formData:
   const me = await requireStaff();
   const employeeId = String(formData.get("employeeId") ?? "");
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
+  const password = String(formData.get("password") ?? "").trim();
   const roleRaw = String(formData.get("role") ?? "EMPLOYEE");
   const role = roleRaw === "ADMIN" || roleRaw === "HR" ? roleRaw : "EMPLOYEE";
   if (!employeeId || !email || !email.includes("@")) return { error: await bt("Valid email required.") };
