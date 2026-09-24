@@ -8,6 +8,12 @@ class HMC {
   static const emeraldDeep = Color(0xFF059669);
   static const teal = Color(0xFF0F766E);
   static const amber = Color(0xFFF59E0B);
+  // semantic aliases (P2 features)
+  static const primary = emerald;
+  static const primaryDark = emeraldDeep;
+  static const primaryFade = Color(0x1A10D9A0);
+  static const warn = amber;
+  static const warnFade = Color(0x29F59E0B);
   static const bg = Color(0xFFF8FAFC);
   static const danger = Color(0xFFDC2626);
 

@@ -5,7 +5,9 @@ import 'session.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/set_password_screen.dart';
 import '../features/auth/splash_screen.dart';
-import '../features/home/home_screen.dart';
+import '../features/home/home_shell.dart';
+import '../features/home/punch_flow.dart';
+import '../features/attendance/attendance_screen.dart';
 
 /// Route guard — mirrors the web app exactly:
 ///  booting          → /splash
@@ -29,9 +31,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       final mustChange = session.user?.mustChangePassword ?? false;
       if (mustChange && loc != '/set-password') return '/set-password';
-      if (!mustChange && (loc == '/splash' || loc.startsWith('/login') || loc == '/set-password')) {
-        return '/home';
-      }
+      // After sign-in everything under the app is fine (change-password is
+      // reachable from More even when not forced); only launch screens bounce.
+      if (!mustChange && (loc == '/splash' || loc.startsWith('/login'))) return '/home';
       return null;
     },
     routes: [
@@ -41,7 +43,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => LoginScreen(changed: state.uri.queryParameters['changed'] == '1'),
       ),
       GoRoute(path: '/set-password', builder: (_, __) => const SetPasswordScreen()),
-      GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+      GoRoute(path: '/home', builder: (_, __) => const HomeShell()),
+      GoRoute(
+        path: '/punch',
+        builder: (_, state) => PunchFlowScreen(action: state.extra as String? ?? 'checkin'),
+      ),
+      GoRoute(path: '/attendance', builder: (_, __) => const AttendanceScreen()),
     ],
   );
 });
