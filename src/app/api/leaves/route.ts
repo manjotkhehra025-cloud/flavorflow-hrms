@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSessionUser, getUserFromToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { toDateOnly, dayDiffInclusive } from "@/lib/utils";
+import { notifyNewRequest } from "@/lib/push";
 
 async function auth(req: NextRequest) {
   const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -93,5 +94,6 @@ export async function POST(req: NextRequest) {
     },
     include: { leaveType: true },
   });
+  notifyNewRequest(me.companyId, me.employeeId, "leave", `${request.leaveType.name} · ${request.days}${request.halfDay ? " (½)" : ""}d · ${parsed.data.fromDate}`);
   return NextResponse.json({ request }, { status: 201 });
 }

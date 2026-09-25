@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
+import '../alerts/alerts_sheet.dart';
 
 final approvalsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final dio = ref.read(apiProvider);
@@ -137,7 +138,7 @@ class _ApprovalCard extends ConsumerWidget {
           Row(children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-              decoration: BoxDecoration(color: _kindColor(kind).withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: _kindColor(kind).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
               child: Text(kind.toUpperCase(), style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: _kindColor(kind), letterSpacing: 0.8)),
             ),
             const Spacer(),
@@ -174,7 +175,10 @@ class _ApprovalCard extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => _DecideSheet(row: row),
     );
-    if (decided == true) ref.invalidate(approvalsProvider);
+    if (decided == true) {
+      ref.invalidate(approvalsProvider);
+      ref.invalidate(alertsProvider);
+    }
   }
 
   Future<void> _decide(BuildContext context, WidgetRef ref, String kind, bool approve) async {
@@ -186,6 +190,7 @@ class _ApprovalCard extends ConsumerWidget {
         'action': approve ? 'approve' : 'reject',
       });
       ref.invalidate(approvalsProvider);
+      ref.invalidate(alertsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(approve ? T.s('Approved ✓', lang) : T.s('Rejected', lang)),
@@ -305,7 +310,7 @@ class _DecideSheetState extends ConsumerState<_DecideSheet> {
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-            decoration: BoxDecoration(color: _ApprovalCard._kindColor(kind).withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: _ApprovalCard._kindColor(kind).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
             child: Text(kind.toUpperCase(), style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: _ApprovalCard._kindColor(kind))),
           ),
         ]),

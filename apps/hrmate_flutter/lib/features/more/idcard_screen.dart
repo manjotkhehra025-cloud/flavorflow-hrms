@@ -91,7 +91,7 @@ class IdCardScreen extends ConsumerWidget {
           bottom: -70, right: -70,
           child: Container(
             width: 220, height: 220,
-            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: HMC.primary.withOpacity(0.25), width: 26)),
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: HMC.primary.withValues(alpha: 0.25), width: 26)),
           ),
         ),
         Padding(
@@ -126,7 +126,7 @@ class IdCardScreen extends ConsumerWidget {
                 padding: const EdgeInsets.only(top: 12),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.07), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(12)),
                   child: Text('${shift['name']} · ${shift['startTime']} +${shift['durationH']}h',
                       style: const TextStyle(color: HMC.primary, fontWeight: FontWeight.w800, fontSize: 12.5)),
                 ),

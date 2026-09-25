@@ -26,9 +26,16 @@ final apiProvider = Provider<Dio>((ref) {
       }
       handler.next(options);
     },
-    onError: (err, handler) {
-      // 401 on any request → the app clears its session elsewhere (screens
-      // watch session state); here we only let the error bubble up.
+    onError: (err, handler) async {
+      // Expired / revoked token: drop the session so the router sends the
+      // user back to login instead of a dead home screen. Login 401 is a
+      // wrong password — don't wipe a session that isn't this request.
+      final status = err.response?.statusCode;
+      final path = err.requestOptions.path;
+      final skip = err.requestOptions.extra['skipAuthWipe'] == true;
+      if (status == 401 && !skip && !path.contains('/api/auth/login')) {
+        await ref.read(sessionStoreProvider).clear();
+      }
       handler.next(err);
     },
   ));

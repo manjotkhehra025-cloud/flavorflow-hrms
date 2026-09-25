@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser, requireStaff } from "@/lib/auth";
 import { permDenied } from "@/lib/permissions";
-import { canDecideFor } from "@/lib/approve-routing";
+import { decideApproval } from "@/lib/decide";
 import { bt } from "@/lib/i18n";
 import { toDateOnly } from "@/lib/utils";
 import type { ActionState } from "./auth";
+import { notifyNewRequest } from "@/lib/push";
 
 export async function createSwapRequestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireUser();
@@ -24,6 +25,7 @@ export async function createSwapRequestAction(_prev: ActionState, formData: Form
   const dup = await db.shiftSwapRequest.findFirst({ where: { companyId: me.companyId, requesterId: me.employeeId, date: toDateOnly(date), status: "PENDING" } });
   if (dup) return { error: await bt("You already have a pending swap for this date.") };
   await db.shiftSwapRequest.create({ data: { companyId: me.companyId, requesterId: me.employeeId, peerId, date: toDateOnly(date), note } });
+  notifyNewRequest(me.companyId, me.employeeId, "swap", `${peer.firstName} · ${date}`);
   revalidatePath("/roster");
   revalidatePath("/approvals");
   return { success: await bt("Swap request sent") };
@@ -31,15 +33,7 @@ export async function createSwapRequestAction(_prev: ActionState, formData: Form
 
 export async function decideSwapAction(id: string, approve: boolean) {
   const me = await requireUser();
-  const req = await db.shiftSwapRequest.findFirst({
-    where: { id, companyId: me.companyId, status: "PENDING" },
-    include: { requester: { include: { department: { include: { parent: true } }, designation: true } } },
-  });
-  if (!req) return;
-  if (!(await canDecideFor(me, req.requester as never))) throw new Error("Not your approval to take.");
-  await db.shiftSwapRequest.update({
-    where: { id },
-    data: { status: approve ? "APPROVED" : "REJECTED", decidedAt: new Date() },
-  });
+  const result = await decideApproval(me, { kind: "swap", id, approve });
+  if (!result.ok && result.status === 403) throw new Error("Not your approval to take.");
   revalidatePath("/approvals");
 }

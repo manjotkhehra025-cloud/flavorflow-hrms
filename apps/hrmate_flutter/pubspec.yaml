@@ -1,7 +1,7 @@
 name: hrmate
 description: HRMate — GD Foods HR app (Flutter native).
 publish_to: "none"
-version: 0.1.0+1
+version: 0.6.0+6
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -23,6 +23,11 @@ dependencies:
   path_provider: ^2.1.4
   intl: ^0.19.0
   http_parser: ^4.0.2
+  # ── P6: push, crash reports, biometric quick-unlock ──
+  firebase_core: ^4.14.0
+  firebase_messaging: ^16.7.0
+  firebase_crashlytics: ^5.4.0
+  local_auth: ^3.0.2
 
 dev_dependencies:
   flutter_test:

@@ -6,9 +6,10 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser, requireStaff } from "@/lib/auth";
 import { permDenied } from "@/lib/permissions";
-import { canDecideFor } from "@/lib/approve-routing";
-import { todayDate, toDateOnly } from "@/lib/utils";
+import { decideApproval } from "@/lib/decide";
+import { toDateOnly } from "@/lib/utils";
 import type { ActionState } from "./auth";
+import { notifyNewRequest } from "@/lib/push";
 
 // ---------- Gate Pass ----------
 
@@ -56,6 +57,7 @@ export async function createGatePassAction(_prev: ActionState, formData: FormDat
       reason: d.reason || null,
     },
   });
+  notifyNewRequest(me.companyId, employeeId, "gate", `${d.date} · ${d.exitAt}`);
 
   revalidatePath("/idcard");
   revalidatePath("/approvals");
@@ -64,21 +66,8 @@ export async function createGatePassAction(_prev: ActionState, formData: FormDat
 
 export async function decideGatePassAction(id: string, approve: boolean) {
   const me = await requireUser();
-  const pass = await db.gatePass.findFirst({
-    where: { id, companyId: me.companyId },
-    include: { employee: { include: { department: { include: { parent: true } }, designation: true } } },
-  });
-  if (!pass || pass.status !== "PENDING") return;
-  if (!(await canDecideFor(me, pass.employee as never))) throw new Error("Not your approval to take.");
-
-  await db.gatePass.update({
-    where: { id },
-    data: {
-      status: approve ? "APPROVED" : "REJECTED",
-      approverId: me.id,
-      decidedAt: new Date(),
-    },
-  });
+  const result = await decideApproval(me, { kind: "gate", id, approve });
+  if (!result.ok && result.status === 403) throw new Error("Not your approval to take.");
   revalidatePath("/approvals");
   revalidatePath("/idcard");
 }
@@ -136,6 +125,7 @@ export async function createPunchRequestAction(_prev: ActionState, formData: For
       reason: d.reason.trim(),
     },
   });
+  notifyNewRequest(me.companyId, me.employeeId, "punch", d.type === "OT" ? `OT ${d.hours}h · ${d.date}` : `${d.type === "MANUAL_IN" ? "In" : "Out"} ${d.time} · ${d.date}`);
 
   revalidatePath("/attendance");
   revalidatePath("/approvals");
@@ -144,65 +134,8 @@ export async function createPunchRequestAction(_prev: ActionState, formData: For
 
 export async function decidePunchRequestAction(id: string, approve: boolean) {
   const me = await requireUser();
-  const req = await db.punchRequest.findFirst({
-    where: { id, companyId: me.companyId },
-    include: { employee: { include: { department: { include: { parent: true } }, designation: true } } },
-  });
-  if (!req || req.status !== "PENDING") return;
-  if (!(await canDecideFor(me, req.employee as never))) throw new Error("Not your approval to take.");
-
-  await db.punchRequest.update({
-    where: { id },
-    data: { status: approve ? "APPROVED" : "REJECTED", approverId: me.id, decidedAt: new Date() },
-  });
-
-  // Apply manual punch directly into Attendance when approved
-  if (approve && req.type !== "OT" && req.time) {
-    const stamp = new Date(`${req.date.toISOString().slice(0, 10)}T${req.time}:00+05:30`);
-    const existing = await db.attendance.findUnique({
-      where: { employeeId_date: { employeeId: req.employeeId, date: req.date } },
-    });
-    if (req.type === "MANUAL_IN") {
-      if (!existing) {
-        await db.attendance.create({
-          data: {
-            companyId: me.companyId,
-            employeeId: req.employeeId,
-            date: req.date,
-            checkIn: stamp,
-            status: "PRESENT",
-            note: "Manual check-in approved",
-          },
-        });
-      } else {
-        // Row exists: staff approved the correction — always overwrite with requested time.
-        await db.attendance.update({
-          where: { id: existing.id },
-          data: { checkIn: stamp, status: "PRESENT", note: `Manual check-in → ${req.time} approved` },
-        });
-      }
-    } else {
-      // MANUAL_OUT
-      if (!existing) {
-        await db.attendance.create({
-          data: {
-            companyId: me.companyId,
-            employeeId: req.employeeId,
-            date: req.date,
-            checkOut: stamp,
-            status: "PRESENT",
-            note: "Manual check-out approved",
-          },
-        });
-      } else {
-        await db.attendance.update({
-          where: { id: existing.id },
-          data: { checkOut: stamp, status: "PRESENT", note: `Manual check-out → ${req.time} approved` },
-        });
-      }
-    }
-  }
-
+  const result = await decideApproval(me, { kind: "punch", id, approve });
+  if (!result.ok && result.status === 403) throw new Error("Not your approval to take.");
   revalidatePath("/approvals");
   revalidatePath("/attendance");
 }

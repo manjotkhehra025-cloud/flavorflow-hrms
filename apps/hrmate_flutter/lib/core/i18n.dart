@@ -275,6 +275,21 @@ class T {
     'Shift swap': 'ਸ਼ਿਫ਼ਟ ਸਵੈਪ',
     'Social post': 'ਸੋਸ਼ਲ ਪੋਸਟ',
     'View payslip': 'ਸਲਿੱਪ ਵੇਖੋ',
+    // ── P6: alerts, biometric unlock ──
+    'Notifications': 'ਸੂਚਨਾਵਾਂ',
+    'Refresh': 'ਤਾਜ਼ਾ ਕਰੋ',
+    'All clear — nothing pending': 'ਸਭ ਠੀਕ — ਕੁਝ ਬਾਕੀ ਨਹੀਂ',
+    'Unlock HRMate': 'HRMate ਖੋਲ੍ਹੋ',
+    'HRMate is locked — use your fingerprint or screen lock': 'HRMate ਲੌਕ ਹੈ — ਉਂਗਲ ਦਾ ਨਿਸ਼ਾਨ ਜਾਂ ਸਕ੍ਰੀਨ ਲੌਕ ਵਰਤੋ',
+    'Not recognised — tap to try again': 'ਪਛਾਣ ਨਹੀਂ ਹੋਈ — ਦੁਬਾਰਾ ਦਬਾਓ',
+    'Tap to unlock': 'ਖੋਲ੍ਹਣ ਲਈ ਦਬਾਓ',
+    'Sign in with password instead': 'ਪਾਸਵਰਡ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ',
+    'Fingerprint unlock': 'ਉਂਗਲ ਨਾਲ ਖੋਲ੍ਹੋ',
+    'Open HRMate with your fingerprint or screen lock': 'ਉਂਗਲ ਦੇ ਨਿਸ਼ਾਨ ਜਾਂ ਸਕ੍ਰੀਨ ਲੌਕ ਨਾਲ HRMate ਖੋਲ੍ਹੋ',
+    'Confirm it is you': 'ਪੁਸ਼ਟੀ ਕਰੋ ਕਿ ਇਹ ਤੁਸੀਂ ਹੋ',
+    'Fingerprint not confirmed — unlock stays off': 'ਉਂਗਲ ਦੀ ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋਈ — ਲੌਕ ਬੰਦ ਹੀ ਰਹੇਗਾ',
+    'Fingerprint unlock is ON ✓': 'ਉਂਗਲ ਨਾਲ ਖੋਲ੍ਹਣਾ ਚਾਲੂ ✓',
+    'Fingerprint unlock is OFF': 'ਉਂਗਲ ਨਾਲ ਖੋਲ੍ਹਣਾ ਬੰਦ',
   };
 
   static String s(String en, String lang) => lang == 'pa' ? (_pa[en] ?? en) : en;

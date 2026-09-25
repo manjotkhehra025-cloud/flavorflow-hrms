@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
 import '../../core/session.dart';
+import '../../core/app_nav.dart';
+import '../../core/push.dart';
 import 'home_screen.dart';
 import '../leaves/leaves_list.dart';
 import '../approvals/approvals_tab.dart';
@@ -18,11 +20,19 @@ class HomeShell extends ConsumerStatefulWidget {
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> {
-  int _tab = 0;
+  @override
+  void initState() {
+    super.initState();
+    // P6: register this phone for pushes once we're fully signed in.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(pushServiceProvider).start();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(langProvider);
+    var tab = ref.watch(homeTabProvider);
     final canApprove = ref.watch(sessionStoreProvider).user?.canApprove ?? false;
 
     final titles = [T.s('Home', lang), T.s('Leaves', lang), T.s('Approvals', lang), T.s('More', lang)];
@@ -34,7 +44,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ];
 
     // Employees without route-head / staff rights don't see Approvals nav entry (same as web).
-    if (!canApprove && _tab == 2) _tab = 0;
+    if (!canApprove && tab == 2) tab = 0;
 
     final items = [
       BottomNavigationBarItem(icon: const Icon(Icons.home_outlined), activeIcon: const Icon(Icons.home), label: titles[0]),
@@ -50,16 +60,16 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     // Map current tab index onto the (possibly 3-item) nav list.
     final navCount = items.length;
-    final navIndex = _tab >= navCount ? 0 : (_tab == 2 && !canApprove ? 0 : (_tab > 2 ? navCount - 1 : _tab));
+    final navIndex = tab >= 3 ? navCount - 1 : tab;
 
     return Scaffold(
-      body: IndexedStack(index: _tab, children: pages),
+      body: IndexedStack(index: tab, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: navIndex,
         onDestinationSelected: (i) {
           var target = i;
           if (!canApprove && i >= 2) target = 3; // leaves/more shift by one without approvals
-          setState(() => _tab = target);
+          ref.read(homeTabProvider.notifier).state = target;
         },
         backgroundColor: Colors.white,
         indicatorColor: HMC.primaryFade,

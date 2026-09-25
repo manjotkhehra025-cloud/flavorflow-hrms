@@ -58,6 +58,7 @@ model Company {
   socialPosts         SocialPost[]
   kycDocs             KycDoc[]
   shiftSwapRequests   ShiftSwapRequest[]
+  pushTokens          PushToken[]
 }
 
 enum Role {
@@ -155,6 +156,7 @@ model User {
   socialPosts    SocialPost[]
   postLikes      PostLike[]
   postComments   PostComment[]
+  pushTokens     PushToken[]
 
   @@index([companyId])
 }
@@ -705,4 +707,20 @@ model StarAward {
 
   @@unique([companyId, month])
   @@index([employeeId])
+}
+
+/// P6: FCM device tokens for the Flutter app (one row per phone install).
+model PushToken {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token      String   @unique
+  platform   String   @default("android")
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([companyId])
 }

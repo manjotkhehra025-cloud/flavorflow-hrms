@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 
 import '../../core/api.dart';
+import '../../core/app_lock.dart';
 import '../../core/session.dart';
 import '../../core/theme.dart';
 
@@ -23,17 +24,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _boot() async {
+    // Grab providers up front: once bootstrap flips `booted`, the router may
+    // replace this screen and `ref` is no longer usable.
     final session = ref.read(sessionStoreProvider);
-    if (!session.booted) await session.bootstrap();
+    final lock = ref.read(appLockProvider);
+    final api = ref.read(apiProvider);
+    if (!session.booted) {
+      // P6: biometric gate goes up before any signed-in screen can render.
+      await session.bootstrap(beforeReady: (hasToken) => lock.load(hasSession: hasToken));
+    }
     final token = session.cachedToken;
     if (token != null) {
       try {
-        final res = await ref.read(apiProvider).get('/api/auth/me');
+        final res = await api.get('/api/auth/me');
         final u = (res.data['user'] as Map?)?.cast<String, dynamic>();
         session.setUser(u != null ? HmUser.fromJson(u) : null);
       } on DioException {
-        // Offline or bad token → stay with stored token; screens will surface
-        // a fresh 401 later (request-level handling comes in P2).
+        // Offline → keep the stored token (punch queue works offline).
+        // A 401 here already cleared the session in the api interceptor.
         session.setUser(null);
       }
     }
@@ -85,7 +93,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               const SizedBox(height: 14),
               Text(
                 'GD Foods · Khadur Sahib',
-                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.65)),
+                style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.65)),
               ),
               const SizedBox(height: 36),
             ],

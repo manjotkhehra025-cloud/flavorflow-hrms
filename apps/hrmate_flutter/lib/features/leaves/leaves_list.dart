@@ -183,7 +183,7 @@ class _RequestRow extends StatelessWidget {
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(color: tone.withOpacity(0.12), borderRadius: BorderRadius.circular(999)),
+          decoration: BoxDecoration(color: tone.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
           child: Text(T.s(status.toLowerCase(), lang),
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: tone)),
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hrmate/core/app_nav.dart';
 
 /// CI guard — see .circleci/config.yml (build-flutter).
 ///
@@ -15,5 +16,27 @@ void main() {
       const MaterialApp(home: Scaffold(body: Text('HRMate'))),
     );
     expect(find.text('HRMate'), findsOneWidget);
+  });
+
+  group('P6 push / alert tap routing', () {
+    test('approvals tab only for approvers', () {
+      expect(resolveAppPath('tab:approvals', canApprove: true).tab, 2);
+      expect(resolveAppPath('tab:approvals', canApprove: false).tab, 0);
+    });
+
+    test('leaves tab and screens', () {
+      expect(resolveAppPath('tab:leaves', canApprove: false).tab, 1);
+      expect(resolveAppPath('/attendance', canApprove: false).route, '/attendance');
+      expect(resolveAppPath('/idcard', canApprove: false).route, '/idcard');
+      expect(resolveAppPath('/helpdesk/abc123', canApprove: false).route, '/helpdesk/abc123');
+    });
+
+    test('unknown or empty paths fall back to Home', () {
+      for (final p in [null, '', '/home', '/permissions', 'https://evil.example']) {
+        final t = resolveAppPath(p, canApprove: true);
+        expect(t.tab, 0, reason: 'path=$p');
+        expect(t.route, isNull, reason: 'path=$p');
+      }
+    });
   });
 }

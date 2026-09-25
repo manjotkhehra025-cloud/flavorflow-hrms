@@ -104,7 +104,7 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                       ? T.s('this keeps your account yours alone.', lang)
                       : 'Hi $name — ${T.s('this keeps your account yours alone.', lang)}',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white.withOpacity(0.65)),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
                 ),
                 const SizedBox(height: 28),
                 _darkField(controller: _p1, hint: T.s('New password', lang), obscure: true, onChanged: (_) => setState(() {})),
@@ -130,7 +130,7 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                   alignment: Alignment.centerRight,
                   child: Text(
                     strength <= 1 ? T.s('weak', lang) : strength == 2 ? T.s('okay', lang) : T.s('strong', lang),
-                    style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.5)),
+                    style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.5)),
                   ),
                 ),
                 if (_error != null) ...[
@@ -153,7 +153,7 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
                 Text(
                   T.s("After saving you'll be signed out — log in again with the new password", lang),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.5)),
+                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5)),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -177,7 +177,7 @@ class _SetPasswordScreenState extends ConsumerState<SetPasswordScreen> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
         filled: true,
         fillColor: const Color(0x26FFFFFF),
         border: OutlineInputBorder(
