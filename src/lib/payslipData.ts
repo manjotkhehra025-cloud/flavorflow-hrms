@@ -31,7 +31,7 @@ export function buildPayslipData(row: RowFull, lang: "en" | "pa"): PayslipData {
     daAmount: row.daAmount, halfDays: row.halfDays,
     offWorkDays: row.offWorkDays, offWorkPay: row.offWorkPay,
     otherEarning: row.otherEarning, otherEarningNote: row.otherEarningNote,
-    lopDays: row.lopDays, lopPerDay: monthly && dim > 0 ? Math.round((e.baseSalary ?? 0) / dim) : 0, lopAmount: row.deductions,
+    lopDays: row.lopDays, lopPerDay: monthly && dim > 0 ? Math.round(((e.baseSalary ?? 0) / dim) * 100) / 100 : 0, lopAmount: row.deductions,
     pfEmployee: row.pfEmployee, pfEmployer: row.pfEmployer,
     esiEmployee: row.esiEmployee, esiEmployer: row.esiEmployer,
     advanceRecover: row.advanceRecover,

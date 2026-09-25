@@ -110,7 +110,8 @@ class _BalanceCard extends StatelessWidget {
     final pending = (b['pending'] as num?)?.toDouble() ?? 0;
     final remaining = b.containsKey('remaining') ? b['remaining'] : null;
     final remNum = remaining is num ? remaining.toDouble() : null;
-    final filled = quota > 0 ? ((used + pending) / quota).clamp(0.0, 1.0) : 0.0;
+    final left = remNum ?? (quota - used - pending);
+    final filled = quota > 0 ? (left / quota).clamp(0.0, 1.0) : 0.0;
     return Container(
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

@@ -212,6 +212,13 @@ class _Tile extends StatelessWidget {
   }
 }
 
+String _reqLabel(String? type, String lang) => switch (type) {
+      'MANUAL_IN' => T.s('Manual in', lang),
+      'MANUAL_OUT' => T.s('Manual out', lang),
+      'OT' => T.s('Overtime', lang),
+      _ => type ?? '',
+    };
+
 class _MyRequestsSheet extends ConsumerWidget {
   const _MyRequestsSheet();
   @override
@@ -247,7 +254,7 @@ class _MyRequestsSheet extends ConsumerWidget {
                         return Row(children: [
                           Expanded(
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text('${r['type']} · ${date?.day}/${date?.month}', style: const TextStyle(fontWeight: FontWeight.w800, color: HMC.ink, fontSize: 13)),
+                              Text('${_reqLabel(r['type'] as String?, lang)} · ${date?.day}/${date?.month}', style: const TextStyle(fontWeight: FontWeight.w800, color: HMC.ink, fontSize: 13)),
                               Text(
                                 r['type'] == 'OT' ? '${r['hours']}h · ${r['reason']}' : '${r['time']} · ${r['reason']}',
                                 style: TextStyle(color: Colors.grey.shade500, fontSize: 12),

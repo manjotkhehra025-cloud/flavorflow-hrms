@@ -134,17 +134,19 @@ class _PermissionsPickerScreenState extends ConsumerState<PermissionsPickerScree
                               leading: HmAvatar(name: '${e['name']}', photo: e['photo'] as String?),
                               title: Text('${e['code']} · ${e['name']}', style: const TextStyle(fontWeight: FontWeight.w800)),
                               subtitle: Text('${e['dept'] ?? '—'}'),
-                              trailing: off > 0
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: HMC.warnFade,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text('$off ${T.s('off', lang)}',
-                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF92400E))),
-                                    )
-                                  : const Icon(Icons.chevron_right),
+                              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                                if (off > 0)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: HMC.warnFade,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text('$off ${T.s('off', lang)}',
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF92400E))),
+                                  ),
+                                const Icon(Icons.chevron_right),
+                              ]),
                               onTap: () async {
                                 await context.push('/permissions/${e['id']}');
                                 if (mounted) _fetch();

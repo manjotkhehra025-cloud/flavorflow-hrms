@@ -28,6 +28,7 @@ class ApprovalsTab extends ConsumerWidget {
   const ApprovalsTab({super.key});
 
   static const _kinds = ['all', 'leave', 'punch', 'gate', 'swap'];
+  static const _labels = {'all': 'All', 'leave': 'Leave', 'punch': 'Punch', 'gate': 'Gate pass', 'swap': 'Swap'};
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,7 +74,7 @@ class ApprovalsTab extends ConsumerWidget {
                       fontSize: 12,
                       color: filter == k ? HMC.primaryDark : HMC.ink,
                     ),
-                    label: Text(T.s(k == 'all' ? 'All' : k, lang)),
+                    label: Text(T.s(_labels[k] ?? k, lang)),
                     onSelected: (_) => ref.read(approvalFilterProvider.notifier).state = k,
                   ),
                 ),
