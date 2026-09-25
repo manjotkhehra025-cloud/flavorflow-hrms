@@ -154,3 +154,19 @@ next begins.
 - `POST /api/approvals/decide` {kind,id,action} — route-checked (cross-route 403, replay 404).
 - Tested live: SM sees only Production requests, AGM only Mechanical, cross-decide 403,
   successful decide flips status, set-password full circle (flag→set→old login 401→new login 200).
+
+**2026-09-25** — **P5 DONE** (mockups p5-social, p5-payslip, p5-holidays, p5-toggles).
+
+API (all Bearer-token or web-cookie auth, shared helper `src/lib/api-auth.ts`):
+- `GET/POST /api/social` (feed paged by `?before=`, `canPost` flag) · `DELETE /api/social/:id`
+  (author or staff) · `POST /api/social/:id/like` (toggle) · `GET/POST /api/social/:id/comments`.
+- `GET /api/payslips` (LOCKED only, `canViewPayslip`-gated) · `GET /api/payslips/:rowId`
+  (earning/deduction lines + totals) · `POST /api/payslips/:rowId/share` (public token link → printable / PDF).
+- `GET /api/holidays?year=` (+ next holiday, days left) · `POST` / `DELETE` for ADMIN/HR.
+- `GET/POST /api/helpdesk` (mine, or `scope=inbox&status=` for staff) · `GET/POST/PATCH /api/helpdesk/:id`
+  (thread + seen-marking, reply, staff status change).
+- `GET /api/permissions?q=` · `GET/PUT /api/permissions/:employeeId` {key, allowed} — ADMIN only.
+
+Flutter: `features/social`, `features/payslip`, `features/holidays`, `features/helpdesk`
+(list + thread), `features/people` (permission picker + toggles); More tab entries; PA strings.
+CI: `build-flutter` now also runs on branches so PRs get the gate before merge.
