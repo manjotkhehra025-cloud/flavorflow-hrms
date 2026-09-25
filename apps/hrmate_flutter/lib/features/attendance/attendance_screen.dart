@@ -84,7 +84,7 @@ class AttendanceScreen extends ConsumerWidget {
                       child: Column(children: [
                         Text(_wk(i, lang), style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
                         const SizedBox(height: 6),
-                        CircleAvatar(radius: 4, backgroundColor: dot ?? Colors.grey.shade300),
+                        CircleAvatar(radius: 4, backgroundColor: dot),
                       ]),
                     );
                   }),
