@@ -17,6 +17,8 @@ export type DecideOk = {
 
 export type DecideFail = { ok: false; status: 400 | 403 | 404; error: string };
 
+const ALREADY: DecideFail = { ok: false, status: 404, error: "Not found or already decided." };
+
 const empInc = { department: { include: { parent: true } }, designation: true } as const;
 
 /**
@@ -46,10 +48,13 @@ async function decideInner(
     if (!(await canDecideFor(me, row.employee as never))) {
       return { ok: false, status: 403, error: "Not your approval to take." };
     }
-    await db.leaveRequest.update({
-      where: { id },
+    // Guarded on PENDING: two approvers tapping at once → only the first wins
+    // (no double push / double attendance write).
+    const won = await db.leaveRequest.updateMany({
+      where: { id, companyId: me.companyId, status: "PENDING" },
       data: { status, approverId: me.id, decidedAt },
     });
+    if (won.count === 0) return ALREADY;
     return {
       ok: true,
       kind,
@@ -69,10 +74,13 @@ async function decideInner(
     if (!(await canDecideFor(me, row.employee as never))) {
       return { ok: false, status: 403, error: "Not your approval to take." };
     }
-    await db.gatePass.update({
-      where: { id },
+    // Guarded on PENDING: two approvers tapping at once → only the first wins
+    // (no double push / double attendance write).
+    const won = await db.gatePass.updateMany({
+      where: { id, companyId: me.companyId, status: "PENDING" },
       data: { status, approverId: me.id, decidedAt },
     });
+    if (won.count === 0) return ALREADY;
     return {
       ok: true,
       kind,
@@ -92,10 +100,13 @@ async function decideInner(
     if (!(await canDecideFor(me, row.employee as never))) {
       return { ok: false, status: 403, error: "Not your approval to take." };
     }
-    await db.punchRequest.update({
-      where: { id },
+    // Guarded on PENDING: two approvers tapping at once → only the first wins
+    // (no double push / double attendance write).
+    const won = await db.punchRequest.updateMany({
+      where: { id, companyId: me.companyId, status: "PENDING" },
       data: { status, approverId: me.id, decidedAt },
     });
+    if (won.count === 0) return ALREADY;
     if (input.approve && row.type !== "OT" && row.time) {
       await applyApprovedManualPunch(me.companyId, row);
     }
@@ -118,10 +129,13 @@ async function decideInner(
   if (!(await canDecideFor(me, swap.requester as never))) {
     return { ok: false, status: 403, error: "Not your approval to take." };
   }
-  await db.shiftSwapRequest.update({
-    where: { id },
+  // Guarded on PENDING: two approvers tapping at once → only the first wins
+  // (no double push / double attendance write).
+  const won = await db.shiftSwapRequest.updateMany({
+    where: { id, companyId: me.companyId, status: "PENDING" },
     data: { status, decidedAt },
   });
+  if (won.count === 0) return ALREADY;
   return {
     ok: true,
     kind,
@@ -148,44 +162,23 @@ async function applyApprovedManualPunch(
 ) {
   if (!req.time) return;
   const stamp = new Date(`${req.date.toISOString().slice(0, 10)}T${req.time}:00+05:30`);
-  const existing = await db.attendance.findUnique({
+  const isIn = req.type === "MANUAL_IN";
+  // upsert (not find → create): a live punch landing at the same moment can't
+  // trip the (employeeId, date) unique key.
+  await db.attendance.upsert({
     where: { employeeId_date: { employeeId: req.employeeId, date: req.date } },
+    create: {
+      companyId,
+      employeeId: req.employeeId,
+      date: req.date,
+      ...(isIn ? { checkIn: stamp } : { checkOut: stamp }),
+      status: "PRESENT",
+      note: isIn ? "Manual check-in approved" : "Manual check-out approved",
+    },
+    update: {
+      ...(isIn ? { checkIn: stamp } : { checkOut: stamp }),
+      status: "PRESENT",
+      note: isIn ? `Manual check-in → ${req.time} approved` : `Manual check-out → ${req.time} approved`,
+    },
   });
-  if (req.type === "MANUAL_IN") {
-    if (!existing) {
-      await db.attendance.create({
-        data: {
-          companyId,
-          employeeId: req.employeeId,
-          date: req.date,
-          checkIn: stamp,
-          status: "PRESENT",
-          note: "Manual check-in approved",
-        },
-      });
-    } else {
-      await db.attendance.update({
-        where: { id: existing.id },
-        data: { checkIn: stamp, status: "PRESENT", note: `Manual check-in → ${req.time} approved` },
-      });
-    }
-    return;
-  }
-  if (!existing) {
-    await db.attendance.create({
-      data: {
-        companyId,
-        employeeId: req.employeeId,
-        date: req.date,
-        checkOut: stamp,
-        status: "PRESENT",
-        note: "Manual check-out approved",
-      },
-    });
-  } else {
-    await db.attendance.update({
-      where: { id: existing.id },
-      data: { checkOut: stamp, status: "PRESENT", note: `Manual check-out → ${req.time} approved` },
-    });
-  }
 }

@@ -195,6 +195,9 @@ API / server:
   "New request" → routed approvers (SM for route A, AGM for B, ADMIN/HR when vacant/no route);
   "approved/declined" → the requester. Runs after the response (`after()`), never blocks.
   No `FCM_SERVICE_ACCOUNT` env → silent no-op.
+- `src/lib/decide.ts` decides with `updateMany … status: PENDING` so two approvers tapping
+  at the same moment can't both win (no double push / double attendance write); approved
+  manual punches are written with `attendance.upsert` (safe against a live punch at the same time).
 
 Flutter (v0.6.0):
 - Alerts bell on Home (badge + sheet, tap opens the right tab/screen).
