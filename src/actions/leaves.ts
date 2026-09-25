@@ -6,9 +6,10 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser, requireStaff } from "@/lib/auth";
 import { permDenied } from "@/lib/permissions";
-import { canDecideFor } from "@/lib/approve-routing";
+import { decideApproval } from "@/lib/decide";
 import { toDateOnly, dayDiffInclusive } from "@/lib/utils";
 import type { ActionState } from "./auth";
+import { notifyNewRequest } from "@/lib/push";
 
 const leaveSchema = z.object({
   leaveTypeId: z.string().min(1, "Choose a leave type"),
@@ -63,22 +64,15 @@ export async function applyLeaveAction(_prev: ActionState, formData: FormData): 
       reason: parsed.data.reason,
     },
   });
+  notifyNewRequest(me.companyId, me.employeeId, "leave", `${days}${halfDay ? " (½)" : ""}d · ${parsed.data.fromDate}`);
   revalidatePath("/leaves");
   return {};
 }
 
 export async function decideLeaveAction(leaveId: string, decision: "APPROVED" | "REJECTED") {
   const me = await requireUser();
-  const leave = await db.leaveRequest.findFirst({
-    where: { id: leaveId, companyId: me.companyId, status: "PENDING" },
-    include: { employee: { include: { department: { include: { parent: true } }, designation: true } } },
-  });
-  if (!leave) return;
-  if (!(await canDecideFor(me, leave.employee as never))) throw new Error("Not your approval to take — this routes to the department head.");
-  await db.leaveRequest.update({
-    where: { id: leaveId },
-    data: { status: decision, approverId: me.id, decidedAt: new Date() },
-  });
+  const result = await decideApproval(me, { kind: "leave", id: leaveId, approve: decision === "APPROVED" });
+  if (!result.ok && result.status === 403) throw new Error("Not your approval to take — this routes to the department head.");
   revalidatePath("/approvals");
   revalidatePath("/leaves");
   revalidatePath("/dashboard");

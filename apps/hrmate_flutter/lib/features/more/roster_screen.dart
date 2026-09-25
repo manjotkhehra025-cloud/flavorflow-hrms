@@ -161,7 +161,7 @@ class _DayRow extends StatelessWidget {
         if (swap != null)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: const Color(0xFF7C3AED).withOpacity(0.1), borderRadius: BorderRadius.circular(999)),
+            decoration: BoxDecoration(color: const Color(0xFF7C3AED).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(999)),
             child: Text(
               swap!['status'] == 'PENDING'
                   ? T.s('Swap pending', lang)

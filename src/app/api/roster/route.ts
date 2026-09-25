@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSessionUser, getUserFromToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { toDateOnly } from "@/lib/utils";
+import { notifyNewRequest } from "@/lib/push";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -139,5 +140,6 @@ export async function POST(req: NextRequest) {
       note: parsed.data.note?.trim() || null,
     },
   });
+  notifyNewRequest(me.companyId, me.employeeId, "swap", `${peer.firstName} · ${parsed.data.date}`);
   return NextResponse.json({ swap }, { status: 201 });
 }

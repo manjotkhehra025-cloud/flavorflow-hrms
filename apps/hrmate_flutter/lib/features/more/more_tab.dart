@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api.dart';
+import '../../core/app_lock.dart';
+import '../../core/push.dart';
 import '../../core/i18n.dart';
 import '../../core/session.dart';
 import '../../core/theme.dart';
@@ -128,6 +130,7 @@ class MoreTab extends ConsumerWidget {
           subtitle: lang == 'pa' ? 'ਪੰਜਾਬੀ' : 'English',
           onTap: () async => saveLang(ref, lang == 'pa' ? 'en' : 'pa'),
         ),
+        const _BiometricTile(),
         _Tile(
           icon: Icons.lock_reset,
           title: T.s('Change password', lang),
@@ -156,11 +159,14 @@ class MoreTab extends ConsumerWidget {
                 ],
               ),
             );
-            if (ok == true) await ref.read(sessionStoreProvider).clear();
+            if (ok != true) return;
+            // Stop pushes to this phone first (needs the token), then sign out.
+            await ref.read(pushServiceProvider).stop();
+            await ref.read(sessionStoreProvider).clear();
           },
         ),
         const SizedBox(height: 20),
-        Center(child: Text('HRMate · v0.5.0 · Phase 5', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
+        Center(child: Text('HRMate · v0.6.0 · Phase 6', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
       ]),
     );
   }
@@ -259,6 +265,74 @@ class _MyRequestsSheet extends ConsumerWidget {
                       },
                     ),
             ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// P6 — biometric quick-unlock switch (hidden when the phone has no sensor
+/// and no screen lock).
+class _BiometricTile extends ConsumerStatefulWidget {
+  const _BiometricTile();
+
+  @override
+  ConsumerState<_BiometricTile> createState() => _BiometricTileState();
+}
+
+class _BiometricTileState extends ConsumerState<_BiometricTile> {
+  bool? _available;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(appLockProvider).available().then((v) {
+      if (mounted) setState(() => _available = v);
+    });
+  }
+
+  Future<void> _toggle(bool on) async {
+    final lang = ref.read(langProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref.read(appLockProvider).setEnabled(on, T.s('Confirm it is you', lang));
+    if (!ok) {
+      messenger.showSnackBar(SnackBar(content: Text(T.s('Fingerprint not confirmed — unlock stays off', lang))));
+      return;
+    }
+    messenger.showSnackBar(SnackBar(
+      content: Text(on ? T.s('Fingerprint unlock is ON ✓', lang) : T.s('Fingerprint unlock is OFF', lang)),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_available != true) return const SizedBox.shrink();
+    final lang = ref.watch(langProvider);
+    final lock = ref.watch(appLockProvider);
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Row(children: [
+          CircleAvatar(
+            backgroundColor: HMC.primary.withValues(alpha: 0.1),
+            child: const Icon(Icons.fingerprint, color: HMC.primaryDark, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(T.s('Fingerprint unlock', lang), style: const TextStyle(fontWeight: FontWeight.w800, color: HMC.ink)),
+              Text(T.s('Open HRMate with your fingerprint or screen lock', lang),
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+            ]),
+          ),
+          Switch(
+            value: lock.enabled,
+            activeTrackColor: HMC.primaryDark,
+            onChanged: lock.busy ? null : _toggle,
           ),
         ]),
       ),

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, getUserFromToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { toDateOnly } from "@/lib/utils";
+import { notifyNewRequest } from "@/lib/push";
 
 async function auth(req: NextRequest) {
   const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -66,5 +67,6 @@ export async function POST(req: NextRequest) {
       reason,
     },
   });
+  notifyNewRequest(me.companyId, me.employeeId, "punch", type === "OT" ? `OT ${hours}h · ${String(body.date)}` : `${type === "MANUAL_IN" ? "In" : "Out"} ${time} · ${String(body.date)}`);
   return NextResponse.json({ request }, { status: 201 });
 }

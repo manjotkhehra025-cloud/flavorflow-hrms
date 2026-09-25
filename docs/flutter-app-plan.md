@@ -170,3 +170,63 @@ API (all Bearer-token or web-cookie auth, shared helper `src/lib/api-auth.ts`):
 Flutter: `features/social`, `features/payslip`, `features/holidays`, `features/helpdesk`
 (list + thread), `features/people` (permission picker + toggles); More tab entries; PA strings.
 CI: `build-flutter` now also runs on branches so PRs get the gate before merge.
+
+**2026-09-25** — **Pre-P6 fixes** (found while wiring P6):
+- `middleware.ts` only read the `ff_session` cookie, so every Flutter call
+  (Bearer token only) got a 401 before reaching the route. It now accepts
+  `Authorization: Bearer` too. Also made public: `/share/payslip/*` (the P5 WhatsApp
+  payslip link was bouncing to /login), static brand files (login-page logo), `/api/auth/logout`.
+- Approving a manual punch from the app (`/api/approvals/decide`) only flipped the status —
+  the attendance row was never written (the web action did it). One shared
+  `src/lib/decide.ts` now handles both, so web and app behave the same.
+- Bell alerts: SM/AGM heads (role EMPLOYEE) never saw their routed queue and ADMIN saw
+  every route; now scoped by `approverScope` (same as the Approvals inbox), plus swap decisions.
+- Flutter: a 401 now signs the phone out (was a dead home screen); More-tab nav highlight
+  was wrong for non-approvers; splash no longer uses `ref` after it can be disposed;
+  `withOpacity` → `withValues`.
+
+**2026-09-25** — **P6 Polish & Ship — code DONE** (no mockups needed per plan).
+
+API / server:
+- `PushToken` table (migration `0019_push_tokens`, additive only).
+- `POST /api/push-token {token}` · `DELETE /api/push-token {token}` (logout).
+- `GET /api/alerts` — web bell feed for the app, each item has `appPath`.
+- `src/lib/push.ts` — FCM HTTP v1 (service-account JWT, token cache, dead-token pruning).
+  "New request" → routed approvers (SM for route A, AGM for B, ADMIN/HR when vacant/no route);
+  "approved/declined" → the requester. Runs after the response (`after()`), never blocks.
+  No `FCM_SERVICE_ACCOUNT` env → silent no-op.
+- `src/lib/decide.ts` decides with `updateMany … status: PENDING` so two approvers tapping
+  at the same moment can't both win (no double push / double attendance write); approved
+  manual punches are written with `attendance.upsert` (safe against a live punch at the same time).
+
+Flutter (v0.6.0):
+- Alerts bell on Home (badge + sheet, tap opens the right tab/screen).
+- Push: permission prompt, token register/refresh, foreground banner, tap routing,
+  unregister on logout. Only active in builds with `FIREBASE_ON=true`.
+- Crashlytics: Flutter + platform errors (release builds), user id tag only.
+- Biometric quick-unlock: opt-in in More (needs one successful scan to turn on),
+  locks on cold start and after 3 min in background, "sign in with password instead".
+
+CI:
+- `tool/ci_prepare_android.py` replaces the inline heredoc: minSdk 24 (local_auth 3.x),
+  USE_BIOMETRIC, `FlutterFragmentActivity`, optional Firebase + release signing.
+  Launch/Normal themes switched to `Theme.AppCompat` (+ `androidx.appcompat`) so the
+  biometric prompt doesn't crash on Android 7–8 (local_auth requirement).
+- `build-flutter` now also runs `flutter test`.
+- New `release-flutter` (main only): release APK, versionCode = CircleCI build number,
+  artifact `HRMate-release.apk` = internal distribution.
+
+### P6 — what you need to set up (one time)
+
+1. **Firebase** (console.firebase.google.com): project → add Android app with package
+   `in.flavorflow.hrmate` → download `google-services.json`.
+   - CircleCI env `FIREBASE_GOOGLE_SERVICES_B64` = `base64 -w0 google-services.json`
+     (turns on push + Crashlytics in the APK).
+   - Project settings → Service accounts → Generate new private key → put the JSON
+     (or its base64) in the VPS `/opt/hrms/app/.env` as `FCM_SERVICE_ACCOUNT=...`, then `pm2 restart hrms`.
+2. **Release keystore** (once, keep it safe — lose it and you can't update the app):
+   `keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload`
+   → CircleCI env `HRMATE_KEYSTORE_B64` (`base64 -w0 upload-keystore.jks`),
+   `HRMATE_KEYSTORE_PASSWORD`, `HRMATE_KEY_ALIAS` (=upload), `HRMATE_KEY_PASSWORD`.
+   Without it the release APK is debug-signed (OK for testing).
+3. Until 1–2 are set everything else still works: bell alerts, biometric unlock, release APK.

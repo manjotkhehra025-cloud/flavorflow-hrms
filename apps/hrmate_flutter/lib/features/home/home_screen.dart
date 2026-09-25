@@ -9,6 +9,7 @@ import '../../core/session.dart';
 import '../../core/theme.dart';
 import 'home_data.dart';
 import 'punch_queue.dart';
+import '../alerts/alerts_sheet.dart';
 
 /// Dashboard: greeting + shift card + giant punch button (idle)
 /// or live timer ring (clocked in), per approved mockups p2-home-*.png.
@@ -49,7 +50,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: HMC.bg,
       body: RefreshIndicator(
         color: HMC.primary,
-        onRefresh: () async => ref.invalidate(attendanceProvider),
+        onRefresh: () async {
+          ref.invalidate(attendanceProvider);
+          ref.invalidate(alertsProvider);
+        },
         child: block.when(
           loading: () => const Center(child: CircularProgressIndicator(color: HMC.primary)),
           error: (e, _) => ListView(children: [
@@ -71,6 +75,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: HMC.ink),
                   ),
                 ),
+                const SizedBox(width: 8),
+                const AlertsBell(),
                 const SizedBox(width: 8),
                 InkWell(
                   borderRadius: BorderRadius.circular(20),

@@ -56,8 +56,11 @@ class SessionStore extends ChangeNotifier {
   bool get booted => _booted;
   HmUser? get user => _user;
 
-  Future<void> bootstrap() async {
+  /// [beforeReady] runs after the token is read but before the router is told
+  /// we're booted — used to raise the biometric gate with no flash of Home.
+  Future<void> bootstrap({Future<void> Function(bool hasToken)? beforeReady}) async {
     _cachedToken = await _secure.read(key: _kToken);
+    if (beforeReady != null) await beforeReady(_cachedToken != null);
     _booted = true;
     notifyListeners();
   }
