@@ -7,6 +7,8 @@ Always:
   * minSdk 24 (local_auth 3.x floor; covers camera/geolocator/firebase too)
   * permissions: INTERNET, location, biometric, camera feature (optional)
   * MainActivity -> FlutterFragmentActivity (local_auth needs a FragmentActivity)
+  * Launch/Normal themes -> Theme.AppCompat (+ androidx.appcompat dep) so the
+    biometric prompt does not crash on Android 7-8 (local_auth README)
   * app label "HRMate"
   * gradle heap capped for CircleCI medium+ (GRADLE_XMX, default 2200m)
 
@@ -94,6 +96,36 @@ def patch_main_activity():
             s = s.replace("FlutterActivity", "FlutterFragmentActivity")
             write(f, s)
         print(f"FlutterFragmentActivity in {f}")
+
+
+APPCOMPAT = "androidx.appcompat:appcompat:1.7.0"
+THEMES = {
+    "android/app/src/main/res/values/styles.xml": "@style/Theme.AppCompat.Light.NoActionBar",
+    "android/app/src/main/res/values-night/styles.xml": "@style/Theme.AppCompat.NoActionBar",
+}
+
+
+def patch_appcompat_theme(app_path):
+    for path, parent in THEMES.items():
+        if not os.path.exists(path):
+            print(f"theme: {path} missing, skipped")
+            continue
+        s = read(path)
+        s = re.sub(
+            r'(<style\s+name="(?:LaunchTheme|NormalTheme)"\s+parent=")[^"]*(")',
+            lambda m: m.group(1) + parent + m.group(2),
+            s,
+        )
+        write(path, s)
+        print(f"theme: AppCompat in {path}")
+    a = read(app_path)
+    if APPCOMPAT not in a:
+        if app_path.endswith(".kts"):
+            a += f'\ndependencies {{\n    implementation("{APPCOMPAT}")\n}}\n'
+        else:
+            a += f"\ndependencies {{\n    implementation '{APPCOMPAT}'\n}}\n"
+        write(app_path, a)
+    print(f"dep: {APPCOMPAT}")
 
 
 def patch_gradle_props():
@@ -184,6 +216,7 @@ def main():
     patch_min_sdk(app_path)
     patch_manifest()
     patch_main_activity()
+    patch_appcompat_theme(app_path)
     patch_gradle_props()
     firebase = enable_firebase(app_path)
     if "--release" in sys.argv:

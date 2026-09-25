@@ -207,6 +207,8 @@ Flutter (v0.6.0):
 CI:
 - `tool/ci_prepare_android.py` replaces the inline heredoc: minSdk 24 (local_auth 3.x),
   USE_BIOMETRIC, `FlutterFragmentActivity`, optional Firebase + release signing.
+  Launch/Normal themes switched to `Theme.AppCompat` (+ `androidx.appcompat`) so the
+  biometric prompt doesn't crash on Android 7–8 (local_auth requirement).
 - `build-flutter` now also runs `flutter test`.
 - New `release-flutter` (main only): release APK, versionCode = CircleCI build number,
   artifact `HRMate-release.apk` = internal distribution.
