@@ -122,6 +122,9 @@ jobs:
           command: |
             . "$BASH_ENV"
             flutter create . --project-name hrmate --org in.flavorflow --platforms=android
+            # Belt & braces: if `flutter create` ever (re)drops its stock template
+            # test (references a MyApp class we don't have), remove it pre-analyze.
+            if [ -f test/widget_test.dart ] && grep -q MyApp test/widget_test.dart; then rm -f test/widget_test.dart; fi
             python3 - \<<'PY'
             import re
             for f in ('android/app/build.gradle.kts', 'android/app/build.gradle'):
