@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 
 import '../../core/api.dart';
-import '../../core/i18n.dart';
 import '../../core/session.dart';
 import '../../core/theme.dart';
 
@@ -42,7 +41,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final lang = ref.watch(langProvider);
     return Scaffold(
       backgroundColor: HMC.ink,
       body: Container(

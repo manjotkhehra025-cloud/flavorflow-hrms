@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme.dart';
 import 'core/router.dart';
-import 'core/session.dart';
 import 'core/i18n.dart';
 
 void main() {
