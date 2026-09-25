@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+// (path_provider is a declared pubspec dep)
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -14,7 +14,6 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/api.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
-import 'gatekeeper_screen.dart';
 
 final idcardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final dio = ref.read(apiProvider);
