@@ -76,6 +76,40 @@ class MoreTab extends ConsumerWidget {
           subtitle: T.s('Week shifts · swap requests', lang),
           onTap: () => context.push('/roster'),
         ),
+        // ── P5: social / payslips / holidays / helpdesk / permissions ──
+        _Tile(
+          icon: Icons.forum_outlined,
+          title: T.s('Social Wall', lang),
+          subtitle: T.s('Wins, shout-outs, likes & comments', lang),
+          onTap: () => context.push('/social'),
+        ),
+        _Tile(
+          icon: Icons.receipt_long_outlined,
+          title: T.s('My payslips', lang),
+          subtitle: (user?.perms['canViewPayslip'] ?? true)
+              ? T.s('Monthly salary slips · share / PDF', lang)
+              : T.s('Turned off by super admin', lang),
+          onTap: () => context.push('/payslips'),
+        ),
+        _Tile(
+          icon: Icons.celebration_outlined,
+          title: T.s('Holidays', lang),
+          subtitle: T.s('Company holiday calendar', lang),
+          onTap: () => context.push('/holidays'),
+        ),
+        _Tile(
+          icon: Icons.support_agent_outlined,
+          title: T.s('Helpdesk', lang),
+          subtitle: T.s('Raise a ticket · chat with HR', lang),
+          onTap: () => context.push('/helpdesk'),
+        ),
+        if (user?.role == 'ADMIN')
+          _Tile(
+            icon: Icons.admin_panel_settings_outlined,
+            title: T.s('Employee permissions', lang),
+            subtitle: T.s('Super admin · feature switches per employee', lang),
+            onTap: () => context.push('/permissions'),
+          ),
         _Tile(
           icon: Icons.outbox_outlined,
           title: T.s('My requests', lang),
@@ -126,7 +160,7 @@ class MoreTab extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Center(child: Text('HRMate · v0.2.0 · Phase 2', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
+        Center(child: Text('HRMate · v0.5.0 · Phase 5', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
       ]),
     );
   }

@@ -186,7 +186,6 @@ workflows:
           filters:
             branches:
               only: main
-      - build-flutter:
-          filters:
-            branches:
-              only: main
+      # Runs on every branch (PR gate) — it only analyzes + assembles a debug APK,
+      # never deploys, so feature branches get a green/red check before merge.
+      - build-flutter
