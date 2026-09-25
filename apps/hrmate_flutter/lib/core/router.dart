@@ -11,6 +11,12 @@ import '../features/attendance/attendance_screen.dart';
 import '../features/more/idcard_screen.dart';
 import '../features/more/gatekeeper_screen.dart';
 import '../features/more/roster_screen.dart';
+import '../features/social/social_screen.dart';
+import '../features/payslip/payslips_screen.dart';
+import '../features/holidays/holidays_screen.dart';
+import '../features/helpdesk/helpdesk_screen.dart';
+import '../features/helpdesk/helpdesk_thread_screen.dart';
+import '../features/people/permissions_screen.dart';
 
 /// Route guard — mirrors the web app exactly:
 ///  booting          → /splash
@@ -55,6 +61,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/idcard', builder: (_, __) => IdCardScreen()),
       GoRoute(path: '/gatekeeper', builder: (_, __) => const GatekeeperScreen()),
       GoRoute(path: '/roster', builder: (_, __) => const RosterScreen()),
+      // ── P5 ──
+      GoRoute(path: '/social', builder: (_, __) => const SocialScreen()),
+      GoRoute(path: '/payslips', builder: (_, __) => const PayslipsScreen()),
+      GoRoute(path: '/holidays', builder: (_, __) => const HolidaysScreen()),
+      GoRoute(path: '/helpdesk', builder: (_, __) => const HelpdeskScreen()),
+      GoRoute(
+        path: '/helpdesk/:id',
+        builder: (_, state) => HelpdeskThreadScreen(id: state.pathParameters['id'] ?? ''),
+      ),
+      GoRoute(path: '/permissions', builder: (_, __) => const PermissionsPickerScreen()),
+      GoRoute(
+        path: '/permissions/:employeeId',
+        builder: (_, state) => PermissionsScreen(employeeId: state.pathParameters['employeeId'] ?? ''),
+      ),
     ],
   );
 });
