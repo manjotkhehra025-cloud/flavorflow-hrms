@@ -158,6 +158,8 @@ jobs:
             print('gradle heap capped for medium')
             PY
             flutter pub get
+            # Fast feedback: analyzer errors abort before the ~3 min assemble task
+            flutter analyze || exit 2
       - run:
           name: Assemble debug APK
           working_directory: apps/hrmate_flutter
