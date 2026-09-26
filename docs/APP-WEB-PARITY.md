@@ -23,7 +23,7 @@ This file supplements [DESIGN-RULES.md](../DESIGN-RULES.md). Rule 4 (*Features M
 | 3 | `/attendance` | Attendance history + punch flow | ✅ present |
 | 4 | `/leaves` | Leaves tab (balances + apply) | ✅ present |
 | 5 | `/approvals` | Approvals tab (leave/punch/gate/swap) | ✅ present |
-| 6 | `/idcard` (badge + gate pass) | My ID card + Gatekeeper | ⚠️ partial — gate-pass request/approve flow verify karna hai |
+| 6 | `/idcard` (badge + gate pass) | My ID card + Gatekeeper + GatePassCard (2026-09-26) | ✅ my-view done — request form + status list + verified chips (staff view-others = P2 row 13 naal) |
 | 7 | `/roster` | My Roster + swap | ✅ present (my-view; staff roster board = row 20) |
 | 8 | `/holidays` | Holidays (+add/delete for staff) | ✅ present |
 | 9 | `/helpdesk`, `/helpdesk/[id]` | Helpdesk + thread | ✅ present |
