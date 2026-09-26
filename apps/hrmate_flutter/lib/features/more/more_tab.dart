@@ -117,6 +117,14 @@ class MoreTab extends ConsumerWidget {
           subtitle: T.s('Raise a ticket · chat with HR', lang),
           onTap: () => context.push('/helpdesk'),
         ),
+        // ── P2 slice 1: employees directory (staff only) ──
+        if (user?.role != 'EMPLOYEE')
+          _Tile(
+            icon: Icons.people_outline,
+            title: T.s('Employees', lang),
+            subtitle: T.s('Directory · profiles · KYC · letters · pay', lang),
+            onTap: () => context.push('/employees'),
+          ),
         if (user?.role == 'ADMIN')
           _Tile(
             icon: Icons.admin_panel_settings_outlined,
@@ -178,7 +186,7 @@ class MoreTab extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Center(child: Text('HRMate · v0.6.0 · Phase 6', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
+        Center(child: Text('HRMate · v0.7.0 · P2 slice 1 Employees', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
       ]),
     );
   }
