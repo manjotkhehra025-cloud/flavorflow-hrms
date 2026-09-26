@@ -183,8 +183,21 @@ export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode
               : geoWeak
                 ? <Tt>{`Weak GPS (${geoInfo}) — stand in the open for a better fix…`}</Tt>
                 : geoInfo
-                ? <Tt>{`Inside factory zone · ${geoInfo} from gate ✔`}</Tt>
-                : <Tt>Checking your location…</Tt>}
+                  ? <Tt>{`Inside factory zone · ${geoInfo} from gate ✔`}</Tt>
+                  : <Tt>Checking your location…</Tt>}
+          </p>
+        )}
+        {geofence && geoBlocked && (
+          <p className="mt-1 text-center text-[10px] text-slate-400">
+            <Tt>Gate pin</Tt>: {geofence.lat.toFixed(6)}, {geofence.lng.toFixed(6)}{" · "}
+            <a
+              href={`https://maps.google.com/?q=${geofence.lat},${geofence.lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-bold underline"
+            >
+              <Tt>map</Tt> ↗
+            </a>
           </p>
         )}
         </>
