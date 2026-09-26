@@ -151,9 +151,10 @@ export async function getAlerts(me: Me, opts?: { lang?: Lang }): Promise<{ count
       });
     }
     for (const r of punches) {
+      const punchKind = r.type === "OT" ? "OT" : tr("Manual punch");
       push(items, {
         kind: r.status === "APPROVED" ? "check" : "x",
-        title: `${r.type === "OT" ? "OT " : ""}${verdict(r.status === "APPROVED")}`,
+        title: `${punchKind} ${verdict(r.status === "APPROVED")}`,
         body: r.reason ?? "",
         href: "/attendance",
         at: r.decidedAt,

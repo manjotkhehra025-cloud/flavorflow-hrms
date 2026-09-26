@@ -28,6 +28,7 @@ class AttendanceScreen extends ConsumerWidget {
             final now = DateTime.now();
             final daysThisMonth = now.day;
             final present = b.records.where((r) => r['status'] == 'PRESENT' || r['status'] == 'HALF_DAY').length;
+            final otTotal = b.records.fold<double>(0, (a, r) => a + ((r['otHours'] as num?)?.toDouble() ?? 0));
             final records = b.records.take(30).toList();
             final weekStart = now.subtract(Duration(days: now.weekday - 1));
             final byDay = {for (var r in records) _dateKey(DateTime.tryParse('${r['date']}') ?? now): r};
@@ -58,7 +59,9 @@ class AttendanceScreen extends ConsumerWidget {
                           '${T.s('You were present on', lang)} $present / $daysThisMonth',
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, height: 1.3),
                         ),
-                        Text(T.s('Sept target: quota met for OT', lang), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                        Text(
+                          otTotal > 0 ? '${otTotal.toStringAsFixed(1)} ${T.s('h OT this month', lang)}' : T.s('No OT this month', lang),
+                          style: const TextStyle(color: Colors.white54, fontSize: 12)),
                       ]),
                     ),
                   ]),
@@ -173,7 +176,9 @@ class _DayCard extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${T.s('Check in', lang)} · ${_hm(inAt)}  ·  ${T.s('Check out', lang)} · ${_hm(outAt)}',
+              Text('${T.s('Check in', lang)} · ${_hm(inAt)}',
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: HMC.ink)),
+              Text('${T.s('Check out', lang)} · ${_hm(outAt)}',
                   style: const TextStyle(fontWeight: FontWeight.w700, color: HMC.ink)),
               const SizedBox(height: 2),
               Text(shiftName, style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),

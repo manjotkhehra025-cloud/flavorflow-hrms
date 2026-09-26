@@ -12,6 +12,7 @@ import '../features/more/idcard_screen.dart';
 import '../features/more/gatekeeper_screen.dart';
 import '../features/more/roster_screen.dart';
 import '../features/social/social_screen.dart';
+import '../features/kra/kra_screen.dart';
 import '../features/payslip/payslips_screen.dart';
 import '../features/holidays/holidays_screen.dart';
 import '../features/helpdesk/helpdesk_screen.dart';
@@ -63,6 +64,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/roster', builder: (_, __) => const RosterScreen()),
       // ── P5 ──
       GoRoute(path: '/social', builder: (_, __) => const SocialScreen()),
+      GoRoute(path: '/kra', builder: (_, __) => const KraScreen()),
       GoRoute(path: '/payslips', builder: (_, __) => const PayslipsScreen()),
       GoRoute(path: '/holidays', builder: (_, __) => const HolidaysScreen()),
       GoRoute(path: '/helpdesk', builder: (_, __) => const HelpdeskScreen()),

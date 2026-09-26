@@ -48,8 +48,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: HMC.bg,
-      body: RefreshIndicator(
-        color: HMC.primary,
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: HMC.primary,
         onRefresh: () async {
           ref.invalidate(attendanceProvider);
           ref.invalidate(alertsProvider);
@@ -123,9 +124,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               const SizedBox(height: 44),
               Center(
-                child: (b.checkInAt == null || b.checkOutAt != null)
-                    ? _PunchIdleCircle(canPunch: ref.read(sessionStoreProvider).user?.perms['canPunch'] ?? true, lang: lang)
-                    : _LiveRing(start: b.checkInAt!, durationH: (b.shift['durationH'] as num).toDouble(), lang: lang),
+                child: b.checkOutAt != null
+                    ? _PunchDoneCircle(lang: lang)
+                    : b.checkInAt == null
+                        ? _PunchIdleCircle(canPunch: ref.read(sessionStoreProvider).user?.perms['canPunch'] ?? true, lang: lang)
+                        : _LiveRing(start: b.checkInAt!, durationH: (b.shift['durationH'] as num).toDouble(), lang: lang),
               ),
               const SizedBox(height: 12),
               Center(
@@ -165,6 +168,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
             ],
           ),
+          ),
         ),
       ),
     );
@@ -173,14 +177,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _shiftLine(AttendanceBlock b, String lang) {
     final name = b.shift['name'] ?? 'General Day Shift';
     final start = b.shift['startTime'] ?? '08:00';
-    final hrs = (b.shift['durationH'] as num).toStringAsFixed(1);
-    return '$name · $start–${((int.tryParse(start.split(':')[0]) ?? 8) + (double.tryParse(hrs) ?? 9)).toInt()}:30 · $hrs h';
+    final durH = (b.shift['durationH'] as num?)?.toDouble() ?? 9;
+    final parts = start.split(':');
+    final totalMin =
+        (int.tryParse(parts[0]) ?? 8) * 60 + (parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0) + (durH * 60).round();
+    final end = '${((totalMin ~/ 60) % 24).toString().padLeft(2, '0')}:${(totalMin % 60).toString().padLeft(2, '0')}';
+    return '$name · $start–$end · ${durH.toStringAsFixed(1)} h';
   }
 
   String _hm(DateTime d) {
     final h = d.toLocal().hour.toString().padLeft(2, '0');
     final m = d.toLocal().minute.toString().padLeft(2, '0');
     return '$h:$m';
+  }
+}
+
+class _PunchDoneCircle extends StatelessWidget {
+  final String lang;
+  const _PunchDoneCircle({required this.lang});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 220,
+      height: 220,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 40, offset: Offset(0, 18))],
+      ),
+      child: Center(
+        child: Container(
+          width: 168,
+          height: 168,
+          decoration: const BoxDecoration(shape: BoxShape.circle, color: HMC.primaryDark),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.check_circle_outline, size: 40, color: Colors.white),
+            const SizedBox(height: 8),
+            Text(
+              T.s('DONE', lang),
+              style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: 1.4),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 }
 

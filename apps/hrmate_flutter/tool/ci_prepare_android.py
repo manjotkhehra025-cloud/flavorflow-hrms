@@ -23,6 +23,8 @@ Optional, from CircleCI project env vars (never committed):
          Without it, release builds keep Flutter's debug signing.
 """
 import base64
+import binascii
+import json
 import glob
 import os
 import re
@@ -141,12 +143,71 @@ def patch_gradle_props():
     print(f"gradle heap -Xmx{xmx}")
 
 
-def enable_firebase(app_path):
-    blob = os.environ.get("FIREBASE_GOOGLE_SERVICES_B64", "").strip()
+PACKAGE = "in.flavorflow.hrmate"
+
+
+def decode_secret(name, raw):
+    """base64 from a CircleCI env var, forgiving of the usual paste slips:
+    spaces / line breaks, missing '=' padding. Returns bytes or None."""
+    blob = "".join(raw.split())
     if not blob:
-        print("firebase: FIREBASE_GOOGLE_SERVICES_B64 not set — push/Crashlytics stay off in this build")
+        return None
+    blob += "=" * (-len(blob) % 4)
+    try:
+        return base64.b64decode(blob, validate=True)
+    except (binascii.Error, ValueError):
+        return None
+
+
+def secret_problem(release, msg):
+    """Bad secret: the release APK must not silently ship without it; the
+    debug/PR build just carries on with the feature off."""
+    print(f"ERROR: {msg}")
+    if release:
+        sys.exit(1)
+
+
+def google_services_json(release):
+    raw = os.environ.get("FIREBASE_GOOGLE_SERVICES_B64", "").strip()
+    if not raw:
+        return None
+    if raw.startswith("{"):
+        text = raw  # raw JSON pasted instead of base64 — accept it
+    else:
+        data = decode_secret("FIREBASE_GOOGLE_SERVICES_B64", raw)
+        text = data.decode("utf-8", "replace") if data else ""
+    try:
+        j = json.loads(text)
+    except ValueError:
+        secret_problem(
+            release,
+            f"FIREBASE_GOOGLE_SERVICES_B64 is not valid base64 of google-services.json "
+            f"(length {len(raw)}, starts {raw[:4]!r}, ends {raw[-4:]!r}). Re-copy it "
+            "(PowerShell: [Convert]::ToBase64String([IO.File]::ReadAllBytes(\"$PWD\\google-services.json\")) | Set-Clipboard) "
+            "and replace the variable in CircleCI. Building WITHOUT push/Crashlytics.",
+        )
+        return None
+    pkgs = [
+        c.get("client_info", {}).get("android_client_info", {}).get("package_name")
+        for c in j.get("client", [])
+    ]
+    if PACKAGE not in pkgs:
+        secret_problem(
+            release,
+            f"google-services.json has no Android app with package {PACKAGE} (found {pkgs}). "
+            "Add that exact package in Firebase and download the file again. Building WITHOUT push/Crashlytics.",
+        )
+        return None
+    return json.dumps(j, indent=2)
+
+
+def enable_firebase(app_path, release=False):
+    text = google_services_json(release)
+    if text is None:
+        if not os.environ.get("FIREBASE_GOOGLE_SERVICES_B64", "").strip():
+            print("firebase: FIREBASE_GOOGLE_SERVICES_B64 not set — push/Crashlytics stay off in this build")
         return False
-    write("android/app/google-services.json", base64.b64decode(blob).decode("utf-8"))
+    write("android/app/google-services.json", text)
 
     settings = "android/settings.gradle.kts"
     s = read(settings)
@@ -186,8 +247,15 @@ def enable_release_signing(app_path):
     for var in ("HRMATE_KEYSTORE_PASSWORD", "HRMATE_KEY_ALIAS", "HRMATE_KEY_PASSWORD"):
         if not os.environ.get(var):
             sys.exit(f"signing: {var} missing (set it next to HRMATE_KEYSTORE_B64)")
+    data = decode_secret("HRMATE_KEYSTORE_B64", blob)
+    if not data or len(data) < 500:
+        sys.exit(
+            f"ERROR: HRMATE_KEYSTORE_B64 is not valid base64 of upload-keystore.jks "
+            f"(length {len(blob)}, starts {blob[:4]!r}). It should start with 'MII'. Re-copy it "
+            "and replace the variable in CircleCI."
+        )
     with open("android/app/upload-keystore.jks", "wb") as f:
-        f.write(base64.b64decode(blob))
+        f.write(data)
 
     a = read(app_path)
     if 'create("release")' not in a:
@@ -218,7 +286,7 @@ def main():
     patch_main_activity()
     patch_appcompat_theme(app_path)
     patch_gradle_props()
-    firebase = enable_firebase(app_path)
+    firebase = enable_firebase(app_path, release="--release" in sys.argv)
     if "--release" in sys.argv:
         enable_release_signing(app_path)
     # Last line is machine-read by the CI step.

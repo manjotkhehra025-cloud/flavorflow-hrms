@@ -26,7 +26,7 @@ class RosterScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(T.s('My Roster', lang))),
       backgroundColor: HMC.bg,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         backgroundColor: const Color(0xFF7C3AED),
         foregroundColor: Colors.white,
         onPressed: () async {
@@ -38,7 +38,8 @@ class RosterScreen extends ConsumerWidget {
           );
           if (done == true) ref.invalidate(rosterProvider);
         },
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.swap_horiz),
+        label: Text(T.s('Swap shift', lang), style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: RefreshIndicator(
         color: HMC.primary,
@@ -53,7 +54,7 @@ class RosterScreen extends ConsumerWidget {
             final days = ((j['days'] as List?) ?? const []).map((e) => (e as Map).cast<String, dynamic>()).toList();
             final swaps = ((j['swaps'] as List?) ?? const []).map((e) => (e as Map).cast<String, dynamic>()).toList();
             final byDate = {for (final s in swaps) '${s['date']}': s};
-            final monthAnchor = days.isNotEmpty ? DateTime.tryParse('${days[3]['date']}') : DateTime.now();
+            final monthAnchor = days.isNotEmpty ? DateTime.tryParse('${days[days.length ~/ 2]['date']}') : DateTime.now();
             return ListView(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 100),
               children: [

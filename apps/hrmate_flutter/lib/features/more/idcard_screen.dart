@@ -14,6 +14,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/api.dart';
 import '../../core/i18n.dart';
 import '../../core/theme.dart';
+import 'gatepass_section.dart';
 
 final idcardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final dio = ref.read(apiProvider);
@@ -69,6 +70,8 @@ class IdCardScreen extends ConsumerWidget {
                 label: Text(T.s('Download / share PNG', lang), style: const TextStyle(fontWeight: FontWeight.w800)),
                 onPressed: () => _sharePng(context, '${j['code']}'),
               ),
+              const SizedBox(height: 18),
+              const GatePassCard(),
             ],
           );
         },
