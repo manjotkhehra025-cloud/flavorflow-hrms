@@ -20,6 +20,8 @@ import '../features/holidays/holidays_screen.dart';
 import '../features/helpdesk/helpdesk_screen.dart';
 import '../features/helpdesk/helpdesk_thread_screen.dart';
 import '../features/people/permissions_screen.dart';
+import '../features/employees/employees_screen.dart';
+import '../features/employees/employee_detail_screen.dart';
 
 /// Route guard — mirrors the web app exactly:
 ///  booting          → /splash
@@ -84,6 +86,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/permissions/:employeeId',
         builder: (_, state) => PermissionsScreen(employeeId: state.pathParameters['employeeId'] ?? ''),
+      ),
+      // ── P2 slice 1: employees directory + profile (parity row 13) ──
+      GoRoute(path: '/employees', builder: (_, __) => const EmployeesScreen()),
+      GoRoute(
+        path: '/employees/:id',
+        builder: (_, state) => EmployeeDetailScreen(id: state.pathParameters['id'] ?? ''),
       ),
     ],
   );
