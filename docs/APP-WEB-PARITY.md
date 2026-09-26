@@ -36,7 +36,7 @@ This file supplements [DESIGN-RULES.md](../DESIGN-RULES.md). Rule 4 (*Features M
 | 16 | `/departments` | — | ❌ missing (dept + designation editors) |
 | 17 | `/reports` (+ gate-pass/late/leave-balance/ot) | — | ❌ missing (5 reports) |
 | 18 | `/tops` (TOPS Weekly) | — | ❌ missing |
-| 19 | `/kra`, `/kra/manage` | — | ❌ missing (my KRA + templates) |
+| 19 | `/kra`, `/kra/manage` | My KRA screen (2026-09-26) | ✅ my-view done — hero ring + goals + self-update + history (manage templates = P2 staff) |
 | 20 | `/roster` (staff board) | — | ❌ missing (staff view; my-view exists — row 7) |
 | 21 | `/star` (Employee of the Month) | — | ❌ missing |
 | 22 | `/letters/[id]` | — | ❌ missing (offer/relieving letter view + PDF) |
