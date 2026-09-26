@@ -55,6 +55,7 @@ model Company {
   payrollRuns         PayrollRun[]
   shiftAssignments    ShiftAssignment[]
   payslipLinks        PayslipLink[]
+  letterLinks         LetterLink[]
   socialPosts         SocialPost[]
   kycDocs             KycDoc[]
   shiftSwapRequests   ShiftSwapRequest[]
@@ -597,8 +598,24 @@ model Letter {
   issuedTo   String? // e.g. bank / verifier for KYC
   createdBy  String?
   createdAt  DateTime @default(now())
+  links      LetterLink[]
 
   @@index([companyId, employeeId])
+}
+
+// Public (token-gated) share link for a letter — mirrors PayslipLink: the
+// token opens the printable letterhead page, no login needed (bank/KYC use).
+model LetterLink {
+  id        String    @id @default(cuid())
+  token     String    @unique @default(cuid())
+  letterId  String    @unique
+  letter    Letter    @relation(fields: [letterId], references: [id], onDelete: Cascade)
+  companyId String
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  Company   Company   @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
 }
 
 // ---------- Phase C1: KRA (quarterly, weightage + targets, auto-score) ----------

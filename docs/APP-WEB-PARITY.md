@@ -39,7 +39,7 @@ This file supplements [DESIGN-RULES.md](../DESIGN-RULES.md). Rule 4 (*Features M
 | 19 | `/kra`, `/kra/manage` | My KRA screen (2026-09-26) | ✅ my-view done — hero ring + goals + self-update + history (manage templates = P2 staff) |
 | 20 | `/roster` (staff board) | — | ❌ missing (staff view; my-view exists — row 7) |
 | 21 | `/star` (Employee of the Month) | — | ❌ missing |
-| 22 | `/letters/[id]` | — | ❌ missing (offer/relieving letter view + PDF) |
+| 22 | `/letters`, `/letters/[id]` | My Letters list + letter sheet + Share/PDF (2026-09-26) | ✅ present — list (own letters; staff all + names), full letterhead sheet, public share token link (LetterLink) + copy, web `/letters` page added same day |
 | 23 | `/settings` | — | ❌ missing (shifts, policies, company) |
 | 24 | `/activity` | — | ❌ missing (audit log) |
 

@@ -1,24 +1,12 @@
-import { Pa } from "@/components/Pa";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { fmtDate } from "@/lib/utils";
 import { PrintButton } from "@/components/PrintButton";
+import { LetterSheet } from "@/components/LetterSheet";
+import { LetterShareButtons } from "@/components/LetterShareButtons";
+import { displayRef, LETTER_TYPE_TITLES } from "@/lib/letter-doc";
 
 export const dynamic = "force-dynamic";
-
-const TYPE_TITLES: Record<string, string> = {
-  EXPERIENCE: "EXPERIENCE CERTIFICATE",
-  JOINING: "JOINING / APPOINTMENT LETTER",
-  KYC: "EMPLOYMENT VERIFICATION LETTER",
-  DUTY: "DUTY & SHIFT PASS",
-};
-
-/** Render-friendly ref: GDF/HR/2026/{empCode}-0007 (serial suffix stays global). */
-function displayRef(serial: string, empCode: string): string {
-  const m = serial.match(/^(.*\/HR\/[0-9]{4})\/(\d+)$/);
-  return m ? `${m[1]}/${empCode}-${m[2]}` : serial;
-}
 
 export default async function LetterPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await requireUser();
@@ -35,141 +23,23 @@ export default async function LetterPage({ params }: { params: Promise<{ id: str
   // Owner employee can view own letters, staff can view all
   if (me.role === "EMPLOYEE" && letter.employeeId !== me.employeeId) notFound();
 
-  const e = letter.employee;
-  const name = `${e.firstName} ${e.lastName}`;
-  const role = e.designation?.title ?? "employee";
-  const dept = e.department?.name ?? "company";
-  const title = TYPE_TITLES[letter.type] ?? "LETTER";
-  const addressee = letter.issuedTo ? `To,\n${letter.issuedTo}` : "To Whom It May Concern";
+  const title = LETTER_TYPE_TITLES[letter.type] ?? "LETTER";
 
   return (
     <div className="print-area mx-auto max-w-3xl">
       <div className="mb-4 flex items-center justify-between print:hidden">
         <div className="text-sm font-semibold text-slate-600">
-          Ref: <span className="font-black text-emerald-700">{displayRef(letter.serial, e.code)}</span>
+          Ref: <span className="font-black text-emerald-700">{displayRef(letter.serial, letter.employee.code)}</span>
           <span className="ml-2 text-xs text-slate-400">({title.toLowerCase()})</span>
         </div>
-        <PrintButton />
+        <div className="flex items-center gap-2">
+          <LetterShareButtons letterId={letter.id} />
+          <PrintButton />
+        </div>
       </div>
 
       {/* Letterhead sheet */}
-      <div className="rounded-xl bg-white p-8 shadow-pop ring-1 ring-slate-200/70 md:p-12 print:rounded-none print:p-0 print:shadow-none print:ring-0">
-        <div className="border-b-4 border-emerald-500 pb-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="text-2xl font-black tracking-tight text-[#0a1628]">{letter.company.name.toUpperCase()}</div>
-              <div className="mt-1 text-xs text-slate-500">
-                V.P.O. Khadur Sahib, Tarn Taran, Punjab – 143117, India
-              </div>
-            </div>
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#0a1628] text-lg font-black text-emerald-400">
-              GD
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex items-center justify-between text-sm text-slate-700">
-          <div>{<Pa>Ref:</Pa>}<b>{displayRef(letter.serial, e.code)}</b></div>
-          <div>{<Pa>Dated:</Pa>}<b>{fmtDate(letter.createdAt)}</b></div>
-        </div>
-
-        <div className="mt-6 whitespace-pre-line text-sm leading-relaxed text-slate-700">{addressee},</div>
-
-        <h1 className="mt-8 text-center text-lg font-black tracking-[0.25em] text-[#0a1628] underline decoration-emerald-500 decoration-2 underline-offset-8">
-          {title}
-        </h1>
-
-        <div className="mt-8 space-y-4 text-justify text-[15px] leading-[1.9] text-slate-800">
-          {letter.type === "EXPERIENCE" && (
-            <>
-              <p>
-                This is to certify that <b>Mr./Ms. {name}</b>{<Pa>, holding Employee ID</Pa>}<b>{e.code}</b>, has been working
-                with <b>{letter.company.name}</b>{<Pa>as</Pa>}<b>{role}</b>{<Pa>in the</Pa>}<b>{dept}</b> department since{" "}
-                <b>{fmtDate(e.joinDate)}</b>.
-              </p>
-              <p>
-                During the tenure, we have found {name.split(" ")[0].toLowerCase().startsWith("s") ? "him/her" : "him/her"} sincere,
-                hardworking, and punctual in all duties assigned. The employee has maintained good conduct
-                and discipline on the factory floor and has always complied with company policies.
-              </p>
-              <p>
-                We wish <b>{name}</b> all the best in future endeavours.
-              </p>
-            </>
-          )}
-          {letter.type === "JOINING" && (
-            <>
-              <p>
-                We are pleased to confirm the appointment of <b>Mr./Ms. {name}</b>{<Pa>, Employee ID</Pa>}<b>{e.code}</b>,
-                with <b>{letter.company.name}</b>{<Pa>as</Pa>}<b>{role}</b>{<Pa>in the</Pa>}<b>{dept}</b> department, effective{" "}
-                <b>{fmtDate(e.joinDate)}</b>.
-              </p>
-              <p>
-                The employment is subject to the company's standing orders, shift schedules, and factory rules as
-                applicable. Weekly off and leave entitlement shall apply as per the staff category assigned
-                ({e.category === "YELLOW_CARD" ? "Yellow Card Staff — 15 Earned Leaves per year" : "Official Staff — standard leave policy"}).
-              </p>
-              <p>
-                We extend a warm welcome to the team.
-              </p>
-            </>
-          )}
-          {letter.type === "DUTY" && (
-            <>
-              <p>
-                This is to certify that <b>Mr./Ms. {name}</b>{<Pa>, holding Employee ID</Pa>}<b>{e.code}</b>, is a
-                bonafide employee of <b>{letter.company.name}</b>{<Pa>in the</Pa>}<b>{dept}</b> department.
-                This pass authorizes him/her to report for official duty within the factory premises as per
-                the shift roster assigned from time to time, including early-morning and night shifts.
-              </p>
-              <p>
-                The holder is requested to carry this pass along with the company ID card at all times.
-                Traffic authorities and check-posts are requested to permit duty travel accordingly.
-              </p>
-              <p>
-                This pass is valid for the period of active employment and must be surrendered on leaving service.
-              </p>
-            </>
-          )}
-          {letter.type === "KYC" && (
-            <>
-              <p>
-                This is to verify, at the request of {letter.issuedTo ? <b>{letter.issuedTo}</b> : "the concerned authority"},
-                that <b>Mr./Ms. {name}</b>{<Pa>, holding Employee ID</Pa>}<b>{e.code}</b>, is presently employed
-                with <b>{letter.company.name}</b>{<Pa>as</Pa>}<b>{role}</b>{<Pa>in the</Pa>}<b>{dept}</b> department.
-              </p>
-              <p>
-                {e.address && <>{<Pa>As per our records, the employee's declared residential address is:</Pa>}<b>{e.address}.</b></>}
-              </p>
-              <p>
-                The employee joined the company on <b>{fmtDate(e.joinDate)}</b> and is currently on active rolls
-                with a standard shift roster. This letter is issued for {letter.issuedTo ? `${letter.issuedTo}'s` : "the applicant's"} KYC
-                verification purpose only.
-              </p>
-            </>
-          )}
-        </div>
-
-        <div className="mt-12 flex items-end justify-between">
-          <div className="text-xs text-slate-400">
-            <div className="relative flex h-20 w-20 -rotate-12 items-center justify-center rounded-full border-[3px] border-emerald-600/70">
-              <div className="absolute inset-1 rounded-full border border-emerald-600/50" />
-              <div className="text-center text-[7px] font-black uppercase leading-tight tracking-wider text-emerald-700">
-                {letter.company.name.split(" ").slice(0, 2).join(" ")}<br />Officially<br />Verified
-              </div>
-            </div>
-            <div className="mt-1 text-center text-[10px]">{<Pa>Official Seal</Pa>}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-sm font-bold text-slate-700">For {letter.company.name}</div>
-            <div className="mt-10 border-t border-slate-300 pt-1 text-xs font-semibold text-slate-500">{<Pa>Authorized Signatory (HR)</Pa>}</div>
-          </div>
-        </div>
-
-        <div className="mt-8 border-t border-slate-100 pt-3 text-center text-[10px] text-slate-400">
-          {letter.company.name} · Ref {letter.serial} · Generated via HRMate · {fmtDate(letter.createdAt)}
-        </div>
-      </div>
+      <LetterSheet letter={letter} />
     </div>
   );
 }

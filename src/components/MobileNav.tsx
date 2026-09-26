@@ -44,6 +44,7 @@ const MORE_ITEMS: { href: string; label: string; icon: Parameters<typeof Icon>[0
   { href: "/kra", label: "KRA", icon: "target" },
   { href: "/helpdesk", label: "Helpdesk", icon: "chat" },
   { href: "/payslips", label: "Payslips", icon: "wallet" },
+  { href: "/letters", label: "My Letters", icon: "doc" },
   { href: "/star", label: "Employee of the Month", icon: "star", staffOnly: true },
   { href: "/settings", label: "Settings & Shifts", icon: "sliders", staffOnly: true },
 ];

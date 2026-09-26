@@ -334,6 +334,21 @@ class T {
     'Fingerprint not confirmed — unlock stays off': 'ਉਂਗਲ ਦੀ ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋਈ — ਲੌਕ ਬੰਦ ਹੀ ਰਹੇਗਾ',
     'Fingerprint unlock is ON ✓': 'ਉਂਗਲ ਨਾਲ ਖੋਲ੍ਹਣਾ ਚਾਲੂ ✓',
     'Fingerprint unlock is OFF': 'ਉਂਗਲ ਨਾਲ ਖੋਲ੍ਹਣਾ ਬੰਦ',
+    // ── P7: my letters ──
+    'My Letters': 'ਮੇਰੇ ਖ਼ਤ',
+    'Letters': 'ਖ਼ਤ',
+    'Letter': 'ਖ਼ਤ',
+    'Experience · Joining · KYC · Duty pass': 'ਤਜਰਬਾ · ਜੁਆਇਨਿੰਗ · KYC · ਡਿਊਟੀ ਪਾਸ',
+    'letters issued': 'ਖ਼ਤ ਜਾਰੀ',
+    'No letters issued yet': 'ਹਾਲੇ ਕੋਈ ਖ਼ਤ ਜਾਰੀ ਨਹੀਂ ਹੋਇਆ',
+    'HR generates them from your profile — they appear here instantly.':
+        'HR ਇਨ੍ਹਾਂ ਨੂੰ ਤੁਹਾਡੀ ਪ੍ਰੋਫ਼ਾਈਲ ਤੋਂ ਜਾਰੀ ਕਰਦਾ ਹੈ — ਇੱਥੇ ਤੁਰੰਤ ਦਿਖਦੇ ਹਨ।',
+    'Experience Certificate': 'ਤਜਰਬੇ-ਦਾ-ਸਰਟੀਫ਼ਿਕੇਟ',
+    'Joining / Appointment Letter': 'ਜੁੜਨ-ਪੱਤਰ / ਨਿਯੁਕਤੀ-ਪੱਤਰ',
+    'KYC / Employment Verification': 'KYC / ਨੌਕਰੀ-ਤਸਦੀਕ',
+    'Duty & Shift Pass': 'ਡਿਊਟੀ ਅਤੇ ਸ਼ਿਫਟ ਪਾਸ',
+    'Your login is not linked to an employee profile yet — ask HR.':
+        'ਤੁਹਾਡਾ ਲਾਗਇਨ ਕਿਸੇ ਮੁਲਾਜ਼ਮ ਪ੍ਰੋਫ਼ਾਈਲ ਨਾਲ ਜੁੜਿਆ ਨਹੀਂ — HR ਨੂੰ ਪੁੱਛੋ।',
   };
 
   static String s(String en, String lang) => lang == 'pa' ? (_pa[en] ?? en) : en;

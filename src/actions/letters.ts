@@ -3,7 +3,7 @@ import { bt } from "@/lib/i18n";
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, requireUser } from "@/lib/auth";
 import type { ActionState } from "./auth";
 
 const LETTER_TYPES = new Set(["EXPERIENCE", "JOINING", "KYC", "DUTY"]);
@@ -42,6 +42,25 @@ export async function createLetterAction(_prev: ActionState, formData: FormData)
   revalidatePath(`/employees/${employeeId}`);
   revalidatePath(`/letters/${letter.id}`);
   return { success: `Letter ${letter.serial} ready 📄` };
+}
+
+/** Owner employee or staff: mint (or reuse) a public share token for a letter. */
+export async function createLetterLinkAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireUser();
+  const letterId = String(formData.get("letterId") ?? "");
+  const letter = await db.letter.findFirst({
+    where: { id: letterId, companyId: me.companyId },
+  });
+  if (!letter) return { error: await bt("Letter not found.") };
+  if (me.role === "EMPLOYEE" && letter.employeeId !== me.employeeId) {
+    return { error: await bt("You can only share your own letters.") };
+  }
+  const link = await db.letterLink.upsert({
+    where: { letterId: letter.id },
+    update: {},
+    create: { letterId: letter.id, companyId: me.companyId },
+  });
+  return { success: `/share/letter/${link.token}` };
 }
 
 export async function deleteLetterAction(letterId: string) {
