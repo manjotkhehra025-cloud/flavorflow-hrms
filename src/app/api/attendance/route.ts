@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-/** POST /api/attendance  { "action": "checkin" | "checkout", lat?, lng?, selfieRef? } */
+/** POST /api/attendance  { "action": "checkin" | "checkout", lat?, lng?, acc?, selfieRef? } */
 export async function POST(req: NextRequest) {
   const me = await auth(req);
   if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
   const action = body?.action;
   const lat = typeof body?.lat === "number" ? body.lat : undefined;
   const lng = typeof body?.lng === "number" ? body.lng : undefined;
+  const acc = typeof body?.acc === "number" ? body.acc : undefined;
   const selfieRef = typeof body?.selfieRef === "string" ? body.selfieRef : undefined;
   const date = todayDate();
 
@@ -90,6 +91,13 @@ export async function POST(req: NextRequest) {
   if (c?.geofenceEnabled && c.geoLat != null && c.geoLng != null) {
     if (lat == null || lng == null) {
       return NextResponse.json({ error: "Location is required to punch inside the factory." }, { status: 400 });
+    }
+    // Same 150 m cap as the clients: a coarser fix cannot prove fence membership.
+    if (acc != null && acc > 150) {
+      return NextResponse.json(
+        { error: `GPS too weak (\u00b1${Math.round(acc)}m) \u2014 stand in the open and retry.` },
+        { status: 400 },
+      );
     }
     const { distanceMeters } = await import("@/lib/utils");
     const dist = distanceMeters(lat, lng, c.geoLat, c.geoLng);

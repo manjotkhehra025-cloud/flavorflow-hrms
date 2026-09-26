@@ -11,10 +11,18 @@ type Mode = "in" | "out";
 
 type Geo = { lat: number; lng: number; radius: number };
 
+/**
+ * Fixes coarser than this are meaningless for a factory fence (a ±1.5 km
+ * Wi-Fi/IP fix at the gate reads "1.36 km away" and wrongly kills the
+ * button). Such fixes are ignored — the UI asks for open sky instead.
+ */
+const MAX_GPS_ACC = 150; // metres
+
 export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode; selfieRequired: boolean; geofence?: Geo | null }) {
   const [stage, setStage] = useState<"idle" | "locating" | "camera" | "working" | "error">("idle");
-  const [coords, setCoords] = useState<{ lat: number; lng: number; dist: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number; dist: number; acc: number } | null>(null);
   const [geoBlocked, setGeoBlocked] = useState<boolean>(false); // outside fence → button dead
+  const [geoWeak, setGeoWeak] = useState<boolean>(false); // fix too coarse to judge → ask for open sky
   const [geoInfo, setGeoInfo] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -29,11 +37,20 @@ export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode
     const R = 6371000, r = (d: number) => (d * Math.PI) / 180;
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
+        const acc = pos.coords.accuracy;
+        if (acc == null || acc > MAX_GPS_ACC) {
+          setCoords(null);
+          setGeoBlocked(false);
+          setGeoWeak(true);
+          setGeoInfo(`\u00b1${Math.round(acc ?? 0)}m`);
+          return;
+        }
+        setGeoWeak(false);
         const a =
           Math.sin(r(pos.coords.latitude - geofence.lat) / 2) ** 2 +
           Math.cos(r(geofence.lat)) * Math.cos(r(pos.coords.latitude)) * Math.sin(r(pos.coords.longitude - geofence.lng) / 2) ** 2;
         const dist = 2 * R * Math.asin(Math.sqrt(a));
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude, dist });
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude, dist, acc });
         if (dist > geofence.radius) {
           setGeoBlocked(true);
           setGeoInfo((dist / 1000).toFixed(2) + " km");
@@ -62,6 +79,13 @@ export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        const acc = pos.coords.accuracy;
+        if (acc == null || acc > MAX_GPS_ACC) {
+          setCoords(null);
+          setErr(`GPS too weak (\u00b1${Math.round(acc ?? 0)}m) \u2014 stand in the open and retry.`);
+          setStage("error");
+          return;
+        }
         const R = 6371000, r = (d: number) => (d * Math.PI) / 180;
         const a = Math.sin(r(pos.coords.latitude - geofence!.lat) / 2) ** 2 + Math.cos(r(geofence!.lat)) * Math.cos(r(pos.coords.latitude)) * Math.sin(r(pos.coords.longitude - geofence!.lng) / 2) ** 2;
         const dist = 2 * R * Math.asin(Math.sqrt(a));
@@ -71,7 +95,7 @@ export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode
           setStage("error");
           return;
         }
-        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude, dist };
+        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude, dist, acc: pos.coords.accuracy };
         if (selfieRequired) { setStage("idle"); startCamera(); } else { punch(mode, c); }
       },
       () => { setErr("Location blocked — allow GPS access and retry."); setStage("error"); },
@@ -120,7 +144,7 @@ export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode
     await punch(mode, coords ? { ...coords, selfiePath: path } : path);
   }
 
-  async function punch(m: Mode, inp: { lat: number; lng: number; dist: number } | string | null) {
+  async function punch(m: Mode, inp: { lat: number; lng: number; dist: number; acc?: number } | string | null) {
     setStage("working");
     const args = typeof inp === "string" ? { selfiePath: inp } : (inp ?? {});
     const res = await (m === "in" ? checkInGeoAction(args) : checkOutGeoAction(args));
@@ -153,10 +177,12 @@ export function PunchWithSelfie({ mode, selfieRequired, geofence }: { mode: Mode
           <Icon name="fingerprint" className="h-6 w-6" /> {stage === "working" ? "…" : stage === "locating" ? <Tt>Locating…</Tt> : mode === "in" ? <Tt>Punch In</Tt> : <Tt>Punch Out</Tt>}
         </button>
         {geofence && (
-          <p className={`mt-2 text-center text-[11px] font-bold ${geoBlocked ? "text-red-300" : geoInfo ? "text-emerald-300" : "text-slate-400"}`}>
+          <p className={`mt-2 text-center text-[11px] font-bold ${geoBlocked ? "text-red-300" : geoWeak ? "text-amber-300" : geoInfo ? "text-emerald-300" : "text-slate-400"}`}>
             {geoBlocked
               ? <Tt>{`Outside factory — come within ${geofence.radius} m of the gate to punch (${geoInfo} away)`}</Tt>
-              : geoInfo
+              : geoWeak
+                ? <Tt>{`Weak GPS (${geoInfo}) — stand in the open for a better fix…`}</Tt>
+                : geoInfo
                 ? <Tt>{`Inside factory zone · ${geoInfo} from gate ✔`}</Tt>
                 : <Tt>Checking your location…</Tt>}
           </p>

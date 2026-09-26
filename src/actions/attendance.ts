@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { todayDate, distanceMeters } from "@/lib/utils";
 import { permDenied } from "@/lib/permissions";
 
-export type PunchInput = { selfiePath?: string; lat?: number; lng?: number; dist?: number };
+export type PunchInput = { selfiePath?: string; lat?: number; lng?: number; dist?: number; acc?: number };
 
 export async function checkInAction(input?: FormData | string) {
   await checkInImpl(input as FormData | string);
@@ -97,11 +97,15 @@ async function checkOutImpl(input?: FormData | string | PunchInput | null) {
 }
 
 /** Server-side factory geofence enforcement (F2). */
-async function geofenceCheck(companyId: string, args: { lat?: number; lng?: number }): Promise<{ error: string } | null> {
+async function geofenceCheck(companyId: string, args: { lat?: number; lng?: number; acc?: number }): Promise<{ error: string } | null> {
   const c = await db.company.findUnique({ where: { id: companyId }, select: { geofenceEnabled: true, geoLat: true, geoLng: true, geoRadius: true } });
   if (!c?.geofenceEnabled || c.geoLat == null || c.geoLng == null) return null;
   if (args.lat == null || args.lng == null) {
     return { error: "Punch needs GPS location — re-try from the punch screen." };
+  }
+  // Same 150 m cap as the clients: a coarser fix cannot prove fence membership.
+  if (args.acc != null && args.acc > 150) {
+    return { error: `GPS too weak (\u00b1${Math.round(args.acc)}m) \u2014 stand in the open and retry.` };
   }
   const dist = distanceMeters(args.lat, args.lng, c.geoLat, c.geoLng);
   if (dist > c.geoRadius) {

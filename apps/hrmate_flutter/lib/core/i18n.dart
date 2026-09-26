@@ -177,6 +177,8 @@ class T {
     'Excellent': 'ਸ਼ਾਨਦਾਰ',
     'Good': 'ਚੰਗਾ',
     'Needs work': 'ਮਿਹਨਤ ਲੋੜੀਂਦੀ',
+    'Weak GPS': 'ਕਮਜ਼ੋਰ GPS',
+    'stand in the open and retry': 'ਖੁੱਲ੍ਹੀ ਥਾਂ ਤੇ ਜਾ ਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ',
     'Decision is final': 'ਫੈਸਲਾ ਅੰਤਿਮ ਹੈ',
     'My ID card': 'ਮੇਰਾ ਆਈਡੀ ਕਾਰਡ',
     'Digital badge · gate QR · share': 'ਡਿਜ਼ੀਟਲ ਬੈਜ · ਗੇਟ QR · ਸ਼ੇਅਰ',

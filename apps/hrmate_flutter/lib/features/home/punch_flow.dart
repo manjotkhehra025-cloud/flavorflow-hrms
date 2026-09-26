@@ -30,6 +30,8 @@ class _PunchFlowState extends ConsumerState<PunchFlowScreen> {
   XFile? _shot;
   Position? _pos;
   String? _geoError;
+  int? _weakAcc;
+  bool _gpsRetried = false;
   bool _busy = false;
 
   @override
@@ -56,17 +58,38 @@ class _PunchFlowState extends ConsumerState<PunchFlowScreen> {
   }
 
   Future<void> _initGps() async {
+    _weakAcc = null;
     try {
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
-        setState(() => _geoError = 'Location permission needed to punch.');
+        if (mounted) setState(() => _geoError = 'Location permission needed to punch.');
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
-      if (mounted) setState(() => _pos = pos);
+      if (!mounted) return;
+      // Same 150 m cap as web: a coarser fix cannot prove fence membership.
+      // The first fix is often the coarse one, so retry once automatically.
+      if (pos.accuracy > 150 && !_gpsRetried) {
+        _gpsRetried = true;
+        _initGps();
+        return;
+      }
+      if (pos.accuracy > 150) {
+        setState(() {
+          _pos = null;
+          _geoError = null;
+          _weakAcc = pos.accuracy.round();
+        });
+        return;
+      }
+      setState(() {
+        _pos = pos;
+        _geoError = null;
+        _weakAcc = null;
+      });
     } catch (e) {
       if (mounted) setState(() => _geoError = 'GPS fix failed — try near a window/gate.');
     }
@@ -100,6 +123,7 @@ class _PunchFlowState extends ConsumerState<PunchFlowScreen> {
         'action': widget.action,
         'lat': _pos?.latitude,
         'lng': _pos?.longitude,
+        'acc': _pos?.accuracy,
         'selfieRef': (up.data ?? {})['path'],
       });
       await File(_shot!.path).delete().catchError((_) => File(_shot!.path));
@@ -206,8 +230,15 @@ class _PunchFlowState extends ConsumerState<PunchFlowScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: _pos != null
-                  ? _GpsCardOk(company: block?.companyName ?? 'GD Foods', geofence: block?.geofenceEnabled ?? false, lang: lang)
-                  : _GpsCardWait(error: _geoError, lang: lang),
+                  ? _GpsCardOk(
+                      company: block?.companyName ?? 'GD Foods',
+                      geofence: block?.geofenceEnabled ?? false,
+                      lang: lang,
+                      acc: _pos!.accuracy.round(),
+                    )
+                  : _weakAcc != null
+                      ? _GpsCardWeak(acc: _weakAcc!, lang: lang, onRetry: _initGps)
+                      : _GpsCardWait(error: _geoError, lang: lang),
             ),
             const Spacer(),
             Padding(
@@ -261,7 +292,8 @@ class _GpsCardOk extends StatelessWidget {
   final String company;
   final bool geofence;
   final String lang;
-  const _GpsCardOk({required this.company, required this.geofence, required this.lang});
+  final int acc;
+  const _GpsCardOk({required this.company, required this.geofence, required this.lang, required this.acc});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -277,10 +309,44 @@ class _GpsCardOk extends StatelessWidget {
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(T.s('GPS locked', lang), style: const TextStyle(fontWeight: FontWeight.w900, color: HMC.ink, fontSize: 16)),
           Text(
-            geofence ? '$company · ${T.s('inside factory fence', lang)}' : '$company · ${T.s('location attached', lang)}',
+            geofence
+                ? '$company · ${T.s('inside factory fence', lang)} · ±${acc}m'
+                : '$company · ${T.s('location attached', lang)} · ±${acc}m',
             style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
           ),
         ]),
+      ]),
+    );
+  }
+}
+
+class _GpsCardWeak extends StatelessWidget {
+  final int acc;
+  final String lang;
+  final VoidCallback onRetry;
+  const _GpsCardWeak({required this.acc, required this.lang, required this.onRetry});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: HMC.warnFade,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 16, offset: Offset(0, 4))],
+      ),
+      child: Row(children: [
+        const Icon(Icons.gps_not_fixed, color: HMC.warn),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            '${T.s('Weak GPS', lang)} (±$acc m) — ${T.s('stand in the open and retry', lang)}',
+            style: const TextStyle(fontWeight: FontWeight.w700, color: HMC.warn, fontSize: 12.5),
+          ),
+        ),
+        TextButton(
+          onPressed: onRetry,
+          child: Text(T.s('Retry', lang), style: const TextStyle(fontWeight: FontWeight.w900, color: HMC.warn)),
+        ),
       ]),
     );
   }
