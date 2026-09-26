@@ -92,6 +92,12 @@ class MoreTab extends ConsumerWidget {
           onTap: () => context.push('/kra'),
         ),
         _Tile(
+          icon: Icons.description_outlined,
+          title: T.s('My Letters', lang),
+          subtitle: T.s('Experience · Joining · KYC · Duty pass', lang),
+          onTap: () => context.push('/letters'),
+        ),
+        _Tile(
           icon: Icons.receipt_long_outlined,
           title: T.s('My payslips', lang),
           subtitle: (user?.perms['canViewPayslip'] ?? true)

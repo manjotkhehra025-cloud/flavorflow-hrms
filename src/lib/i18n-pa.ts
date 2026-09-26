@@ -170,6 +170,17 @@ export const PA: Record<string, string> = {
   "Dated:": "ਤਾਰੀਖ਼:",
   "As per our records, the employee's declared residential address is:": "ਸਾਡੇ ਰਿਕਾਰਡ ਅਨੁਸਾਰ ਐਂਪਲਾਈ ਦਾ ਦਰਸਾਇਆ ਪਣਿਕ ਪੱਤਾ ਇਹ ਹੈ:",
   "Choose a letter type.": "ਖ਼ਤ ਦੀ ਕਿਸਮ ਚੁਣੋ।",
+  "My Letters": "ਮੇਰੇ ਖ਼ਤ",
+  "Letters": "ਖ਼ਤ",
+  "Experience · Joining · KYC · Duty pass": "ਤਜਰਬਾ · ਜੁਆਇਨਿੰਗ · KYC · ਡਿਊਟੀ ਪਾਸ",
+  "letters issued": "ਖ਼ਤ ਜਾਰੀ",
+  "Duty & Shift Pass": "ਡਿਊਟੀ ਅਤੇ ਸ਼ਿਫਟ ਪਾਸ",
+  "HR generates them from your profile — they appear here instantly.": "HR ਇਨ੍ਹਾਂ ਨੂੰ ਤੁਹਾਡੀ ਪ੍ਰੋਫ਼ਾਈਲ ਤੋਂ ਜਾਰੀ ਕਰਦਾ ਹੈ — ਇੱਥੇ ਤੁਰੰਤ ਦਿਖਦੇ ਹਨ।",
+  "Letter not found.": "ਖ਼ਤ ਨਹੀਂ ਮਿਲਿਆ।",
+  "You can only share your own letters.": "ਤੁਸੀਂ ਸਿਰਫ਼ ਪਣੇ ਖ਼ਤ ਹੀ ਸ਼ੇਅਰ ਕਰ ਸਕਦੇ ਹੋ।",
+  "For": "ਵਾਸਤੇ",
+  "Officially": "ਦਫ਼ਤਰੀ ਤੌਰ 'ਤੇ",
+  "Verified": "ਤਸਦੀਕਸ਼ੁਦਾ",
 
   // ---------- photos / linking ----------
   "Choose a photo first.": "ਪਹਿਲਾਂ ਫੋਟੋ ਚੁਣੋ।",
