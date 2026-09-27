@@ -181,18 +181,25 @@ export async function deleteEmployeeAction(employeeId: string) {
   redirect("/employees");
 }
 
-/** Staff: change one employee's weekly-off day (inline, fire-and-forget). */
+/** Staff: same validated weekly-off mutation as the mobile Live Team board. */
 export async function setWeeklyOffAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireStaff();
-  const id = String(formData.get("employeeId") ?? "");
-  const weeklyOff = parseInt(String(formData.get("weeklyOff") ?? "0"), 10);
-  const res = await db.employee.updateMany({
-    where: { id, companyId: me.companyId },
-    data: { weeklyOff: Number.isFinite(weeklyOff) && weeklyOff >= 0 && weeklyOff <= 6 ? weeklyOff : 0 },
-  });
-  if (res.count === 0) return { error: await bt("Employee not found.") };
-  revalidatePath("/team");
-  return { success: await bt("Weekly off updated ✔") };
+  const { updateTeamWeeklyOff } = await import("@/lib/team");
+  const day = formData.get("weeklyOff");
+  try {
+    const result = await updateTeamWeeklyOff(me.companyId, {
+      employeeId: formData.get("employeeId"),
+      weeklyOff: typeof day === "string" && /^[0-6]$/.test(day) ? Number(day) : NaN,
+    });
+    if (!result.ok) return { error: await bt(result.error) };
+    revalidatePath("/team");
+    revalidatePath(`/employees/${result.employeeId}`);
+    revalidatePath("/roster");
+    return { success: await bt("Weekly off updated ✔") };
+  } catch (error) {
+    console.error("[team] Could not save weekly off", error);
+    return { error: await bt("Could not save weekly off. Try again.") };
+  }
 }
 
 /** Staff: create a login & link it to an existing employee (super-admin/admin flow). */

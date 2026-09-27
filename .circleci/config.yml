@@ -22,6 +22,7 @@ jobs:
           key: hrms-npm-{{ checksum "package-lock.json" }}
           paths: [~/.npm]
       - run: npx prisma generate
+      - run: npm test
       - run: npm run typecheck
       - run: npx next build
       # Assemble the standalone server bundle the VPS actually runs:
@@ -36,6 +37,31 @@ jobs:
       - persist_to_workspace:
           root: .
           paths: [.next/standalone]
+
+  # Uses only a disposable local database, never the VPS or project DB secret.
+  test-team-db:
+    docker:
+      - image: cimg/node:22.11
+      - image: postgres:16-alpine
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hrms_team_test
+    environment:
+      TEAM_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/hrms_team_test
+    steps:
+      - checkout
+      - restore_cache:
+          key: hrms-npm-{{ checksum "package-lock.json" }}
+      - run: npm ci
+      - run:
+          name: Generate client and migrate isolated test database
+          command: |
+            DATABASE_URL="$TEAM_TEST_DATABASE_URL" npx prisma generate
+            DATABASE_URL="$TEAM_TEST_DATABASE_URL" npx prisma migrate deploy
+      - run:
+          name: Live Team PostgreSQL integration tests
+          command: npm run test:integration
 
   deploy:
     docker:
@@ -130,10 +156,23 @@ jobs:
             python3 tool/ci_prepare_android.py | tee /tmp/prep.log
             grep -q '^FIREBASE_ON=true' /tmp/prep.log && echo 'export HM_DEFINES="--dart-define=FIREBASE_ON=true"' >> "$BASH_ENV" || true
             flutter pub get
-            # Fast feedback: analyzer errors/warnings abort before the ~3 min assemble
-            # task. Infos (deprecation nits etc.) are non-fatal — tracked as cleanup.
-            flutter analyze --no-fatal-infos || exit 2
-            flutter test
+      - run:
+          name: Flutter analyzer
+          working_directory: apps/hrmate_flutter
+          command: |
+            . "$BASH_ENV"
+            flutter analyze --no-fatal-infos
+      - run:
+          name: Flutter widget tests
+          working_directory: apps/hrmate_flutter
+          command: |
+            . "$BASH_ENV"
+            mkdir -p build/test-results
+            set -o pipefail
+            flutter test --reporter expanded | tee build/test-results/flutter-tests.log
+      - store_artifacts:
+          path: apps/hrmate_flutter/build/test-results
+          destination: flutter-tests
       - run:
           name: Assemble debug APK
           working_directory: apps/hrmate_flutter
@@ -188,8 +227,9 @@ workflows:
   build-deploy:
     jobs:
       - build
+      - test-team-db
       - deploy:
-          requires: [build]
+          requires: [build, test-team-db, build-flutter]
           filters:
             branches:
               only: main

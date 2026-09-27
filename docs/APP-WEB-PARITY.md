@@ -14,7 +14,7 @@ This file supplements [DESIGN-RULES.md](../DESIGN-RULES.md). Rule 4 (*Features M
 4. **Same roles** — staffOnly / approverOk / permission-switch rules app te vi laggu (web ton ulat kuch nahi).
 5. **No app-only drift** — app te koi aisa label/flow nahi jo web de ulat hovega (jivein `MANUAL_OUT` raw enum — fixed 2026-09-26).
 
-## Parity table (2026-09-26)
+## Parity table (2026-09-27)
 
 | # | Web page | App screen | Status |
 |---|---|---|---|
@@ -31,7 +31,7 @@ This file supplements [DESIGN-RULES.md](../DESIGN-RULES.md). Rule 4 (*Features M
 | 11 | web bell (alerts) | Notifications sheet | ✅ present |
 | 12 | employee toggles (web profile card) | Employee permissions | ✅ present |
 | 13 | `/employees` (+ new, + `[id]`) | Employees directory + profile (2026-09-26 P2 slice 1) | ✅ present — search (name/code/email), ACTIVE/INACTIVE filter, staff-only API (`/api/employees`), full profile: work details, contact, pay setup, balances, attendance (month), leaves, KYC, letters, advances, pay history, payroll, permissions link + ID/payslip quick actions; web parity |
-| 14 | `/team` (Live Team) | — | ❌ missing (presence board) — P2 slice 2 |
+| 14 | `/team` (Live Team) | Live Team (P2 slice 2) · [approved design](../mockups/p2-s2-live-team.png) · [verification](P2-S2-LIVE-TEAM.md) | 🟡 implemented on branch (2026-09-27) — Board + department filters + Upcoming Leaves + weekly-off saves; shared staff-only web/API rules; 50 backend tests pass; Flutter/APK/CI/live verification pending (sandbox SDK download blocked) |
 | 15 | `/payroll`, `/payroll/[id]` | — | ❌ missing (runs, draft edit, lock, excel) |
 | 16 | `/departments` | — | ❌ missing (dept + designation editors) |
 | 17 | `/reports` (+ gate-pass/late/leave-balance/ot) | — | ❌ missing (5 reports) |
