@@ -49,6 +49,7 @@ class T {
     'More': 'ਹੋਰ',
     'Weekly-off day': 'ਛੁੱਟੀ ਵਾਲਾ ਦਿਨ',
     'GPS + selfie required': 'GPS + ਸੈਲਫ਼ੀ ਲਾਜ਼ਮੀ ਹੈ',
+    'fence on': 'ਫੈਂਸ ਚਾਲੂ',
     'CHECK IN': 'ਚੈੱਕ ਇਨ',
     'Check out': 'ਚੈੱਕ ਆਉਟ',
     'PUNCH OFF': 'ਪੰਚ ਬੰਦ',

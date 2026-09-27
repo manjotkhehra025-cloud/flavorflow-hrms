@@ -17,23 +17,31 @@ final alertsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
 
 /// Header bell with unread badge (Home greeting row).
 class AlertsBell extends ConsumerWidget {
-  const AlertsBell({super.key});
+  final bool onNavy;
+  const AlertsBell({super.key, this.onNavy = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final count = ref.watch(alertsProvider).maybeWhen(data: (l) => l.length, orElse: () => 0);
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       onTap: () => showAlertsSheet(context),
       child: SizedBox(
         width: 40,
         height: 40,
         child: Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
           Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.notifications_none_rounded, color: HMC.ink, size: 22),
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: onNavy ? const Color(0xFF0F2138) : const Color(0xFFE2E8F0),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.notifications_none_rounded,
+              color: onNavy ? const Color(0xFF6EE7B7) : HMC.ink,
+              size: 18,
+            ),
           ),
           if (count > 0)
             Positioned(
