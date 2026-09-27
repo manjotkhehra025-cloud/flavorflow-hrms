@@ -218,12 +218,10 @@ class _Tile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final bool danger;
-  const _Tile({required this.icon, required this.title, required this.subtitle, required this.onTap, this.danger = false});
+  const _Tile({required this.icon, required this.title, required this.subtitle, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final c = danger ? HMC.danger : HMC.ink;
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 10),
@@ -235,13 +233,13 @@ class _Tile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           child: Row(children: [
             CircleAvatar(
-              backgroundColor: (danger ? HMC.danger : HMC.primary).withValues(alpha: 0.1),
-              child: Icon(icon, color: danger ? HMC.danger : HMC.primaryDark, size: 20),
+              backgroundColor: HMC.primary.withValues(alpha: 0.1),
+              child: Icon(icon, color: HMC.primaryDark, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.w800, color: c)),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w800, color: HMC.ink)),
                 Text(subtitle, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
               ]),
             ),
