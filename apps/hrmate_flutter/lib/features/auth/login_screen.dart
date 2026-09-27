@@ -6,8 +6,7 @@ import '../../core/i18n.dart';
 import '../../core/session.dart';
 import '../../core/theme.dart';
 
-/// Approved P1 mock login — emblem, welcome, email+password(eye), gradient
-/// sign-in capsule, EN|ਪੰਜਾਬੀ pill, geofence footnote.
+/// Product login — navy canvas + emerald sign-in (same skin as Home).
 class LoginScreen extends ConsumerStatefulWidget {
   final bool changed;
   const LoginScreen({super.key, this.changed = false});
@@ -36,11 +35,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         'password': _password.text,
       });
       await session.saveToken(res.data['token'] as String);
-      // Pull fresh flags so the guard can route to /set-password when needed.
       final meRes = await ref.read(apiProvider).get('/api/auth/me');
       final u = (meRes.data['user'] as Map?)?.cast<String, dynamic>();
       session.setUser(u != null ? HmUser.fromJson(u) : null);
-      // Guard redirects from here.
     } catch (e) {
       setState(() => _error = apiErrorMessage(e, fallback: 'Wrong email or password.'));
     } finally {
@@ -52,6 +49,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final lang = ref.watch(langProvider);
     return Scaffold(
+      backgroundColor: HMC.ink,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -59,75 +57,101 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: _LangPill(lang: lang),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF065F46),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: const Text('v0.9.3', style: TextStyle(color: Color(0xFF6EE7B7), fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.4)),
+                  ),
+                  const Spacer(),
+                  _LangPill(lang: lang),
+                ],
               ),
-              const SizedBox(height: 12),
-              Center(child: Image.asset('assets/hrmate_emblem.png', width: 120, height: 120)),
-              const SizedBox(height: 18),
-              Text(T.s('Welcome back', lang),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: HMC.ink,
-                      )),
+              const SizedBox(height: 28),
+              Center(
+                child: Container(
+                  width: 96,
+                  height: 96,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF34D399), Color(0xFF059669)],
+                    ),
+                    boxShadow: const [BoxShadow(color: Color(0x6610B981), blurRadius: 24, spreadRadius: 2)],
+                  ),
+                  child: const Icon(Icons.fingerprint, color: Colors.white, size: 48),
+                ),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                T.s('Welcome back', lang),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 28),
+              ),
               const SizedBox(height: 6),
-              Text(T.s('Sign in to your HR account', lang),
-                  textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600)),
-              const SizedBox(height: 24),
+              Text(
+                T.s('Sign in to your HR account', lang),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+              ),
+              const SizedBox(height: 28),
               if (widget.changed)
                 Container(
                   margin: const EdgeInsets.only(bottom: 14),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFECFDF5),
+                    color: const Color(0xFF064E3B),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                    border: Border.all(color: const Color(0xFF34D399)),
                   ),
                   child: Text(
                     T.s('Password saved ✔ — log in with the NEW password', lang),
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: HMC.emeraldDeep),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFA7F3D0)),
                   ),
                 ),
               TextField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
                 autocorrect: false,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.mail_outline),
-                  hintText: T.s('Email', lang),
-                ),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                cursorColor: const Color(0xFF34D399),
+                decoration: _fieldDeco(T.s('Email', lang), Icons.mail_outline),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _password,
                 obscureText: _obscure,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  hintText: T.s('Password', lang),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                cursorColor: const Color(0xFF34D399),
+                decoration: _fieldDeco(T.s('Password', lang), Icons.lock_outline).copyWith(
                   suffixIcon: IconButton(
                     onPressed: () => setState(() => _obscure = !_obscure),
-                    icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                    icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF94A3B8)),
                   ),
                 ),
                 onSubmitted: (_) => _signIn(),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 10),
-                Text(_error!, style: const TextStyle(color: HMC.danger, fontWeight: FontWeight.w600)),
+                Text(_error!, style: const TextStyle(color: Color(0xFFFCA5A5), fontWeight: FontWeight.w600)),
               ],
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
               GestureDetector(
                 onTap: _signIn,
                 child: Container(
-                  height: 54,
+                  height: 56,
                   decoration: BoxDecoration(
-                    gradient: HMC.brand,
-                    borderRadius: BorderRadius.circular(27),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x33059669), blurRadius: 14, offset: Offset(0, 6)),
-                    ],
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF34D399), Color(0xFF059669)],
+                    ),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: const [BoxShadow(color: Color(0x6610B981), blurRadius: 16, offset: Offset(0, 6))],
                   ),
                   alignment: Alignment.center,
                   child: _busy
@@ -138,16 +162,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 36),
               Text(
                 '🔒 ${T.s('Punch & attendance are geofenced', lang)}',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'HRMate · v0.9.3',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: Color(0xFF475569), fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 20),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _fieldDeco(String hint, IconData icon) {
+    return InputDecoration(
+      prefixIcon: Icon(icon, color: const Color(0xFF6EE7B7)),
+      hintText: hint,
+      hintStyle: const TextStyle(color: Color(0xFF64748B)),
+      filled: true,
+      fillColor: const Color(0xFF122033),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF34D399), width: 1.5),
       ),
     );
   }
@@ -167,11 +214,12 @@ class _LangPill extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(99),
-          border: Border.all(color: Colors.grey.shade300),
+          color: const Color(0xFF122033),
+          border: Border.all(color: const Color(0xFF1E3A4C)),
         ),
         child: Text(
           lang == 'pa' ? 'ਪੰਜਾਬੀ' : 'English',
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: HMC.ink),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
         ),
       ),
     );
