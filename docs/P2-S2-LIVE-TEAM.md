@@ -141,6 +141,14 @@ The sandbox still cannot download the Flutter/Prisma engines. Verification is mo
 - [Flutter 225](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/225): analyzer passed; two widget cases failed because they tapped an off-screen horizontal chip without scrolling. The harness now scrolls only the horizontal strip, treats missed taps as fatal, and asserts that the delayed request was actually made.
 - Added optional CI render artifacts of both approved layouts using sample data and a checked-in OFL-licensed Roboto test font. Ordinary regression tests retain the stricter Ahem test font. These are Flutter-rendered previews, not live-device screenshots.
 
+### Release gate hardening
+
+The baseline release failure was investigated: the log reports **“Gradle build daemon disappeared unexpectedly”** during `assembleRelease` (not a Firebase/keystore validation failure). Release workers now have 8 GiB, one Gradle worker and in-process Kotlin compilation to leave memory headroom for Flutter AOT/R8. Three Python tests cover resource-property validation and idempotence.
+
+Release APK verification now runs on feature branches after the other checks, with artifacts only. Production deployment is still **main-only**, and now waits for that release gate too. This prevents merging a green debug APK while discovering a broken release only after deployment. Resource changes still need a successful release job before being called verified.
+
+The second Flutter run ([227](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/227)) rendered both preview PNGs and passed the filter interactions; its remaining race-test assertion ran before Dio dispatched its queued request. The test now explicitly waits a bounded number of frames for dispatch, asserts it happened, and then exercises the out-of-order response.
+
 ## Progress
 
 - **2026-09-27:** Scope confirmed as parity P2 S2 (not the old punch-loop phase); two-screen mockup presented.

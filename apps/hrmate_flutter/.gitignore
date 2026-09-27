@@ -6,3 +6,6 @@ android/local.properties
 android/app/google-services.json
 *.jks
 android/key.properties
+# Python CI helper tests
+__pycache__/
+*.py[cod]
