@@ -9,6 +9,9 @@ class AttendanceBlock {
   final bool isWeeklyOff;
   final bool geofenceEnabled;
   final String? companyName;
+  final String? photo;
+  final String? code;
+  final String? department;
   final Map<String, int> chips;
   final List<Map<String, dynamic>> records;
 
@@ -18,22 +21,31 @@ class AttendanceBlock {
     required this.isWeeklyOff,
     required this.geofenceEnabled,
     required this.companyName,
+    required this.photo,
+    required this.code,
+    required this.department,
     required this.chips,
     required this.records,
   });
 
-  static AttendanceBlock fromJson(Map<String, dynamic> j) => AttendanceBlock(
-        today: j['today'] as Map<String, dynamic>?,
-        shift: (j['shift'] as Map?)?.cast<String, dynamic>() ??
-            const <String, dynamic>{'name': 'General Day Shift', 'startTime': '08:00', 'durationH': 9},
-        isWeeklyOff: j['isWeeklyOff'] == true,
-        geofenceEnabled: j['geofenceEnabled'] == true,
-        companyName: j['companyName'] as String?,
-        chips: ((j['chips'] as Map?) ?? const {}).map((k, v) => MapEntry('$k', v is int ? v : 0)),
-        records: ((j['records'] as List?) ?? const [])
-            .map((e) => (e as Map).cast<String, dynamic>())
-            .toList(),
-      );
+  static AttendanceBlock fromJson(Map<String, dynamic> j) {
+    final me = (j['me'] as Map?)?.cast<String, dynamic>();
+    return AttendanceBlock(
+      today: j['today'] as Map<String, dynamic>?,
+      shift: (j['shift'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{'name': 'General Day Shift', 'startTime': '08:00', 'durationH': 9},
+      isWeeklyOff: j['isWeeklyOff'] == true,
+      geofenceEnabled: j['geofenceEnabled'] == true,
+      companyName: j['companyName'] as String?,
+      photo: me?['photo'] as String?,
+      code: me?['code'] as String?,
+      department: me?['department'] as String?,
+      chips: ((j['chips'] as Map?) ?? const {}).map((k, v) => MapEntry('$k', v is int ? v : 0)),
+      records: ((j['records'] as List?) ?? const [])
+          .map((e) => (e as Map).cast<String, dynamic>())
+          .toList(),
+    );
+  }
 
   DateTime? get checkInAt => today?['checkIn'] == null ? null : DateTime.tryParse(today!['checkIn'] as String);
   DateTime? get checkOutAt => today?['checkOut'] == null ? null : DateTime.tryParse(today!['checkOut'] as String);

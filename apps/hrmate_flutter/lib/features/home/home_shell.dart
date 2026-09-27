@@ -13,8 +13,7 @@ import '../leaves/leaves_list.dart';
 import '../approvals/approvals_tab.dart';
 import '../more/more_tab.dart';
 
-/// Signed-in shell. V4 Home mockup: navy bar + center punch FAB.
-/// Tabs stay Home / Leaves / Approvals (heads only) / More.
+/// Navy dock + emerald fingerprint FAB. Approvals stays for heads.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -62,45 +61,75 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     return Scaffold(
       body: IndexedStack(index: tab, children: pages),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: GestureDetector(
         key: const ValueKey('home-fab'),
-        backgroundColor: const Color(0xFF10B981),
-        foregroundColor: HMC.ink,
-        elevation: 4,
-        onPressed: _punchFab,
-        child: const Icon(Icons.fingerprint, size: 28),
+        onTap: _punchFab,
+        child: Container(
+          width: 68,
+          height: 68,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF34D399), Color(0xFF059669)],
+            ),
+            border: Border.all(color: HMC.ink, width: 5),
+            boxShadow: const [
+              BoxShadow(color: Color(0x6610B981), blurRadius: 16, offset: Offset(0, 4)),
+            ],
+          ),
+          child: const Icon(Icons.fingerprint, color: Colors.white, size: 30),
+        ),
       ),
-      bottomNavigationBar: BottomAppBar(
+      bottomNavigationBar: Container(
         color: HMC.ink,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 7,
-        elevation: 0,
-        padding: EdgeInsets.zero,
-        height: 64,
-        child: Row(children: [
-          Expanded(child: _NavBtn(
-            icon: Icons.home_outlined, activeIcon: Icons.home,
-            label: T.s('Home', lang), selected: tab == 0,
-            onTap: () => ref.read(homeTabProvider.notifier).state = 0,
-          )),
-          Expanded(child: _NavBtn(
-            icon: Icons.eco_outlined, activeIcon: Icons.eco,
-            label: T.s('Leaves', lang), selected: tab == 1,
-            onTap: () => ref.read(homeTabProvider.notifier).state = 1,
-          )),
-          const SizedBox(width: 64),
-          if (canApprove)
-            Expanded(child: _NavBtn(
-              icon: Icons.check_circle_outline, activeIcon: Icons.check_circle,
-              label: T.s('Approvals', lang), selected: tab == 2,
-              onTap: () => ref.read(homeTabProvider.notifier).state = 2,
-            )),
-          Expanded(child: _NavBtn(
-            icon: Icons.apps_outlined, activeIcon: Icons.apps,
-            label: T.s('More', lang), selected: tab == 3,
-            onTap: () => ref.read(homeTabProvider.notifier).state = 3,
-          )),
-        ]),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 64,
+            child: Row(children: [
+              Expanded(
+                child: _NavBtn(
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_rounded,
+                  label: T.s('Home', lang),
+                  selected: tab == 0,
+                  onTap: () => ref.read(homeTabProvider.notifier).state = 0,
+                ),
+              ),
+              Expanded(
+                child: _NavBtn(
+                  icon: Icons.eco_outlined,
+                  activeIcon: Icons.eco,
+                  label: T.s('Leaves', lang),
+                  selected: tab == 1,
+                  onTap: () => ref.read(homeTabProvider.notifier).state = 1,
+                ),
+              ),
+              const SizedBox(width: 72),
+              if (canApprove)
+                Expanded(
+                  child: _NavBtn(
+                    icon: Icons.check_circle_outline,
+                    activeIcon: Icons.check_circle,
+                    label: T.s('Approvals', lang),
+                    selected: tab == 2,
+                    onTap: () => ref.read(homeTabProvider.notifier).state = 2,
+                  ),
+                ),
+              Expanded(
+                child: _NavBtn(
+                  icon: Icons.apps_outlined,
+                  activeIcon: Icons.apps,
+                  label: T.s('More', lang),
+                  selected: tab == 3,
+                  onTap: () => ref.read(homeTabProvider.notifier).state = 3,
+                ),
+              ),
+            ]),
+          ),
+        ),
       ),
     );
   }
@@ -112,20 +141,27 @@ class _NavBtn extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   const _NavBtn({
-    required this.icon, required this.activeIcon, required this.label,
-    required this.selected, required this.onTap,
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? const Color(0xFF6EE7B7) : const Color(0xFF64748B);
+    final color = selected ? const Color(0xFF6EE7B7) : const Color(0xFF8BA0B5);
     return InkWell(
       onTap: onTap,
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(selected ? activeIcon : icon, color: color, size: 22),
         const SizedBox(height: 2),
-        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800),
+        ),
       ]),
     );
   }

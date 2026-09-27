@@ -7,12 +7,12 @@ import 'package:go_router/go_router.dart';
 import '../../core/i18n.dart';
 import '../../core/session.dart';
 import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../alerts/alerts_sheet.dart';
 import 'home_data.dart';
 import 'punch_queue.dart';
 
-/// V4 Home — approved mockup: mockups/v4-home-more.png (Home frame).
-/// Punch / timer / checkout behaviour is unchanged.
+/// Product Home — green glow Check-in (user mockup), live shift/today, same punch loop.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -45,11 +45,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final queue = ref.watch(punchQueueProvider);
     final name = (session.user?.name ?? '').split(' ').first;
     final first = name.isEmpty ? '' : name[0].toUpperCase() + name.substring(1).toLowerCase();
-    final initial = first.isEmpty ? '?' : first[0];
     final canPunch = session.user?.perms['canPunch'] ?? true;
+    final token = session.cachedToken;
+    final headers = token == null ? null : {'Authorization': 'Bearer $token'};
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FA),
+      backgroundColor: const Color(0xFFF3F6F8),
       body: SafeArea(
         child: RefreshIndicator(
           color: HMC.primary,
@@ -72,17 +73,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   : b.checkInAt != null
                       ? '${T.s('In', lang)} ${_hm(b.checkInAt!)}'
                       : T.s('Not in yet', lang);
+              final sub = [
+                if ((b.department ?? '').trim().isNotEmpty) b.department,
+                if ((b.shift['name'] as String?)?.trim().isNotEmpty == true) b.shift['name'] as String,
+                if ((b.code ?? '').trim().isNotEmpty) b.code,
+              ].whereType<String>().join(' · ');
               return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
                 children: [
                   _HeroCard(
-                    initial: initial,
+                    name: session.user?.name ?? first,
                     greeting: '${T.s('ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ', lang)}, $first',
                     subtitle: [
-                      if ((b.shift['name'] as String?)?.trim().isNotEmpty == true) b.shift['name'] as String,
-                      shift,
+                      if (sub.isNotEmpty) sub,
                       if (b.isWeeklyOff) T.s('Weekly-off day', lang),
                     ].join(' · '),
+                    photo: b.photo,
+                    headers: headers,
                     lang: lang,
                     onLang: () => saveLang(ref, lang == 'pa' ? 'en' : 'pa'),
                   ),
@@ -93,51 +100,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 28),
                   Center(
                     child: b.checkOutAt != null
-                        ? _PunchChrome(
-                            child: _PunchCore(
-                              icon: Icons.check_circle_outline,
-                              label: T.s('DONE', lang),
+                        ? _GreenPunch(
+                            onTap: null,
+                            child: _PunchFace(
+                              icon: Icons.check_rounded,
+                              title: T.s('DONE', lang),
+                              caption: T.s('You are done for today ✓', lang),
                             ),
                           )
                         : b.checkInAt == null
-                            ? _PunchChrome(
+                            ? _GreenPunch(
                                 onTap: !canPunch ? null : () => context.push('/punch', extra: 'checkin'),
                                 dim: !canPunch,
-                                child: _PunchCore(
+                                child: _PunchFace(
                                   icon: Icons.fingerprint,
-                                  label: canPunch ? T.s('CHECK IN', lang) : T.s('PUNCH OFF', lang),
+                                  title: canPunch ? T.s('CHECK IN', lang) : T.s('PUNCH OFF', lang),
+                                  caption: canPunch
+                                      ? T.s('GPS + selfie', lang)
+                                      : T.s('Self punch is turned OFF — ask super admin', lang),
                                 ),
                               )
-                            : _PunchChrome(
+                            : _GreenPunch(
                                 progress: _elapsedFrac(b.checkInAt!, (b.shift['durationH'] as num?)?.toDouble() ?? 9),
                                 onTap: () => context.push('/punch', extra: 'checkout'),
-                                child: _LiveCore(start: b.checkInAt!, lang: lang),
+                                child: _LiveFace(start: b.checkInAt!, lang: lang),
                               ),
                   ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text(
-                      !canPunch
-                          ? T.s('Self punch is turned OFF — ask super admin', lang)
-                          : b.checkOutAt != null
-                              ? T.s('You are done for today ✓', lang)
-                              : b.checkInAt != null
-                                  ? '${T.s('check-in at', lang)} ${_hm(b.checkInAt!)}'
-                                  : '${T.s('GPS + selfie required', lang)}${b.geofenceEnabled ? ' · ${T.s('fence on', lang)}' : ''}',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: !canPunch ? HMC.warn : const Color(0xFF64748B),
-                        fontSize: 12.5,
-                        fontWeight: !canPunch ? FontWeight.w700 : FontWeight.w500,
+                  if (!canPunch) ...[
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Text(
+                        T.s('Self punch is turned OFF — ask super admin', lang),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: HMC.warn, fontSize: 12, fontWeight: FontWeight.w700),
                       ),
                     ),
-                  ),
+                  ] else if (b.checkInAt != null && b.checkOutAt == null) ...[
+                    const SizedBox(height: 10),
+                    Center(
+                      child: Text(
+                        '${T.s('check-in at', lang)} ${_hm(b.checkInAt!)}',
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 12.5, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 22),
                   Row(children: [
                     Expanded(
                       child: _StatCard(
                         key: const ValueKey('home-stat-shift'),
-                        dark: true,
+                        icon: Icons.schedule,
                         label: T.s('Shift', lang),
                         value: shift,
                       ),
@@ -146,7 +158,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Expanded(
                       child: _StatCard(
                         key: const ValueKey('home-stat-today'),
-                        dark: false,
+                        icon: Icons.timelapse,
                         label: T.s('Today', lang),
                         value: todayLabel,
                       ),
@@ -171,7 +183,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           foregroundColor: HMC.ink,
                         ),
                         child: Text(
-                          '${T.s('Check out', lang)} · shift ${(b.shift['durationH'] as num).toStringAsFixed(1)}h',
+                          '${T.s('Check out', lang)} · shift ${(b.shift['durationH'] as num?)?.toStringAsFixed(1) ?? '9.0'}h',
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -192,7 +204,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final parts = start.split(':');
     final totalMin = (int.tryParse(parts[0]) ?? 8) * 60 + (parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0) + (durH * 60).round();
     final end = '${((totalMin ~/ 60) % 24).toString().padLeft(2, '0')}:${(totalMin % 60).toString().padLeft(2, '0')}';
-    return '$start–$end';
+    return '$start – $end';
   }
 
   double _elapsedFrac(DateTime start, double durationH) {
@@ -206,11 +218,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _HeroCard extends StatelessWidget {
-  final String initial, greeting, subtitle, lang;
+  final String name, greeting, subtitle, lang;
+  final String? photo;
+  final Map<String, String>? headers;
   final VoidCallback onLang;
   const _HeroCard({
-    required this.initial, required this.greeting, required this.subtitle,
-    required this.lang, required this.onLang,
+    required this.name,
+    required this.greeting,
+    required this.subtitle,
+    required this.lang,
+    required this.onLang,
+    this.photo,
+    this.headers,
   });
 
   @override
@@ -219,23 +238,46 @@ class _HeroCard extends StatelessWidget {
       key: const ValueKey('home-hero'),
       padding: const EdgeInsets.fromLTRB(14, 16, 10, 16),
       decoration: BoxDecoration(
-        color: HMC.ink,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0C241C), Color(0xFF0A1628)],
+        ),
+        boxShadow: const [BoxShadow(color: Color(0x330A1628), blurRadius: 18, offset: Offset(0, 8))],
       ),
       child: Row(children: [
-        CircleAvatar(
-          radius: 26,
-          backgroundColor: const Color(0xFF123044),
-          child: Text(initial, style: const TextStyle(color: Color(0xFF6EE7B7), fontWeight: FontWeight.w800, fontSize: 20)),
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF34D399), width: 2),
+          ),
+          child: HmAvatar(name: name, photo: photo, radius: 28, headers: headers),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(greeting, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 4),
-            Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w600)),
+            Text(
+              greeting,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFE8D5A3),
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+                height: 1.15,
+              ),
+            ),
+            if (subtitle.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ],
           ]),
         ),
         const AlertsBell(onNavy: true),
@@ -245,11 +287,14 @@ class _HeroCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onLang,
           child: Container(
-            width: 32, height: 32,
+            width: 32,
+            height: 32,
             alignment: Alignment.center,
             decoration: const BoxDecoration(color: Color(0xFF0F2138), shape: BoxShape.circle),
-            child: Text(lang == 'pa' ? 'ਪੰ' : 'EN',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 9)),
+            child: Text(
+              lang == 'pa' ? 'ਪੰ' : 'EN',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 9),
+            ),
           ),
         ),
       ]),
@@ -257,48 +302,79 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
-class _PunchChrome extends StatelessWidget {
+/// Concentric green glow ring — idle Check-in matches the product mockup, not a navy disk.
+class _GreenPunch extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
   final bool dim;
   final double? progress;
-  const _PunchChrome({required this.child, this.onTap, this.dim = false, this.progress});
+  const _GreenPunch({required this.child, this.onTap, this.dim = false, this.progress});
 
   @override
   Widget build(BuildContext context) {
+    final fill = dim ? const Color(0xFF94A3B8) : const Color(0xFF12C48A);
     return GestureDetector(
       key: const ValueKey('home-punch'),
       onTap: onTap,
       child: SizedBox(
-        width: 248, height: 248,
+        width: 268,
+        height: 268,
         child: Stack(alignment: Alignment.center, children: [
           Container(
-            width: 248, height: 248,
+            width: 268,
+            height: 268,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: dim ? 0.08 : 0.28), blurRadius: 36, spreadRadius: 4)],
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF10B981).withValues(alpha: dim ? 0.08 : 0.45),
+                  blurRadius: 42,
+                  spreadRadius: 6,
+                ),
+              ],
             ),
           ),
           Container(
-            width: 236, height: 236,
+            width: 256,
+            height: 256,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFD1FAE5), width: 14),
-            ),
-          ),
-          SizedBox(
-            width: 208, height: 208,
-            child: CircularProgressIndicator(
-              value: progress == null ? 1 : progress,
-              strokeWidth: 8,
-              backgroundColor: const Color(0xFFD1FAE5),
-              valueColor: AlwaysStoppedAnimation(dim ? Colors.grey.shade400 : const Color(0xFF10B981)),
-              strokeCap: StrokeCap.round,
+              border: Border.all(color: const Color(0xFF047857), width: 16),
             ),
           ),
           Container(
-            width: 172, height: 172,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: dim ? Colors.grey.shade400 : HMC.ink),
+            width: 224,
+            height: 224,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 10),
+            ),
+          ),
+          if (progress != null)
+            SizedBox(
+              width: 214,
+              height: 214,
+              child: CircularProgressIndicator(
+                value: progress,
+                strokeWidth: 8,
+                backgroundColor: const Color(0x5534D399),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFFA7F3D0)),
+                strokeCap: StrokeCap.round,
+              ),
+            ),
+          Container(
+            width: 196,
+            height: 196,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: dim
+                    ? const [Color(0xFF94A3B8), Color(0xFF64748B)]
+                    : [fill, const Color(0xFF059669)],
+              ),
+            ),
             child: child,
           ),
         ]),
@@ -307,25 +383,45 @@ class _PunchChrome extends StatelessWidget {
   }
 }
 
-class _PunchCore extends StatelessWidget {
+class _PunchFace extends StatelessWidget {
   final IconData icon;
-  final String label;
-  const _PunchCore({required this.icon, required this.label});
+  final String title;
+  final String caption;
+  const _PunchFace({required this.icon, required this.title, required this.caption});
 
   @override
   Widget build(BuildContext context) {
     return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(icon, size: 40, color: const Color(0xFF6EE7B7)),
+      Icon(icon, size: 52, color: Colors.white),
       const SizedBox(height: 8),
-      Text(label, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1.4)),
+      Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.6,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Text(
+          caption,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Color(0xFFE7FFF5), fontSize: 11.5, fontWeight: FontWeight.w600),
+        ),
+      ),
     ]);
   }
 }
 
-class _LiveCore extends StatelessWidget {
+class _LiveFace extends StatelessWidget {
   final DateTime start;
   final String lang;
-  const _LiveCore({required this.start, required this.lang});
+  const _LiveFace({required this.start, required this.lang});
 
   @override
   Widget build(BuildContext context) {
@@ -336,31 +432,38 @@ class _LiveCore extends StatelessWidget {
         '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
         style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w200),
       ),
-      Text(T.s('Elapsed Time', lang), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+      Text(T.s('Elapsed Time', lang), style: const TextStyle(color: Color(0xFFE7FFF5), fontSize: 12, fontWeight: FontWeight.w600)),
     ]);
   }
 }
 
 class _StatCard extends StatelessWidget {
-  final bool dark;
+  final IconData icon;
   final String label, value;
-  const _StatCard({super.key, required this.dark, required this.label, required this.value});
+  const _StatCard({super.key, required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      height: 86,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: dark ? HMC.ink : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: dark ? null : Border.all(color: const Color(0xFFE2E8F0)),
+        color: const Color(0xFF1A2433),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-        Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B))),
-        const SizedBox(height: 4),
-        Text(value, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: dark ? Colors.white : HMC.ink)),
+        Row(children: [
+          Icon(icon, size: 14, color: const Color(0xFF6EE7B7)),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
+        ]),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+        ),
       ]),
     );
   }
