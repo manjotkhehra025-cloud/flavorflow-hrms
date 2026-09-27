@@ -22,6 +22,7 @@ import '../features/helpdesk/helpdesk_thread_screen.dart';
 import '../features/people/permissions_screen.dart';
 import '../features/employees/employees_screen.dart';
 import '../features/team/team_screen.dart';
+import '../features/roster/staff_roster_screen.dart';
 import '../features/employees/employee_detail_screen.dart';
 
 /// Route guard — mirrors the web app exactly:
@@ -50,7 +51,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // reachable from More even when not forced); only launch screens bounce.
       if (!mustChange && (loc == '/splash' || loc.startsWith('/login'))) return '/home';
       // Route-head employees may approve, but Live Team is staff-only.
-      if (loc == '/team' && session.user?.isStaff != true) return '/home';
+      if ((loc == '/team' || loc == '/duty-roster') && session.user?.isStaff != true) return '/home';
       return null;
     },
     routes: [
@@ -92,6 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // ── P2 slice 2: staff presence board ──
       GoRoute(path: '/team', builder: (_, __) => const TeamScreen()),
+      GoRoute(path: '/duty-roster', builder: (_, __) => const StaffRosterScreen()),
       // ── P2 slice 1: employees directory + profile (parity row 13) ──
       GoRoute(path: '/employees', builder: (_, __) => const EmployeesScreen()),
       GoRoute(

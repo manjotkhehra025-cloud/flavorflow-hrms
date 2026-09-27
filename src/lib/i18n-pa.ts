@@ -865,4 +865,11 @@ export const PA: Record<string, string> = {
   // P2 slice 2: shared weekly-off validation.
   "Could not save weekly off. Try again.": "ਹਫ਼ਤਾਵਾਰੀ ਛੁੱਟੀ ਸੇਵ ਨਹੀਂ ਹੋਈ। ਫਿਰ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
   "Choose an employee and a weekly-off day from Sunday to Saturday.": "ਮੁਲਾਜ਼ਮ ਅਤੇ ਐਤਵਾਰ ਤੋਂ ਸ਼ਨੀਵਾਰ ਵਿਚੋਂ ਛੁੱਟੀ ਦਾ ਦਿਨ ਚੁਣੋ।",
+  // P2 slice 3: staff duty roster.
+  "Only HR / admin can edit the duty roster.": "ਸਿਰਫ਼ HR / ਐਡਮਿਨ ਡਿਊਟੀ ਰੋਸਟਰ ਬਦਲ ਸਕਦੇ ਹਨ।",
+  "Could not load the duty roster. Try again.": "ਡਿਊਟੀ ਰੋਸਟਰ ਲੋਡ ਨਹੀਂ ਹੋਇਆ। ਫਿਰ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+  "Could not save the roster. Try again.": "ਰੋਸਟਰ ਸੇਵ ਨਹੀਂ ਹੋਇਆ। ਫਿਰ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+  "Choose valid roster cells to save.": "ਸੇਵ ਕਰਨ ਲਈ ਠੀਕ ਰੋਸਟਰ ਸੈੱਲ ਚੁਣੋ।",
+  "Unknown shift.": "ਸ਼ਿਫ਼ਟ ਨਹੀਂ ਮਿਲੀ।",
+  "Invalid week.": "ਹਫ਼ਤਾ ਸਹੀ ਨਹੀਂ ਹੈ।",
 };

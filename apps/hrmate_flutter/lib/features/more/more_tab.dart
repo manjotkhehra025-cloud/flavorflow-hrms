@@ -133,6 +133,13 @@ class MoreTab extends ConsumerWidget {
             subtitle: T.s('Presence · weekly off · upcoming leaves', lang),
             onTap: () => context.push('/team'),
           ),
+        if (user?.isStaff == true)
+          _Tile(
+            icon: Icons.calendar_view_week_outlined,
+            title: T.s('Duty Roster', lang),
+            subtitle: T.s('Weekly shifts · offs · swap approvals', lang),
+            onTap: () => context.push('/duty-roster'),
+          ),
         if (user?.role == 'ADMIN')
           _Tile(
             icon: Icons.admin_panel_settings_outlined,
@@ -194,7 +201,7 @@ class MoreTab extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Center(child: Text('HRMate · v0.8.0 · P2 slice 2 Live Team', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
+        Center(child: Text('HRMate · v0.9.0 · P2 slice 3 Duty Roster', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
       ]),
     );
   }
