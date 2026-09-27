@@ -37,22 +37,35 @@ class LeavesList extends ConsumerWidget {
     final canApplyLeave = ref.watch(sessionStoreProvider).user?.perms['canApplyLeave'] ?? true;
 
     return Scaffold(
-      backgroundColor: HMC.bg,
-      appBar: AppBar(title: Text(T.s('My Leaves', lang)), centerTitle: false),
-      floatingActionButton: canApplyLeave
-          ? FloatingActionButton.extended(
-              onPressed: () async {
-                final applied = await Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => const ApplyLeavePage()));
-                if (applied == true) ref.invalidate(leavesDataProvider);
-              },
-              backgroundColor: HMC.emeraldDeep,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add),
-              label: Text(T.s('Apply leave', lang), style: const TextStyle(fontWeight: FontWeight.w800)),
-            )
-          : null,
-      body: RefreshIndicator(
+      backgroundColor: const Color(0xFFF3F6F8),
+      body: SafeArea(
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Row(children: [
+              Text(T.s('My Leaves', lang), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: HMC.ink)),
+              const Spacer(),
+              if (canApplyLeave)
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF059669),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: const StadiumBorder(),
+                    minimumSize: Size.zero,
+                  ),
+                  onPressed: () async {
+                    final applied = await Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => const ApplyLeavePage()));
+                    if (applied == true) ref.invalidate(leavesDataProvider);
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(T.s('Apply leave', lang), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                ),
+            ]),
+          ),
+          Expanded(
+            child: RefreshIndicator(
         color: HMC.primary,
         onRefresh: () async => ref.invalidate(leavesDataProvider),
         child: data.when(
@@ -93,6 +106,9 @@ class LeavesList extends ConsumerWidget {
             );
           },
         ),
+            ),
+          ),
+        ]),
       ),
     );
   }
@@ -116,16 +132,15 @@ class _BalanceCard extends StatelessWidget {
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x11000000)),
+        color: HMC.ink,
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('${b['name']}', maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade600)),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8))),
         const SizedBox(height: 4),
         Text('${remNum == null ? '∞' : _trim(remNum)} ${T.s('left', lang)}',
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: HMC.ink)),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.white)),
         const Spacer(),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),

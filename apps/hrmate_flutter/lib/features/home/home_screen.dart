@@ -81,15 +81,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xFFD1FAE5), borderRadius: BorderRadius.circular(99)),
-                      child: const Text('HRMate v0.9.3', style: TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.w900, fontSize: 11)),
-                    ),
-                  ),
                   _HeroCard(
                     name: session.user?.name ?? first,
                     greeting: '${T.s('ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ', lang)}, $first',

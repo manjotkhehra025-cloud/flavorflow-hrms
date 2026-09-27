@@ -172,7 +172,7 @@ class _PunchFlowState extends ConsumerState<PunchFlowScreen> {
     final block = ref.watch(attendanceProvider).valueOrNull;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF3F6F8),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
