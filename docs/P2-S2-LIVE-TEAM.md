@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-27
 
-**Status:** DESIGN APPROVED + IMPLEMENTED ON BRANCH — backend tests/typecheck/compile checks passed; Flutter runtime, APK, CI and live verification pending. Not deployed.
+**Status:** CI VERIFIED + MERGED — PR #9 merged as `7a53dc8e69a704cbcf2d8a5bcc6d6e253a2849f0`. Main production pipeline is running; deployment/public smoke verification pending.
 
 This is **P2 slice 2 in the app–web parity plan**, not the older Flutter P2 punch-loop phase.
 
@@ -84,30 +84,34 @@ No schema migration was added and no live data was changed during development. O
 
 ## Verification
 
+Feature-branch results below are for the exact tested head `785d887869e19fba46606c43a29961480732226c`. Native analyzer, widget tests and both APKs were actually run by CircleCI despite the local SDK download restriction.
+
 | Check | Result |
 |---|---|
 | `npm test` | **PASS — 50 tests** across `tests/team.test.ts` and `tests/team-auth.test.ts` |
 | `npm run typecheck` | **PASS** |
-| Next.js production compilation/static generation | **PASS with the sandbox-only Prisma caveat below** |
+| Next.js production compilation/static generation | **PASS with normal engines in CI [234](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/234)**; earlier local check was engine-less |
 | `git diff --check` | **PASS** |
-| Flutter widget tests | Added in `test/team_screen_test.dart`; **not executed** (SDK download blocked) |
-| Flutter analyzer / APK / device screenshot comparison | **Pending** (SDK unavailable) |
-| Real PostgreSQL API integration / production verification | **Not performed** |
-| CI / deployment | Feature-branch verification queued next; deployment remains gated |
+| Flutter widget tests | **PASS — 18 tests** in [235](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/235) |
+| Flutter analyzer / APK | **PASS** — analyzer + debug APK [235](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/235), release APK [236](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/236) |
+| Native previews / device checks | Both Flutter-rendered sample-data previews produced; physical-device/authenticated production spot-check not performed |
+| Real PostgreSQL API integration | **PASS — 7 cases** against isolated PostgreSQL 16 in [233](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/233); production data was not used |
+| Android CI resource helper tests | **PASS — 3 Python cases** |
+| CI / deployment | All four feature-branch gates passed; [PR #9](https://github.com/manjotkhehra025-cloud/flavorflow-hrms/pull/9) merged. Main deployment still pending |
 
 The backend tests use a mocked database, not live employees. They cover Bearer and cookie authentication (including middleware and token expiry), ADMIN/HR allow, EMPLOYEE deny, company scoping, department counts, legacy PRESENT rows, IST midnight/year boundaries, overlapping approved leave windows, all seven weekly-off values, malformed inputs, missing/cross-company employees and retryable server errors.
 
-Flutter test cases cover counters/timings, tabs, filters, all seven weekly-off choices, pending/failed saves, employee profile navigation and return refresh, retry/pull refresh, loading/empty states, out-of-order filter responses, a narrow Punjabi layout at large text scale, date-only labels and same-origin-only photo authorization. Changed Dart files passed a syntax-parser check; **that is not a substitute for the Flutter analyzer or executing these tests**.
+Flutter test cases cover counters/timings, tabs, filters, all seven weekly-off choices, pending/failed saves, employee profile navigation and return refresh, retry/pull refresh, loading/empty states, out-of-order filter responses, a narrow Punjabi layout at large text scale, date-only labels and same-origin-only photo authorization. The initial local syntax-parser check was followed by the real Flutter analyzer and execution of the full widget suite on CircleCI; no skipped/failing test was treated as a pass.
 
-### Sandbox limitations
+### Initial sandbox limitations (resolved for verification through CI)
 
 - Flutter SDK bootstrap / `flutter test` failed before tests could start: TLS connection to `storage.googleapis.com` failed (`curl: (35) SSL_ERROR_SYSCALL`). The mirror and `pub.dev` were also unreachable from the sandbox.
 - Prisma's normal engine download from `binaries.prisma.sh` failed. Type generation and `npm run build` were checked with a **local, engine-less Prisma client** (`PRISMA_GENERATE_NO_ENGINE=1` with local engine-path overrides). This proves compilation, not a working database connection or a deployable local bundle. No engine overrides or generated clients were committed to the source tree.
-- CI retains normal Prisma generation/build and now runs `npm test`; the existing Flutter analyze/test step will pick up the new UI suite when the branch is pushed.
+- CI retained normal Prisma generation/build and executed the new native suite. Both checks and the real PostgreSQL integration succeeded after the branch was pushed.
 
-### Remaining release gate
+### Reproduce the checks
 
-In a network-enabled environment, run the normal checks (without the sandbox engine overrides):
+These checks have passed on CircleCI. To reproduce them in a network-enabled environment (without the sandbox engine overrides):
 
 ```sh
 npm ci
@@ -123,7 +127,9 @@ flutter test
 # Android wrapper/APK preparation is already handled by CircleCI.
 ```
 
-Then verify the API against PostgreSQL, compare the native UI to the approved mockup, confirm every control on device, and use the existing push → CircleCI → deployment → live-verification pipeline. **Do not mark this slice shipped until these gates pass.**
+The PostgreSQL suite runs with `npm run test:integration` and a localhost-only `TEAM_TEST_DATABASE_URL` for `hrms_team_test`; CircleCI creates/migrates the disposable database.
+
+**Remaining:** main deployment and post-deploy public smoke verification. Physical-device/authenticated production checks are not claimed by the CI tests or rendered previews.
 
 ## Remote verification continuation
 
@@ -145,7 +151,7 @@ The sandbox still cannot download the Flutter/Prisma engines. Verification is mo
 
 The baseline release failure was investigated: the log reports **“Gradle build daemon disappeared unexpectedly”** during `assembleRelease` (not a Firebase/keystore validation failure). Release workers now have 8 GiB, one Gradle worker and in-process Kotlin compilation to leave memory headroom for Flutter AOT/R8. Three Python tests cover resource-property validation and idempotence.
 
-Release APK verification now runs on feature branches after the other checks, with artifacts only. Production deployment is still **main-only**, and now waits for that release gate too. This prevents merging a green debug APK while discovering a broken release only after deployment. Resource changes still need a successful release job before being called verified.
+Release APK verification now runs on feature branches after the other checks, with artifacts only. Production deployment is still **main-only**, and now waits for that release gate too. This prevents merging a green debug APK while discovering a broken release only after deployment. The adjusted release build succeeded in [job 236](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/236).
 
 The second Flutter run ([227](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/227)) rendered both preview PNGs and passed the filter interactions; its remaining race-test assertion ran before Dio dispatched its queued request. The test now explicitly waits a bounded number of frames for dispatch, asserts it happened, and then exercises the out-of-order response.
 
@@ -153,3 +159,11 @@ The second Flutter run ([227](https://circleci.com/gh/manjotkhehra025-cloud/flav
 
 - **2026-09-27:** Scope confirmed as parity P2 S2 (not the old punch-loop phase); two-screen mockup presented.
 - **2026-09-27:** User selected **“OK — implement karo”**. Implemented the approved scope, added backend/UI tests and the CI backend test step. Local backend tests/typecheck/compile checks passed with the limitations above. **No schema migration, production write or deployment.**
+
+- **2026-09-27:** Native suite passed all 18 tests; normal backend build, 7 real PostgreSQL cases, debug APK and release APK were green on `785d887`. User asked to continue. PR #9 was marked ready and merged only after checking the exact tested head and all four successful gates. Main deploy is being monitored on commit `7a53dc8`; the local session remains on its fixed feature branch.
+
+## Final startup review follow-up
+
+A pre-existing More-tab bug was identified after the first merge: `SessionStore` is a stable `Provider`, while its user flags arrive asynchronously. More did not subscribe to its notifications, and its initial-avatar expression dereferenced a null user during that loading interval. This can hide the new staff entry or produce a loading-time exception.
+
+The follow-up (app `0.8.1+9`) listens to the existing store only inside More, uses a safe `?` avatar while loading, and preserves the same staff-only rules. It does not change the router/session architecture or backend. Three regression tests cover late ADMIN/HR flags with actual menu navigation and removing staff entries after a role change. The corrected APK must pass CI before it is the final deliverable.

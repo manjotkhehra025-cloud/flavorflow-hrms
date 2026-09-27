@@ -24,8 +24,17 @@ class MoreTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(langProvider);
     final session = ref.watch(sessionStoreProvider);
-    final user = session.user;
+    // The provider owns a stable SessionStore; user/role flags can arrive after
+    // this tab was built (cold start or sign-in). Listen to those notifications
+    // without rebuilding the router or granting staff access while loading.
+    return ListenableBuilder(
+      listenable: session,
+      builder: (context, _) => _content(context, ref, lang, session.user),
+    );
+  }
 
+  Widget _content(BuildContext context, WidgetRef ref, String lang, HmUser? user) {
+    final name = user?.name.trim() ?? '';
     return Scaffold(
       backgroundColor: HMC.bg,
       appBar: AppBar(title: Text(T.s('More', lang)), centerTitle: false),
@@ -41,7 +50,7 @@ class MoreTab extends ConsumerWidget {
               radius: 26,
               backgroundColor: Colors.white.withValues(alpha: 0.1),
               child: Text(
-                (user?.name ?? '?').trim().isEmpty ? '?' : (user!.name.trim()[0]).toUpperCase(),
+                name.isEmpty ? '?' : name[0].toUpperCase(),
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
               ),
             ),
@@ -194,7 +203,7 @@ class MoreTab extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Center(child: Text('HRMate · v0.8.0 · P2 slice 2 Live Team', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
+        Center(child: Text('HRMate · v0.8.1 · P2 slice 2 Live Team', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
       ]),
     );
   }
