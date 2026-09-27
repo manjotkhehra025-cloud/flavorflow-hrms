@@ -37,25 +37,26 @@ class ApprovalsTab extends ConsumerWidget {
     final inbox = ref.watch(approvalsProvider);
 
     return Scaffold(
-      backgroundColor: HMC.bg,
-      appBar: AppBar(
-        centerTitle: false,
-        title: Row(children: [
-          Text(T.s('Approvals', lang)),
-          const SizedBox(width: 8),
-          inbox.maybeWhen(
-            data: (rows) => rows.isEmpty
-                ? const SizedBox.shrink()
-                : Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
-                    decoration: BoxDecoration(color: HMC.amber, borderRadius: BorderRadius.circular(999)),
-                    child: Text('${rows.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: HMC.ink)),
-                  ),
-            orElse: () => const SizedBox.shrink(),
+      backgroundColor: const Color(0xFFF3F6F8),
+      body: SafeArea(
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(children: [
+              Text(T.s('Approvals', lang), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: HMC.ink)),
+              const SizedBox(width: 8),
+              inbox.maybeWhen(
+                data: (rows) => rows.isEmpty
+                    ? const SizedBox.shrink()
+                    : Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                        decoration: BoxDecoration(color: HMC.amber, borderRadius: BorderRadius.circular(999)),
+                        child: Text('${rows.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: HMC.ink)),
+                      ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ]),
           ),
-        ]),
-      ),
-      body: Column(children: [
         // filter chips (All / Leave / Punch / Gate / Swap)
         SizedBox(
           height: 48,
@@ -111,6 +112,7 @@ class ApprovalsTab extends ConsumerWidget {
           ),
         ),
       ]),
+      ),
     );
   }
 }

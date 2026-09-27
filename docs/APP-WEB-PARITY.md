@@ -37,7 +37,7 @@ This file supplements [DESIGN-RULES.md](../DESIGN-RULES.md). Rule 4 (*Features M
 | 17 | `/reports` (+ gate-pass/late/leave-balance/ot) | — | ❌ missing (5 reports) |
 | 18 | `/tops` (TOPS Weekly) | — | ❌ missing |
 | 19 | `/kra`, `/kra/manage` | My KRA screen (2026-09-26) | ✅ my-view done — hero ring + goals + self-update + history (manage templates = P2 staff) |
-| 20 | `/roster` (staff board) | — | ❌ missing (staff view; my-view exists — row 7) |
+| 20 | `/roster` (staff board) | Duty Roster (P2 slice 3) · [approved design](../mockups/p2-s3-staff-roster.png) · [verification](P2-S3-STAFF-ROSTER.md) | 🟡 implemented on branch (2026-09-27) — Grid + department filter + Save + Shift Swaps approve/reject; shared staff-only web/API rules; Flutter/APK/CI/live verification pending |
 | 21 | `/star` (Employee of the Month) | — | ❌ missing |
 | 22 | `/letters`, `/letters/[id]` | My Letters list + letter sheet + Share/PDF (2026-09-26) | ✅ present — list (own letters; staff all + names), full letterhead sheet, public share token link (LetterLink) + copy, web `/letters` page added same day |
 | 23 | `/settings` | — | ❌ missing (shifts, policies, company) |

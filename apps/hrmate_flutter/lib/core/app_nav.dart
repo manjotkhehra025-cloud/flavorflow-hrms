@@ -35,7 +35,7 @@ AppTarget resolveAppPath(String? appPath, {required bool canApprove}) {
     case '/home':
       return const AppTarget(tab: 0);
   }
-  const allowed = {'/attendance', '/idcard', '/roster', '/social', '/payslips', '/holidays', '/helpdesk'};
+  const allowed = {'/attendance', '/idcard', '/roster', '/duty-roster', '/social', '/payslips', '/holidays', '/helpdesk'};
   if (allowed.contains(p) || p.startsWith('/helpdesk/')) return AppTarget(route: p);
   return const AppTarget(tab: 0);
 }

@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     }),
     db.employee.findUnique({
       where: { id: me.employeeId },
-      include: { shift: true },
+      include: { shift: true, department: { select: { name: true } } },
     }),
     db.punchRequest.count({
       where: { employeeId: me.employeeId, status: "PENDING", type: { not: "OT" } },
@@ -58,6 +58,13 @@ export async function GET(req: NextRequest) {
       pendingOT,
       pendingPunch,
     },
+    me: emp
+      ? {
+          photo: emp.photoUrl ?? null,
+          code: emp.code,
+          department: emp.department?.name ?? null,
+        }
+      : null,
   });
 }
 

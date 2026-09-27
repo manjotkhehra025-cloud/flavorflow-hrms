@@ -1,7 +1,7 @@
 name: hrmate
 description: HRMate — GD Foods HR app (Flutter native).
 publish_to: "none"
-version: 0.8.0+8
+version: 0.9.4+13
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

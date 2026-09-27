@@ -14,13 +14,14 @@ type CellKey = string; // empId|yyyy-mm-dd
 const DAY_TAG: Record<string, string> = { "0": "Sun", "1": "Mon", "2": "Tue", "3": "Wed", "4": "Thu", "5": "Fri", "6": "Sat" };
 
 export function RosterGrid({
-  employees, shifts, days, grid, prevW, nextW,
+  employees, shifts, days, grid, prevW, nextW, today,
 }: {
   employees: Emp[];
   shifts: { id: string; name: string; startTime: string }[];
   days: string[];
   grid: Record<CellKey, { shiftId: string; isOff: boolean }>;
   prevW: string; nextW: string;
+  today?: string;
 }) {
   const ph = useT();
   const [state, action, pending] = useActionState<ActionState, FormData>(saveRosterAction, {});
@@ -84,7 +85,7 @@ export function RosterGrid({
               <th className="px-3 py-2.5 sticky left-0 bg-slate-50 min-w-[200px]"><Tt>Employee</Tt></th>
               {days.map((d) => {
                 const dt = new Date(d + "T00:00:00.000Z");
-                const isToday = d === new Date().toISOString().slice(0, 10);
+                const isToday = d === (today ?? new Date().toISOString().slice(0, 10));
                 return (
                   <th key={d} className={"px-2 py-2.5 text-center min-w-[92px] " + (isToday ? "text-emerald-600" : "")}>
                     <div>{DAY_TAG[String(dt.getUTCDay())]}</div>
