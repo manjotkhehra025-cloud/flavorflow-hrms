@@ -1,6 +1,7 @@
 # P2 · Slice 2 — Live Team on mobile
 
-**Date:** 2026-09-27  
+**Date:** 2026-09-27
+
 **Status:** DESIGN APPROVED + IMPLEMENTED ON BRANCH — backend tests/typecheck/compile checks passed; Flutter runtime, APK, CI and live verification pending. Not deployed.
 
 This is **P2 slice 2 in the app–web parity plan**, not the older Flutter P2 punch-loop phase.
@@ -132,6 +133,13 @@ The sandbox still cannot download the Flutter/Prisma engines. Verification is mo
 - Fixtures are uniquely named per run and cleaned up; no production database URL, existing company or real employee is used.
 - Production deploy now waits for backend build/tests, database integration and Flutter checks. Flutter logs are retained as CI artifacts for diagnosing failures.
 - Baseline `main` at `de743d4` already had a failing `release-flutter` job ([217](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/217)); its build, deploy and debug-Flutter jobs succeeded. This existing release failure is tracked separately from the P2 S2 checks.
+
+### First CI run (PR #9)
+
+- [Backend build 224](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/224): passed with normal Prisma engines, all 50 unit/auth tests and typecheck.
+- [Database integration 223](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/223): passed against isolated PostgreSQL 16 (seven integration cases).
+- [Flutter 225](https://circleci.com/gh/manjotkhehra025-cloud/flavorflow-hrms/225): analyzer passed; two widget cases failed because they tapped an off-screen horizontal chip without scrolling. The harness now scrolls only the horizontal strip, treats missed taps as fatal, and asserts that the delayed request was actually made.
+- Added optional CI render artifacts of both approved layouts using sample data and a checked-in OFL-licensed Roboto test font. Ordinary regression tests retain the stricter Ahem test font. These are Flutter-rendered previews, not live-device screenshots.
 
 ## Progress
 

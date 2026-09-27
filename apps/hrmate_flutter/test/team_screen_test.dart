@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' show ImageByteFormat;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -68,9 +72,12 @@ Future<void> openTeam(
   String lang = 'en',
   double width = 390,
   double scale = 1,
+  double height = 900,
+  bool fromMore = false,
+  GlobalKey? previewKey,
   bool settle = true,
 }) async {
-  tester.view.physicalSize = Size(width, 900);
+  tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -79,7 +86,8 @@ Future<void> openTeam(
     employeeId: null, mustChangePassword: false, canApprove: true, perms: const {},
   ));
   final dio = Dio(BaseOptions(baseUrl: 'https://hr.example'))..httpClientAdapter = adapter;
-  final router = GoRouter(initialLocation: '/team', routes: [
+  final router = GoRouter(initialLocation: fromMore ? '/more' : '/team', routes: [
+    GoRoute(path: '/more', builder: (_, __) => const Scaffold(body: Text('More'))),
     GoRoute(path: '/team', builder: (_, __) => const TeamScreen()),
     GoRoute(path: '/employees/:id', builder: (_, state) => Scaffold(
       appBar: AppBar(title: const Text('Employee profile')),
@@ -97,16 +105,38 @@ Future<void> openTeam(
     ],
     child: MaterialApp.router(
       theme: buildHmTheme(), routerConfig: router,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)), child: child!,
+      builder: (context, child) => RepaintBoundary(
+        key: previewKey,
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(scale),
+            padding: previewKey == null ? null : const EdgeInsets.only(top: 24, bottom: 20),
+          ),
+          child: child!,
+        ),
       ),
     ),
   ));
+  if (fromMore) router.push('/team');
   if (settle) await tester.pumpAndSettle();
   else await tester.pump();
 }
 
+Future<void> tapDepartment(WidgetTester tester, String id) async {
+  final target = find.byKey(ValueKey('team-dept-$id'));
+  // Only scroll the horizontal chip strip, not its vertical list ancestor.
+  // Ahem/large text can put a valid department off screen at phone widths.
+  await Scrollable.of(tester.element(target), axis: Axis.horizontal).position.ensureVisible(
+    tester.renderObject(target), alignment: 0.5,
+  );
+  await tester.pump();
+  await tester.tap(target);
+}
+
 void main() {
+  final previousHitTestPolicy = WidgetController.hitTestWarningShouldBeFatal;
+  setUpAll(() => WidgetController.hitTestWarningShouldBeFatal = true);
+  tearDownAll(() => WidgetController.hitTestWarningShouldBeFatal = previousHitTestPolicy);
   for (final role in ['ADMIN', 'HR']) {
     testWidgets('$role sees counters, punch times, status and department filters', (tester) async {
       final adapter = TeamAdapter((req) => reply(snapshot(dept: '${req.queryParameters['dept'] ?? ''}')));
@@ -116,7 +146,7 @@ void main() {
       expect(find.text('Punched In'), findsOneWidget);
       expect(find.text('IN 08:02 AM'), findsOneWidget);
       expect(find.text('✓ Done'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('team-dept-quality')));
+      await tapDepartment(tester, 'quality');
       await tester.pumpAndSettle();
       expect(adapter.requests.last.queryParameters['dept'], 'quality');
       expect(find.text('Gurpreet Singh'), findsNothing);
@@ -137,7 +167,7 @@ void main() {
   testWidgets('Upcoming Leaves stays company-wide after a board filter', (tester) async {
     final adapter = TeamAdapter((req) => reply(snapshot(dept: '${req.queryParameters['dept'] ?? ''}')));
     await openTeam(tester, adapter);
-    await tester.tap(find.byKey(const ValueKey('team-dept-production')));
+    await tapDepartment(tester, 'production');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Upcoming Leaves'));
     await tester.pumpAndSettle();
@@ -236,9 +266,11 @@ void main() {
     final adapter = TeamAdapter((req) => req.queryParameters['dept'] == 'quality'
       ? slow.future : reply(snapshot(dept: '${req.queryParameters['dept'] ?? ''}')));
     await openTeam(tester, adapter);
-    await tester.tap(find.byKey(const ValueKey('team-dept-quality')));
+    await tapDepartment(tester, 'quality');
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('team-dept-production')));
+    expect(adapter.requests.last.queryParameters['dept'], 'quality');
+    expect(find.text('Gurpreet Singh'), findsNothing);
+    await tapDepartment(tester, 'production');
     await tester.pumpAndSettle();
     slow.complete(reply(snapshot(dept: 'quality')));
     await tester.pumpAndSettle();
@@ -277,4 +309,48 @@ void main() {
     expect(external.headers, isNull);
     await tester.pumpAndSettle();
   });
+
+  testWidgets('render approved Live Team layouts with sample data', (tester) async {
+    final output = Platform.environment['TEAM_PREVIEW_DIR'];
+    if (output == null) return;
+    await tester.runAsync(() async {
+      final bytes = await File('test/fonts/Roboto.ttf').readAsBytes();
+      final font = FontLoader('Roboto')..addFont(Future.value(ByteData.sublistView(bytes)));
+      await font.load();
+    });
+    final data = snapshot();
+    (data['rows'] as List).insert(1, {
+      'id': 'harleen', 'name': 'Harleen Kaur', 'dept': 'Quality',
+      'shift': 'General 08:00', 'status': 'IN', 'inAt': '07:56 AM',
+      'outAt': null, 'photo': null, 'completed': false, 'weeklyOff': 1,
+    });
+    (data['rows'] as List)[2]['weeklyOff'] = 0;
+    data['counts']['in'] = 2;
+    data['leaves'] = [
+      {'id': 'l1', 'name': 'Gurpreet Singh', 'dept': 'Production', 'fromDate': '2026-09-28', 'toDate': '2026-09-29', 'days': 2, 'type': 'Earned Leave'},
+      {'id': 'l2', 'name': 'Simran Kaur', 'dept': 'Quality', 'fromDate': '2026-09-30', 'toDate': '2026-09-30', 'days': 1, 'type': 'Casual Leave'},
+      {'id': 'l3', 'name': 'Harleen Kaur', 'dept': 'Quality', 'fromDate': '2026-10-05', 'toDate': '2026-10-06', 'days': 2, 'type': 'Earned Leave'},
+    ];
+    final boundaryKey = GlobalKey();
+    await openTeam(tester, TeamAdapter((_) => reply(data)), height: 850, fromMore: true, previewKey: boundaryKey);
+    final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    Future<void> capture(String filename) async {
+      await tester.runAsync(() async {
+        final image = await boundary.toImage(pixelRatio: 2);
+        // toByteData's default is raw RGBA; a PNG is needed for CI review.
+        final png = await image.toByteData(format: ImageByteFormat.png);
+        Directory(output).createSync(recursive: true);
+        File('$output/$filename').writeAsBytesSync(png!.buffer.asUint8List());
+        image.dispose();
+      });
+    }
+    expect(find.byType(BackButton), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await capture('live-team-board.png');
+    await tester.tap(find.text('Upcoming Leaves'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await capture('live-team-leaves.png');
+  });
+
 }

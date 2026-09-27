@@ -169,7 +169,7 @@ jobs:
             . "$BASH_ENV"
             mkdir -p build/test-results
             set -o pipefail
-            flutter test --reporter expanded | tee build/test-results/flutter-tests.log
+            TEAM_PREVIEW_DIR=build/test-results/previews flutter test --reporter expanded | tee build/test-results/flutter-tests.log
       - store_artifacts:
           path: apps/hrmate_flutter/build/test-results
           destination: flutter-tests
