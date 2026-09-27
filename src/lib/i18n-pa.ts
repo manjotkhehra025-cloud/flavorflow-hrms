@@ -862,4 +862,7 @@ export const PA: Record<string, string> = {
   "New password can't be the starting one — pick something only you know.": "ਨਵਾਂ ਪਾਸਵਰਡ ਸ਼ੁਰੂਆਤੀ ਵਾਲਾ ਨਹੀਂ ਚੱਲੇਗਾ — ਕੁਝ ਐਸਾ ਚੁਣੋ ਜੋ ਸਿਰਫ਼ ਤੁਸੀਂ ਜਾਣਦੇ ਹੋ।",
   "Starting password must be at least 6 characters.": "ਸ਼ੁਰੂਆਤੀ ਪਾਸਵਰਡ ਮਿਨੀਮਮ 6 ਅਖ਼ਰਾਂ ਦਾ ਹੋਵੇ।",
   "Done ✔ — they log in once with your starting password, then the app makes them choose their own before the dashboard opens.": "ਹੋ ਗਿਆ ✔ — ਕਰਮਚਾਰੀ ਤੁਹਾਡੇ ਸ਼ੁਰੂਆਤੀ ਪਾਸਵਰਡ ਨਾਲ ਇਕ ਵਾਰ ਲੌਗਿਨ ਕਰੇਗਾ, ਫਿਰ ਡੈਸ਼ਬੋਰਡ ਤੋਂ ਪਹਿਲਾਂ ਐਪ ਆਪਣਾ ਪਾਸਵਰਡ ਰੱਖਣ ਲਈ ਕਹੇਗੀ।",
+  // P2 slice 2: shared weekly-off validation.
+  "Could not save weekly off. Try again.": "ਹਫ਼ਤਾਵਾਰੀ ਛੁੱਟੀ ਸੇਵ ਨਹੀਂ ਹੋਈ। ਫਿਰ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+  "Choose an employee and a weekly-off day from Sunday to Saturday.": "ਮੁਲਾਜ਼ਮ ਅਤੇ ਐਤਵਾਰ ਤੋਂ ਸ਼ਨੀਵਾਰ ਵਿਚੋਂ ਛੁੱਟੀ ਦਾ ਦਿਨ ਚੁਣੋ।",
 };

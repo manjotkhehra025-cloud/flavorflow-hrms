@@ -118,12 +118,20 @@ class MoreTab extends ConsumerWidget {
           onTap: () => context.push('/helpdesk'),
         ),
         // ── P2 slice 1: employees directory (staff only) ──
-        if (user?.role != 'EMPLOYEE')
+        if (user?.isStaff == true)
           _Tile(
             icon: Icons.people_outline,
             title: T.s('Employees', lang),
             subtitle: T.s('Directory · profiles · KYC · letters · pay', lang),
             onTap: () => context.push('/employees'),
+          ),
+        // ── P2 slice 2: Live Team (same staff-only gate as web) ──
+        if (user?.isStaff == true)
+          _Tile(
+            icon: Icons.groups_outlined,
+            title: T.s('Live Team', lang),
+            subtitle: T.s('Presence · weekly off · upcoming leaves', lang),
+            onTap: () => context.push('/team'),
           ),
         if (user?.role == 'ADMIN')
           _Tile(
@@ -186,7 +194,7 @@ class MoreTab extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 20),
-        Center(child: Text('HRMate · v0.7.0 · P2 slice 1 Employees', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
+        Center(child: Text('HRMate · v0.8.0 · P2 slice 2 Live Team', style: TextStyle(color: Colors.grey.shade400, fontSize: 11))),
       ]),
     );
   }

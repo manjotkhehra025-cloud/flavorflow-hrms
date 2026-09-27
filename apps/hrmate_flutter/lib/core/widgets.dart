@@ -32,22 +32,30 @@ String shortStamp(Object? iso) {
   return '${d.day} ${kMonthsShort[d.month - 1]}, $h:${d.minute.toString().padLeft(2, '0')} $ampm';
 }
 
-/// Round avatar: server photo (public /api/photo/:id) with an initial fallback.
+/// Round avatar: relative/absolute server photo with an initial fallback.
+/// Callers can supply auth headers for protected same-origin photo endpoints.
 class HmAvatar extends StatelessWidget {
   final String name;
   final String? photo;
   final double radius;
-  const HmAvatar({super.key, required this.name, this.photo, this.radius = 20});
+  final Map<String, String>? headers;
+  const HmAvatar({super.key, required this.name, this.photo, this.radius = 20, this.headers});
 
   @override
   Widget build(BuildContext context) {
     final trimmed = name.trim();
     final initial = trimmed.isEmpty ? '?' : trimmed[0].toUpperCase();
-    final url = photo;
+    final base = Uri.parse(kApiBaseUrl);
+    final parsed = photo == null ? null : Uri.tryParse(photo!);
+    final resolved = parsed == null ? null : base.resolveUri(parsed);
+    final url = resolved != null && ['http', 'https'].contains(resolved.scheme) ? resolved : null;
+    final sameOrigin = url != null && url.scheme == base.scheme && url.host == base.host && url.port == base.port;
     return CircleAvatar(
       radius: radius,
       backgroundColor: HMC.primaryFade,
-      foregroundImage: url != null ? NetworkImage('$kApiBaseUrl$url') : null,
+      // Protected API photos need Bearer auth on native. Never forward the
+      // token to an external legacy photo URL stored on an employee profile.
+      foregroundImage: url != null ? NetworkImage(url.toString(), headers: sameOrigin ? headers : null) : null,
       onForegroundImageError: url != null ? (_, __) {} : null,
       child: Text(
         initial,

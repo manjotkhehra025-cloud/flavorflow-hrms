@@ -130,17 +130,33 @@ def patch_appcompat_theme(app_path):
     print(f"dep: {APPCOMPAT}")
 
 
-def patch_gradle_props():
+def patch_gradle_props(release=False):
     gp = "android/gradle.properties"
     gs = read(gp)
     xmx = os.environ.get("GRADLE_XMX", "2200m")
     gs = re.sub(r"-Xmx\S+", f"-Xmx{xmx}", gs)
     gs = re.sub(r"-XX:MaxMetaspaceSize=\S+", "-XX:MaxMetaspaceSize=768m", gs)
-    for line in ("org.gradle.daemon=false", "org.gradle.parallel=false"):
-        if line not in gs:
-            gs += f"\n{line}"
-    write(gp, gs + "\n")
-    print(f"gradle heap -Xmx{xmx}")
+    workers = os.environ.get("GRADLE_WORKERS", "2")
+    if not workers.isdigit() or not 1 <= int(workers) <= 4:
+        raise ValueError("GRADLE_WORKERS must be an integer from 1 to 4")
+    settings = {
+        "org.gradle.daemon": "false",
+        "org.gradle.parallel": "false",
+        "org.gradle.workers.max": workers,
+    }
+    if release:
+        # Avoid a second Kotlin compiler JVM competing with Gradle/R8 and
+        # Flutter's AOT compilers for the CI container's memory budget.
+        settings["kotlin.compiler.execution.strategy"] = "in-process"
+    for key, value in settings.items():
+        pattern = rf"(?m)^\s*{re.escape(key)}\s*=.*$"
+        line = f"{key}={value}"
+        if re.search(pattern, gs):
+            gs = re.sub(pattern, line, gs)
+        else:
+            gs = gs.rstrip() + f"\n{line}\n"
+    write(gp, gs.rstrip() + "\n")
+    print(f"gradle heap -Xmx{xmx}, workers={workers}, release={release}")
 
 
 PACKAGE = "in.flavorflow.hrmate"
@@ -285,7 +301,7 @@ def main():
     patch_manifest()
     patch_main_activity()
     patch_appcompat_theme(app_path)
-    patch_gradle_props()
+    patch_gradle_props(release="--release" in sys.argv)
     firebase = enable_firebase(app_path, release="--release" in sys.argv)
     if "--release" in sys.argv:
         enable_release_signing(app_path)

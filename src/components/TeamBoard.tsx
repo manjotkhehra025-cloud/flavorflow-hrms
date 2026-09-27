@@ -1,18 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { AvatarImg } from "./AvatarImg";
-import { Tt } from "@/components/LangCtx";
+import { Tt, useT } from "@/components/LangCtx";
 import { setWeeklyOffAction } from "@/actions/employees";
 import { cx } from "@/lib/utils";
 
-type Row = {
-  id: string; name: string; dept: string; shift: string; photo: string | null;
-  status: "IN" | "OUT" | "ABSENT"; inAt: string | null; outAt: string | null;
-  completed: boolean; weeklyOff: number;
-};
-type Counts = { in: number; out: number; absent: number; done: number };
+import type { TeamRow as Row, TeamCounts as Counts } from "@/lib/team";
 
 const CHIP: Record<Row["status"], { label: string; cls: string; dot: string }> = {
   IN: { label: "In", cls: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
@@ -86,22 +81,34 @@ export function TeamBoard({ rows, counts, departments, activeDept, dayNames }: {
 
 function WeeklyOffSelect({ empId, value, dayNames }: { empId: string; value: number; dayNames: string[] }) {
   const [state, formAction, pending] = useActionState(setWeeklyOffAction, {});
-  // The shared action expects many fields; we only blame missing ones as optional — it uses updateMany with provided fields.
+  const t = useT();
+  const [selected, setSelected] = useState(value);
+  useEffect(() => { setSelected(value); }, [value]);
+  useEffect(() => {
+    if (!pending && state.error) setSelected(value);
+  }, [state, pending, value]);
   return (
     <form action={formAction} className="shrink-0">
       <input type="hidden" name="employeeId" value={empId} />
       <select
         name="weeklyOff"
-        defaultValue={value}
+        value={selected}
         disabled={pending}
-        onChange={(e) => e.currentTarget.form?.requestSubmit()}
+        onChange={(e) => {
+          setSelected(Number(e.currentTarget.value));
+          e.currentTarget.form?.requestSubmit();
+        }}
         className="rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] font-bold text-amber-700 ring-1 ring-inset ring-amber-200 outline-none"
-        aria-label="Weekly off"
+        aria-label={t("Weekly off")}
+        aria-busy={pending}
       >
         {dayNames.map((d, i) => (
           <option key={d} value={i}>{d.slice(0, 3)} off</option>
         ))}
       </select>
+      <p aria-live="polite" className={cx("max-w-40 text-[10px]", state.error ? "text-rose-600" : "text-emerald-700")}>
+        {pending ? t("Saving…") : state.error || state.success || ""}
+      </p>
     </form>
   );
 }

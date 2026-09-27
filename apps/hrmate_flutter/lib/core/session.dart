@@ -25,6 +25,8 @@ class HmUser {
     required this.perms,
   });
 
+  bool get isStaff => role == 'ADMIN' || role == 'HR';
+
   static HmUser fromJson(Map<String, dynamic> j) => HmUser(
         id: j['id'] as String,
         name: (j['name'] as String?) ?? '',
