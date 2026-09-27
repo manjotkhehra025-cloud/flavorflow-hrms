@@ -62,7 +62,7 @@ export function MobileBottomNav({ employeeId, role, canApprove = false }: { empl
         href={href}
         className={cx(
           "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold transition-colors",
-          active ? "text-emerald-600" : "text-slate-400"
+          active ? "text-emerald-400" : "text-slate-500"
         )}
       >
         <Icon name={icon} className="h-5 w-5" />
@@ -107,7 +107,7 @@ export function MobileBottomNav({ employeeId, role, canApprove = false }: { empl
       )}
 
       {/* Bottom nav with center punch FAB */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200/80 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg lg:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-[#0a1628] pb-[env(safe-area-inset-bottom)] lg:hidden">
         <div className="flex items-stretch">
           <Slot href="/dashboard" label="Home" icon="home" />
           <Slot href="/leaves" label="Leaves" icon="leaf" />
@@ -118,10 +118,9 @@ export function MobileBottomNav({ employeeId, role, canApprove = false }: { empl
               className="relative flex w-16 flex-col items-center justify-center"
               aria-label="Punch"
             >
-              <span className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-[0_8px_20px_-4px_rgb(16_185_129_/_60%)] ring-4 ring-white active:scale-95 transition-all">
+              <span className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-[0_8px_20px_-4px_rgb(16_185_129_/_60%)] ring-4 ring-[#0a1628] active:scale-95 transition-all">
                 <Icon name="fingerprint" className="h-7 w-7" />
               </span>
-              <span className="mt-0.5 text-[10px] font-bold text-emerald-700">{<Tt>Punch</Tt>}</span>
             </Link>
           ) : (
             <div className="w-16" />
@@ -132,7 +131,7 @@ export function MobileBottomNav({ employeeId, role, canApprove = false }: { empl
             onClick={() => setOpen(true)}
             className={cx(
               "flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold transition-colors",
-              open ? "text-emerald-600" : "text-slate-400"
+              open ? "text-emerald-400" : "text-slate-500"
             )}
           >
             <Icon name="dots" className="h-5 w-5" />

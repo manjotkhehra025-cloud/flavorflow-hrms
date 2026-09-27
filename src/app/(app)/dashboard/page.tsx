@@ -212,19 +212,14 @@ export default async function DashboardPage() {
         />
       )}
       {me.employeeId && myEmployee && (await getPerms(me.employeeId)).canPunch && (
-        <div className="relative overflow-hidden rounded-3xl bg-[#0a1628] p-6 text-white shadow-[var(--shadow-pop)]">
-          <div className="pointer-events-none absolute -left-20 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-[var(--shadow-pop)] ring-1 ring-slate-100">
           <div className="relative">
-            <div className="flex flex-wrap items-center justify-center gap-2.5">
-              <span className="chip-dark">
-                <Icon name="building" className="h-3.5 w-3.5" /> {me.companyName} · Khadur Sahib Unit
-              </span>
-            </div>
-            <p className="mt-4 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
-              {shiftName} ({shiftHours} <Pa>hours</Pa>){isWeeklyOff ? <> · <Pa>Weekly-off day</Pa></> : ""}
+            <p className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+              {shiftName} · {shiftHours} <Pa>hours</Pa>
+              {isWeeklyOff ? <> · <Pa>Weekly-off day</Pa></> : ""}
             </p>
 
-            <div className="mx-auto mt-6 max-w-xs">
+            <div className="mx-auto mt-5 max-w-xs">
               {myAttendance?.checkIn ? (
                 <LiveTimer
                   checkInIso={myAttendance.checkIn.toISOString()}
@@ -232,16 +227,20 @@ export default async function DashboardPage() {
                   checkedOut={!!myAttendance.checkOut}
                 />
               ) : (
-                <div className="mx-auto flex h-40 w-40 flex-col items-center justify-center rounded-full border-[9px] border-white/[0.08] text-center">
-                  <Icon name="fingerprint" className="h-10 w-10 text-emerald-400/70" />
-                  <p className="mt-2 px-6 text-xs font-semibold text-slate-400">
-                    {isWeeklyOff ? <Pa>Off-day punch allowed</Pa> : <Pa>Not punched in yet</Pa>}
-                  </p>
+                <div className="relative mx-auto flex h-52 w-52 items-center justify-center">
+                  <div className="absolute inset-0 rounded-full bg-emerald-400/40 blur-2xl" />
+                  <div className="absolute inset-1 rounded-full border-[14px] border-emerald-800" />
+                  <div className="absolute inset-5 rounded-full border-[8px] border-white" />
+                  <div className="relative flex h-36 w-36 flex-col items-center justify-center rounded-full bg-gradient-to-b from-emerald-400 to-emerald-700 text-center text-white shadow-[0_12px_40px_-8px_rgb(16_185_129_/_70%)]">
+                    <Icon name="fingerprint" className="h-11 w-11 text-white" />
+                    <p className="mt-1 text-sm font-extrabold tracking-[0.16em]"><Pa>CHECK IN</Pa></p>
+                    <p className="mt-0.5 text-[10px] font-semibold text-emerald-50"><Pa>GPS + selfie</Pa></p>
+                  </div>
                 </div>
               )}
               {myAttendance?.checkIn && (
                 <p className="mt-3 text-center text-sm font-medium text-slate-400">
-                  <Pa>Punched In</Pa>: <span className="font-bold text-white">{fmtTime(myAttendance.checkIn)}</span>
+                  <Pa>Punched In</Pa>: <span className="font-bold text-slate-900">{fmtTime(myAttendance.checkIn)}</span>
                   {myAttendance.checkOut && (
                     <>
                       {" "}· Out: <span className="font-bold text-emerald-400">{fmtTime(myAttendance.checkOut)}</span>
@@ -259,7 +258,7 @@ export default async function DashboardPage() {
                 <PunchWithSelfie mode="out" selfieRequired={!!company?.punchSelfieRequired} geofence={geo} />
               )}
               {useSmartPunch && myAttendance?.checkIn && myAttendance.checkOut && (
-                <div className="mx-auto mt-6 max-w-xs rounded-2xl bg-emerald-500/10 py-3.5 text-center text-sm font-bold text-emerald-300 ring-1 ring-emerald-400/25">
+                <div className="mx-auto mt-6 max-w-xs rounded-2xl bg-emerald-50 py-3.5 text-center text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
                   ✓ Shift completed — great work today!
                 </div>
               )}
@@ -278,7 +277,7 @@ export default async function DashboardPage() {
                 </form>
               )}
               {!useSmartPunch && myAttendance?.checkIn && myAttendance.checkOut && (
-                <div className="rounded-2xl bg-emerald-500/10 py-3.5 text-center text-sm font-bold text-emerald-300 ring-1 ring-emerald-400/25">
+                <div className="rounded-2xl bg-emerald-50 py-3.5 text-center text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
                   ✓ Shift completed — great work today!
                 </div>
               )}
