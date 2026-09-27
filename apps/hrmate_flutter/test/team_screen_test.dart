@@ -263,11 +263,22 @@ void main() {
 
   testWidgets('an older department response cannot replace a newer selection', (tester) async {
     final slow = Completer<ResponseBody>();
-    final adapter = TeamAdapter((req) => req.queryParameters['dept'] == 'quality'
-      ? slow.future : reply(snapshot(dept: '${req.queryParameters['dept'] ?? ''}')));
+    final started = Completer<void>();
+    final adapter = TeamAdapter((req) {
+      if (req.queryParameters['dept'] == 'quality') {
+        started.complete();
+        return slow.future;
+      }
+      return reply(snapshot(dept: '${req.queryParameters['dept'] ?? ''}'));
+    });
     await openTeam(tester, adapter);
     await tapDepartment(tester, 'quality');
-    await tester.pump();
+    // Dio's queued interceptors dispatch on event-loop turns. Advance bounded
+    // frames; pumpAndSettle would hang on the deliberately pending request.
+    for (var frame = 0; frame < 5 && !started.isCompleted; frame++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    expect(started.isCompleted, isTrue);
     expect(adapter.requests.last.queryParameters['dept'], 'quality');
     expect(find.text('Gurpreet Singh'), findsNothing);
     await tapDepartment(tester, 'production');
