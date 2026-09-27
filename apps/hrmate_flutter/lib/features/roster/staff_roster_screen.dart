@@ -302,6 +302,7 @@ class _StaffRosterScreenState extends ConsumerState<StaffRosterScreen> {
                   ),
                   const SizedBox(height: 12),
                   SingleChildScrollView(
+                    key: const PageStorageKey('roster-depts'),
                     scrollDirection: Axis.horizontal,
                     child: Row(children: [
                       for (final dept in [RosterDepartment('', T.s('All Departments', lang)), ...data.departments])
@@ -396,7 +397,6 @@ class _WeekNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 44,
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE2E8F0))),
       child: Row(children: [
         IconButton(key: const ValueKey('roster-week-prev'), onPressed: onPrev, icon: const Icon(Icons.chevron_left, color: HMC.ink)),
@@ -506,14 +506,21 @@ class _CellChip extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
-        child: Container(
+        child: SizedBox(
           height: 50,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: border)),
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: fg)),
-            Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, color: fg.withValues(alpha: 0.85))),
-          ]),
+          child: DecoratedBox(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: border)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: fg)),
+                  Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, color: fg.withValues(alpha: 0.85))),
+                ]),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -608,7 +615,7 @@ class _SwapsTabState extends State<_SwapsTab> {
               await widget.onRequest(peerId: _peerId!, date: _iso(_date), note: _note.text.trim());
               if (mounted) setState(() => _busy = false);
             },
-            child: Text(T.s('Send request', lang), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+            child: FittedBox(child: Text(T.s('Send request', lang), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
           ),
         ]),
       ),
@@ -647,14 +654,14 @@ class _SwapsTabState extends State<_SwapsTab> {
                   key: ValueKey('roster-approve-${swap.id}'),
                   style: FilledButton.styleFrom(backgroundColor: const Color(0xFF10B981), minimumSize: const Size.fromHeight(36)),
                   onPressed: widget.deciding.contains(swap.id) ? null : () => widget.onDecide(swap, true),
-                  child: Text(T.s('Approve', lang), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                  child: FittedBox(child: Text(T.s('Approve', lang), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
                 )),
                 const SizedBox(width: 8),
                 Expanded(child: FilledButton(
                   key: ValueKey('roster-reject-${swap.id}'),
                   style: FilledButton.styleFrom(backgroundColor: const Color(0xFFFFE4E6), foregroundColor: const Color(0xFFE11D48), minimumSize: const Size.fromHeight(36)),
                   onPressed: widget.deciding.contains(swap.id) ? null : () => widget.onDecide(swap, false),
-                  child: Text(T.s('Reject', lang), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                  child: FittedBox(child: Text(T.s('Reject', lang), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
                 )),
               ]),
               const SizedBox(height: 14),

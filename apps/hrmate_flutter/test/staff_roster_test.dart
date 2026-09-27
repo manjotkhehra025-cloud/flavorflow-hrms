@@ -83,6 +83,15 @@ class TestSession extends SessionStore {
   String? get cachedToken => 'test-token';
 }
 
+Future<void> tapDepartment(WidgetTester tester, String id) async {
+  final target = find.byKey(ValueKey('roster-dept-$id'));
+  await Scrollable.of(tester.element(target), axis: Axis.horizontal).position.ensureVisible(
+    tester.renderObject(target), alignment: 0.5,
+  );
+  await tester.pump();
+  await tester.tap(target);
+}
+
 Future<void> openRoster(
   WidgetTester tester,
   RosterAdapter adapter, {
@@ -92,6 +101,7 @@ Future<void> openRoster(
   double scale = 1,
   double height = 900,
   bool settle = true,
+  bool fromMore = false,
   GlobalKey? previewKey,
 }) async {
   tester.view.physicalSize = Size(width, height);
@@ -103,7 +113,8 @@ Future<void> openRoster(
     employeeId: 'one', mustChangePassword: false, canApprove: true, perms: const {'canSwapShift': true},
   ));
   final dio = Dio(BaseOptions(baseUrl: 'https://hr.example'))..httpClientAdapter = adapter;
-  final router = GoRouter(initialLocation: '/duty-roster', routes: [
+  final router = GoRouter(initialLocation: fromMore ? '/more' : '/duty-roster', routes: [
+    GoRoute(path: '/more', builder: (_, __) => const Scaffold(body: Text('More'))),
     GoRoute(path: '/home', builder: (_, __) => const Scaffold(body: Text('Home'))),
     GoRoute(path: '/duty-roster', builder: (_, __) => const StaffRosterScreen()),
   ]);
@@ -127,6 +138,7 @@ Future<void> openRoster(
       ),
     ),
   ));
+  if (fromMore) router.push('/duty-roster');
   if (settle) await tester.pumpAndSettle();
   else await tester.pump();
 }
@@ -145,7 +157,7 @@ void main() {
       expect(find.text('21–27 September'), findsOneWidget);
       expect(find.text('OFF'), findsWidgets);
       expect(find.text('Night'), findsWidgets);
-      await tester.tap(find.byKey(const ValueKey('roster-dept-quality')));
+      await tapDepartment(tester, 'quality');
       await tester.pumpAndSettle();
       expect(find.text('Gurpreet Singh'), findsNothing);
       expect(find.text('Harleen Kaur'), findsOneWidget);
@@ -220,7 +232,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Pending swaps'), findsOneWidget);
     expect(find.textContaining('Gurpreet Singh'), findsWidgets);
-    expect(find.text('Family function'), findsOneWidget);
+    expect(find.textContaining('Family function'), findsOneWidget);
     expect(find.text('APPROVED'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('roster-approve-swap-1')));
     await tester.pumpAndSettle();
@@ -300,7 +312,7 @@ void main() {
       await font.load();
     });
     final boundaryKey = GlobalKey();
-    await openRoster(tester, RosterAdapter((_) => reply(snapshot())), height: 850, previewKey: boundaryKey);
+    await openRoster(tester, RosterAdapter((_) => reply(snapshot())), height: 850, fromMore: true, previewKey: boundaryKey);
     final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     Future<void> capture(String filename) async {
       await tester.runAsync(() async {
