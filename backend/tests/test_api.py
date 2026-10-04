@@ -150,6 +150,140 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIsNone(dashboard["upcoming_holiday"])
 
+    def test_leave_policy_is_admin_managed_and_applies_period_weekend_and_carryover_rules(self):
+        status, policy = self.call("GET", "/leave-policy", token=self.admin)
+        self.assertEqual(status, 200)
+        self.assertEqual(policy["period_start_month"], 1)
+        self.assertTrue(policy["count_weekends"])
+        self.assertFalse(policy["prorate_new_hires"])
+        self.assertFalse(policy["carryover_enabled"])
+
+        status, _ = self.call("GET", "/leave-policy", token=self.manager)
+        self.assertEqual(status, 403)
+        status, error = self.call("PATCH", "/leave-policy", {"period_start_month": 13}, self.admin)
+        self.assertEqual(status, 400)
+
+        annual = next(item for item in policy["leave_type_allowances"] if item["name"] == "Annual leave")
+        status, saved = self.call("PATCH", "/leave-policy", {
+            "period_start_month": 4,
+            "count_weekends": False,
+            "prorate_new_hires": False,
+            "carryover_enabled": True,
+            "carryover_limit_days": 3,
+            "leave_type_allowances": [{"id": annual["id"], "annual_allowance_days": 20}],
+        }, self.admin)
+        self.assertEqual(status, 200, saved)
+        self.assertFalse(saved["count_weekends"])
+        self.assertTrue(saved["carryover_enabled"])
+        self.assertEqual(saved["carryover_limit_days"], 3)
+
+        today = datetime.now(timezone.utc).date()
+        start_year = today.year if today.month >= 4 else today.year - 1
+        current_start = datetime(start_year, 4, 1, tzinfo=timezone.utc).date()
+        previous_start = datetime(start_year - 1, 4, 1, tzinfo=timezone.utc).date()
+        previous_end = current_start - timedelta(days=1)
+        first_previous_monday = previous_start + timedelta(days=(7 - previous_start.weekday()) % 7)
+        prior_leave_end = first_previous_monday + timedelta(days=4)
+        first_current_saturday = current_start + timedelta(days=(5 - current_start.weekday()) % 7)
+        current_leave_end = first_current_saturday + timedelta(days=2)
+        with self.app._db() as connection:
+            employee_id = connection.execute(
+                "SELECT id FROM employees WHERE user_id = (SELECT id FROM users WHERE email = 'employee@flavorflow.com')"
+            ).fetchone()[0]
+            connection.execute("UPDATE employees SET start_date = '2020-01-01' WHERE id = ?", (employee_id,))
+            connection.execute(
+                """INSERT INTO leave_requests
+                   (employee_id, leave_type_id, start_date, end_date, reason, status, requested_at)
+                   VALUES (?, ?, ?, ?, 'Previous period usage', 'approved', ?)""",
+                (employee_id, annual["id"], first_previous_monday.isoformat(), prior_leave_end.isoformat(), today.isoformat()),
+            )
+            connection.execute(
+                """INSERT INTO leave_requests
+                   (employee_id, leave_type_id, start_date, end_date, reason, status, requested_at)
+                   VALUES (?, ?, ?, ?, 'Current period usage', 'approved', ?)""",
+                (employee_id, annual["id"], first_current_saturday.isoformat(), current_leave_end.isoformat(), today.isoformat()),
+            )
+
+        status, dashboard = self.call("GET", "/dashboard", token=self.employee)
+        self.assertEqual(status, 200)
+        self.assertEqual(dashboard["leave_balance_period"]["start_date"], current_start.isoformat())
+        balance = next(item for item in dashboard["my_leave_balances"] if item["leave_type"] == "Annual leave")
+        self.assertEqual(balance["base_allowance_days"], 20)
+        self.assertEqual(balance["carryover_days"], 3)
+        self.assertEqual(balance["allowance_days"], 23)
+        self.assertEqual(balance["used_days"], 1)
+        self.assertEqual(balance["remaining_days"], 22)
+
+    def test_leave_policy_prorates_allowance_from_employee_start_date(self):
+        _, policy = self.call("GET", "/leave-policy", token=self.admin)
+        annual = next(item for item in policy["leave_type_allowances"] if item["name"] == "Annual leave")
+        today = datetime.now(timezone.utc).date()
+        start_month = today.month - 1 if today.month > 1 else 12
+        status, _ = self.call("PATCH", "/leave-policy", {
+            "period_start_month": start_month,
+            "count_weekends": True,
+            "prorate_new_hires": True,
+            "carryover_enabled": False,
+            "carryover_limit_days": 0,
+            "leave_type_allowances": [{"id": annual["id"], "annual_allowance_days": 20}],
+        }, self.admin)
+        self.assertEqual(status, 200)
+        with self.app._db() as connection:
+            connection.execute(
+                "UPDATE employees SET start_date = ? WHERE user_id = (SELECT id FROM users WHERE email = 'employee@flavorflow.com')",
+                (today.isoformat(),),
+            )
+
+        status, dashboard = self.call("GET", "/dashboard", token=self.employee)
+        self.assertEqual(status, 200)
+        period_start = datetime.fromisoformat(dashboard["leave_balance_period"]["start_date"]).date()
+        period_end = datetime.fromisoformat(dashboard["leave_balance_period"]["end_date"]).date()
+        expected = round(20 * ((period_end - today).days + 1) / ((period_end - period_start).days + 1), 2)
+        balance = next(item for item in dashboard["my_leave_balances"] if item["leave_type"] == "Annual leave")
+        self.assertEqual(balance["base_allowance_days"], expected)
+        self.assertEqual(balance["allowance_days"], expected)
+
+    def test_shift_roster_is_role_scoped_and_dashboard_exposes_own_shift(self):
+        today = datetime.now(timezone.utc).date().isoformat()
+        status, template = self.call("POST", "/shift-templates", {
+            "name": "Opening shift", "start_time": "07:00", "end_time": "15:30", "break_minutes": 30,
+        }, self.admin)
+        self.assertEqual(status, 201, template)
+
+        status, assignment = self.call("POST", "/shift-assignments", {
+            "employee_id": 3, "shift_id": template["id"], "work_date": today, "work_location_id": 1,
+        }, self.admin)
+        self.assertEqual(status, 201, assignment)
+        self.assertEqual(assignment["shift_name"], "Opening shift")
+        self.assertEqual(assignment["employee_name"], "Maya Patel")
+
+        status, employee_roster = self.call("GET", f"/shift-assignments?date={today}", token=self.employee)
+        self.assertEqual(status, 200)
+        self.assertEqual([item["id"] for item in employee_roster["items"]], [assignment["id"]])
+        status, manager_roster = self.call("GET", f"/shift-assignments?date={today}", token=self.manager)
+        self.assertEqual(status, 200)
+        self.assertEqual([item["id"] for item in manager_roster["items"]], [assignment["id"]])
+
+        status, dashboard = self.call("GET", "/dashboard", token=self.employee)
+        self.assertEqual(status, 200)
+        self.assertEqual(dashboard["my_shift"]["id"], assignment["id"])
+
+        status, _ = self.call("POST", "/shift-assignments", {
+            "employee_id": 3, "shift_id": template["id"], "work_date": today,
+        }, self.admin)
+        self.assertEqual(status, 409)
+        status, error = self.call("POST", "/shift-templates", {
+            "name": "Unauthorized shift", "start_time": "09:00", "end_time": "17:00",
+        }, self.employee)
+        self.assertEqual(status, 403)
+
+        status, removed = self.call("DELETE", f"/shift-assignments/{assignment['id']}", token=self.admin)
+        self.assertEqual(status, 200)
+        self.assertFalse(removed["is_active"])
+        status, employee_roster = self.call("GET", f"/shift-assignments?date={today}", token=self.employee)
+        self.assertEqual(status, 200)
+        self.assertEqual(employee_roster["items"], [])
+
     def test_leave_submission_and_manager_approval(self):
         status, types = self.call("GET", "/leave-types", token=self.employee)
         self.assertEqual(status, 200)
@@ -178,7 +312,12 @@ class ApiTestCase(unittest.TestCase):
     def test_dashboard_respects_self_team_and_global_scope(self):
         types_status, types = self.call("GET", "/leave-types", token=self.employee)
         self.assertEqual(types_status, 200)
-        leave_type = types["items"][0]["id"]
+        annual = next(item for item in types["items"] if item["name"] == "Annual leave")
+        status, _ = self.call("PATCH", "/leave-policy", {
+            "leave_type_allowances": [{"id": annual["id"], "annual_allowance_days": 20}],
+        }, self.admin)
+        self.assertEqual(status, 200)
+        leave_type = annual["id"]
         _, employee_request = self.call("POST", "/leave-requests", {
             "leave_type_id": leave_type, "start_date": "2026-11-02", "end_date": "2026-11-02", "reason": "Personal day",
         }, self.employee)

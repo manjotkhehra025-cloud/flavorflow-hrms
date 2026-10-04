@@ -8,10 +8,12 @@ import '../admin/audit_screen.dart';
 import '../admin/roles_screen.dart';
 import '../admin/users_screen.dart';
 import '../attendance/attendance_screen.dart';
+import '../attendance/shift_roster_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../employees/employees_screen.dart';
 import '../leave/approvals_screen.dart';
+import '../leave/leave_policy_screen.dart';
 import '../leave/leave_screen.dart';
 import '../locations/locations_screen.dart';
 
@@ -30,9 +32,11 @@ class _HomeShellState extends State<HomeShell> {
     if (user.can('dashboard.read')) items.add(const _NavItem('dashboard', 'Overview', Icons.grid_view_rounded));
     if (user.canAny(const ['employees.read', 'employees.read.team', 'employees.read.self'])) items.add(const _NavItem('employees', 'Employees', Icons.groups_2_outlined));
     if (user.canAny(const ['attendance.punch', 'attendance.read', 'attendance.read.team', 'attendance.read.self', 'attendance.manage'])) items.add(const _NavItem('attendance', 'Attendance', Icons.schedule_rounded));
+    if (user.canAny(const ['shifts.read', 'shifts.read.team', 'shifts.read.self', 'shifts.manage'])) items.add(const _NavItem('shifts', 'Shift roster', Icons.view_timeline_outlined));
     if (user.can('locations.read')) items.add(const _NavItem('locations', 'Work locations', Icons.location_on_outlined));
     if (user.can('calendar.read')) items.add(const _NavItem('calendar', 'Calendar', Icons.calendar_month_rounded));
     if (user.canAny(const ['leave.read', 'leave.read.self', 'leave.read.team', 'leave.create', 'leave.manage'])) items.add(const _NavItem('leave', 'Leave', Icons.event_note_outlined));
+    if (user.can('leave.policy.manage')) items.add(const _NavItem('leave_policy', 'Leave policy', Icons.tune_rounded));
     if (user.can('leave.approve')) items.add(const _NavItem('approvals', 'Approvals', Icons.fact_check_outlined, badge: true));
     if (user.can('users.read')) items.add(const _NavItem('users', 'User accounts', Icons.manage_accounts_outlined));
     if (user.can('rbac.read')) items.add(const _NavItem('roles', 'Roles & permissions', Icons.admin_panel_settings_outlined));
@@ -47,12 +51,15 @@ class _HomeShellState extends State<HomeShell> {
             onOpenLeave: () => _select('leave'),
             onOpenEmployees: () => _select('employees'),
             onOpenCalendar: () => _select('calendar'),
+            onOpenShifts: () => _select('shifts'),
           ),
         'employees' => const EmployeesScreen(),
         'attendance' => const AttendanceScreen(),
+        'shifts' => const ShiftRosterScreen(),
         'locations' => const LocationsScreen(),
         'calendar' => const CalendarScreen(),
         'leave' => const LeaveScreen(),
+        'leave_policy' => const LeavePolicyScreen(),
         'approvals' => const ApprovalsScreen(),
         'users' => const UsersScreen(),
         'roles' => const RolesScreen(),
@@ -321,7 +328,7 @@ class _SettingsScreen extends StatelessWidget {
             const SizedBox(height: 6),
             const Text('Your profile and workspace preferences.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
             const SizedBox(height: 20),
-            AppPanel(child: Row(children: [PersonAvatar(name: user.fullName, size: 53), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(user.fullName, style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 15)), const SizedBox(height: 4), Text(user.email, style: const TextStyle(color: AppColors.muted, fontSize: 12)), const SizedBox(height: 6), Text(user.roleNames.join(' · '), style: const TextStyle(color: AppColors.blue, fontSize: 11, fontWeight: FontWeight.w700))]))])),
+            AppPanel(child: Row(children: [PersonAvatar(name: user.fullName, size: 53), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(user.fullName, style: const TextStyle(sAxisAlignment.start, children: [Text(user.fullName, style: const TextStyle(color: AppColors.ink, fontWeight: FontWeightstyle: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 15)), const SizedBox(height: 4), Text(user.email, style: const TextStyle(color: AppColors.muted, fontSize: 12)), const SizedBox(height: 6), Text(user.roleNames.join(' · '), style: const TextStyle(color: AppColors.blue, fontSize: 11, fontWeight: FontWeight.w700))]))])),
             const SizedBox(height: 15),
             AppPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Attendance permissions', style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 14)), const SizedBox(height: 8), const Text('FlavorFlow requests native location access only when you punch in or out. The API verifies reported coordinates against the selected work location geofence.', style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5)), const SizedBox(height: 12), Row(children: [const Icon(Icons.gps_fixed_rounded, color: AppColors.blue, size: 18), const SizedBox(width: 8), Text(user.can('attendance.punch') ? 'GPS attendance is enabled for your role.' : 'Your role does not have punch permissions.', style: const TextStyle(color: AppColors.ink, fontSize: 12, fontWeight: FontWeight.w600))])])),
             const SizedBox(height: 15),

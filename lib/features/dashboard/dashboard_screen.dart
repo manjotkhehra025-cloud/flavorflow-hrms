@@ -13,12 +13,14 @@ class DashboardScreen extends StatefulWidget {
     this.onOpenLeave,
     this.onOpenEmployees,
     this.onOpenCalendar,
+    this.onOpenShifts,
   });
 
   final VoidCallback? onOpenAttendance;
   final VoidCallback? onOpenLeave;
   final VoidCallback? onOpenEmployees;
   final VoidCallback? onOpenCalendar;
+  final VoidCallback? onOpenShifts;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -66,7 +68,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final attendance = asJsonList(_data['recent_attendance']);
     final pending = asJsonList(_data['pending_requests']);
     final leaveBalances = asJsonList(_data['my_leave_balances']);
-    final leaveBalanceYear = stringValue(_data['leave_balance_year']);
+    final leaveBalancePeriod = asJsonMap(_data['leave_balance_period']);
+    final leaveBalanceLabel = stringValue(
+      leaveBalancePeriod['label'],
+      fallback: stringValue(_data['leave_balance_year']),
+    );
+    final leavePolicySummary = stringValue(
+      leaveBalancePeriod['policy_summary'],
+      fallback: 'weekends included · no new-hire proration · no carry-over',
+    );
     final canSeeEmployees = user.canAny(const [
       'employees.read',
       'employees.read.team',
@@ -89,6 +99,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'leave.manage',
     ]);
     final canSeeCalendar = user.can('calendar.read');
+    final canSeeShifts = user.canAny(const [
+      'shifts.read',
+      'shifts.read.team',
+      'shifts.read.self',
+      'shifts.manage',
+    ]);
+    final canSeeMyShift = user.canAny(const [
+      'shifts.read',
+      'shifts.read.self',
+      'shifts.manage',
+    ]);
+    final myShiftValue = _data['my_shift'];
+    final myShift = myShiftValue == null ? null : asJsonMap(myShiftValue);
     final upcomingHolidayValue = _data['upcoming_holiday'];
     final upcomingHoliday = upcomingHolidayValue == null
         ? null
@@ -124,6 +147,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         label: 'Open calendar',
         icon: Icons.calendar_month_rounded,
         onPressed: widget.onOpenCalendar!,
+      ));
+    }
+    if (canSeeShifts && widget.onOpenShifts != null) {
+      quickActions.add(_DashboardAction(
+        label: 'Shift roster',
+        icon: Icons.view_timeline_outlined,
+        onPressed: widget.onOpenShifts!,
       ));
     }
     final hour = DateTime.now().hour;
@@ -223,10 +253,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 18),
                   ],
+                  if (canSeeMyShift) ...[
+                    _MyShiftCard(shift: myShift, onOpen: widget.onOpenShifts),
+                    const SizedBox(height: 18),
+                  ],
                   if (canSeeLeave && leaveBalances.isNotEmpty) ...[
                     _LeaveBalancePanel(
                       items: leaveBalances,
-                      year: leaveBalanceYear,
+                      periodLabel: leaveBalanceLabel,
+                      policySummary: leavePolicySummary,
                     ),
                     const SizedBox(height: 18),
                   ],
@@ -399,6 +434,7 @@ class _MyAttendanceCard extends StatelessWidget {
         : canPunch
             ? 'No active punch. Open attendance for GPS-verified check-in.'
             : 'No open attendance record is currently available.';
+    final.';
     final color = checkedIn ? AppColors.success : AppColors.blue;
     final action = onOpen == null
         ? null
@@ -609,6 +645,70 @@ class _PulseMetric extends StatelessWidget {
   }
 }
 
+class _MyShiftCard extends StatelessWidget {
+  const _MyShiftCard({required this.shift, required this.onOpen});
+
+  final Map<String, dynamic>? shift;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheduled = shift != null && shift!.isNotEmpty;
+    final location = scheduled ? stringValue(shift!['location_name']) : '';
+    final breakMinutes = scheduled ? stringValue(shift!['break_minutes'], fallback: '0') : '0';
+    final subtitle = scheduled
+        ? '${stringValue(shift!['start_time'])}–${stringValue(shift!['end_time'])} · ${breakMinutes}m break${location.isEmpty ? '' : ' · $location'}'
+        : 'No shift is scheduled for you today.';
+    return AppPanel(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.softBlue,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(Icons.schedule_rounded, color: AppColors.teal, size: 21),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  scheduled ? stringValue(shift!['shift_name'], fallback: 'My shift') : 'My shift',
+                  style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.muted, fontSize: 12, height: 1.35),
+                ),
+              ],
+            ),
+          ),
+          if (scheduled) ...[
+            const SizedBox(width: 10),
+            const StatusBadge(status: 'scheduled'),
+          ],
+          if (onOpen != null) ...[
+            const SizedBox(width: 6),
+            IconButton(
+              onPressed: onOpen,
+              tooltip: 'Open shift roster',
+              icon: const Icon(Icons.arrow_forward_rounded, size: 19),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _UpcomingHolidayCard extends StatelessWidget {
   const _UpcomingHolidayCard({required this.holiday, required this.onOpen});
 
@@ -712,10 +812,15 @@ class _UpcomingHolidayCard extends StatelessWidget {
 }
 
 class _LeaveBalancePanel extends StatelessWidget {
-  const _LeaveBalancePanel({required this.items, required this.year});
+  const _LeaveBalancePanel({
+    required this.items,
+    required this.periodLabel,
+    required this.policySummary,
+  });
 
   final List<Map<String, dynamic>> items;
-  final String year;
+  final String periodLabel;
+  final String policySummary;
 
   @override
   Widget build(BuildContext context) {
@@ -726,7 +831,7 @@ class _LeaveBalancePanel extends StatelessWidget {
         children: [
           _SectionHeader(
             title: 'My leave balance',
-            subtitle: '$year calendar year · approved calendar dates, weekends count; no proration or carry-over',
+            subtitle: '$periodLabel · $policySummary',
           ),
           const SizedBox(height: 15),
           LayoutBuilder(
@@ -765,15 +870,16 @@ class _LeaveBalanceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final allowance = int.tryParse(stringValue(item['allowance_days'])) ?? 0;
-    final used = int.tryParse(stringValue(item['used_days'])) ?? 0;
-    final remaining = int.tryParse(stringValue(item['remaining_days'])) ?? 0;
+    final allowance = _leaveDayValue(item['allowance_days']);
+    final used = _leaveDayValue(item['used_days']);
+    final remaining = _leaveDayValue(item['remaining_days']);
+    final carryover = _leaveDayValue(item['carryover_days']);
     final progress = allowance > 0
         ? (used / allowance).clamp(0.0, 1.0).toDouble()
         : 0.0;
     final remainingText = remaining < 0
-        ? '${remaining.abs()} over'
-        : '$remaining left';
+        ? '${_formatLeaveDays(remaining.abs())} over'
+        : '${_formatLeaveDays(remaining)} left';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -819,7 +925,7 @@ class _LeaveBalanceTile extends StatelessWidget {
           ),
           const SizedBox(height: 13),
           Text(
-            '$used of $allowance days used',
+            '${_formatLeaveDays(used)} of ${_formatLeaveDays(allowance)} days used${carryover > 0 ? ' · ${_formatLeaveDays(carryover)} carried over' : ''}',
             style: const TextStyle(color: AppColors.muted, fontSize: 11),
           ),
           const SizedBox(height: 8),
@@ -938,4 +1044,14 @@ String _todayLabel() {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   final now = DateTime.now();
   return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+}
+
+double _leaveDayValue(Object? value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+String _formatLeaveDays(double value) {
+  final fixed = value.toStringAsFixed(2);
+  return fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
 }

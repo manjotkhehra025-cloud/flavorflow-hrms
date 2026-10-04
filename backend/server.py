@@ -49,12 +49,17 @@ PERMISSION_CATALOG = (
     ("locations.delete", "locations", "delete", "Delete work locations"),
     ("calendar.read", "calendar", "read", "View the holiday calendar"),
     ("calendar.manage", "calendar", "manage", "Manage company holidays"),
+    ("shifts.read", "shifts", "read", "View all shift assignments"),
+    ("shifts.read.team", "shifts", "read team", "View team shift assignments"),
+    ("shifts.read.self", "shifts", "read self", "View own shift assignments"),
+    ("shifts.manage", "shifts", "manage", "Manage shift templates and assignments"),
     ("leave.read", "leave", "read", "View all leave requests"),
     ("leave.read.team", "leave", "read team", "View team leave requests"),
     ("leave.read.self", "leave", "read self", "View own leave requests"),
     ("leave.create", "leave", "create", "Submit leave requests"),
     ("leave.approve", "leave", "approve", "Approve or reject leave requests"),
     ("leave.manage", "leave", "manage", "Manage all leave requests"),
+    ("leave.policy.manage", "leave", "manage policy", "Configure leave balance and period rules"),
     ("users.read", "users", "read", "View user accounts"),
     ("users.create", "users", "create", "Create user accounts"),
     ("users.update", "users", "update", "Update user accounts"),
@@ -75,8 +80,9 @@ ROLE_SEEDS: dict[str, tuple[str, str, set[str]]] = {
         {
             "dashboard.read", "employees.read", "employees.create", "employees.update",
             "attendance.read", "attendance.manage", "locations.read", "locations.create",
-            "locations.update", "calendar.read", "calendar.manage", "leave.read", "leave.create",
-            "leave.approve", "leave.manage",
+            "locations.update", "calendar.read", "calendar.manage", "shifts.read", "shifts.manage",
+            "leave.read", "leave.create",
+            "leave.approve", "leave.manage", "leave.policy.manage",
             "users.read", "audit.read",
         },
     ),
@@ -85,7 +91,8 @@ ROLE_SEEDS: dict[str, tuple[str, str, set[str]]] = {
         "Team-level visibility and leave approvals.",
         {
             "dashboard.read", "employees.read.team", "attendance.read.team", "locations.read",
-            "calendar.read", "leave.read.team", "leave.read.self", "leave.create", "leave.approve",
+            "calendar.read", "shifts.read.team", "shifts.read.self", "leave.read.team",
+            "leave.read.self", "leave.create", "leave.approve",
         },
     ),
     "employee": (
@@ -93,7 +100,7 @@ ROLE_SEEDS: dict[str, tuple[str, str, set[str]]] = {
         "Self-service attendance and leave access.",
         {
             "dashboard.read", "employees.read.self", "attendance.read.self", "attendance.punch",
-            "locations.read", "calendar.read", "leave.read.self", "leave.create",
+            "locations.read", "calendar.read", "shifts.read.self", "leave.read.self", "leave.create",
         },
     ),
 }
@@ -133,6 +140,13 @@ class HRMSApplication:
         with self._init_lock, self._db() as connection:
             connection.executescript((ROOT / "schema.sql").read_text(encoding="utf-8"))
             now = _now()
+            connection.execute(
+                """INSERT OR IGNORE INTO leave_policy
+                   (id, period_start_month, count_weekends, prorate_new_hires,
+                    carryover_enabled, carryover_limit_days, updated_at)
+                   VALUES (1, 1, 1, 0, 0, 0, ?)""",
+                (now,),
+            )
             for permission in PERMISSION_CATALOG:
                 connection.execute(
                     "INSERT OR IGNORE INTO permissions(key, module, action, label) VALUES (?, ?, ?, ?)",
@@ -196,7 +210,7 @@ class HRMSApplication:
         )
         connection.executemany(
             "INSERT OR IGNORE INTO leave_types(name, annual_allowance_days, is_paid, is_active) VALUES (?, ?, ?, 1)",
-            [("Annual leave", 20, 1), ("Sick leave", 10, 1), ("Personal leave", 5, 0)],
+            [("Annual leave", 0, 1), ("Sick leave", 0, 1), ("Personal leave", 0, 0)],
         )
 
     @staticmethod
@@ -259,6 +273,13 @@ class HRMSApplication:
                 or "idx_holidays_active_name_date" in str(exc)
             ):
                 message = "A holiday with that name and date already exists."
+            elif (
+                "shift_assignments.employee_id, shift_assignments.work_date" in str(exc)
+                or "idx_active_shift_assignment_employee_date" in str(exc)
+            ):
+                message = "This employee already has a shift assigned for that date."
+            elif "shift_templates.name" in str(exc) or "idx_active_shift_template_name" in str(exc):
+                message = "An active shift template with that name already exists."
             elif "UNIQUE constraint failed" in str(exc):
                 message = "A record with that email or code already exists."
             return 409, {"error": {"message": message}}
@@ -337,6 +358,32 @@ class HRMSApplication:
             self._require(user, "calendar.manage")
             return 200, self._deactivate_holiday(int(holiday_match.group(1)), user, remote_address)
 
+        if endpoint == "/shift-templates" and method == "GET":
+            self._require_any(user, {"shifts.read", "shifts.read.team", "shifts.read.self", "shifts.manage"})
+            return 200, self._list_shift_templates()
+        if endpoint == "/shift-templates" and method == "POST":
+            self._require(user, "shifts.manage")
+            return 201, self._create_shift_template(body, user, remote_address)
+        shift_match = re.fullmatch(r"/shift-templates/([0-9]+)", endpoint)
+        if shift_match and method == "PATCH":
+            self._require(user, "shifts.manage")
+            return 200, self._update_shift_template(int(shift_match.group(1)), body, user, remote_address)
+        if shift_match and method == "DELETE":
+            self._require(user, "shifts.manage")
+            return 200, self._deactivate_shift_template(int(shift_match.group(1)), user, remote_address)
+
+        if endpoint == "/shift-assignments" and method == "GET":
+            permissions = self._permissions(user["id"])
+            self._require_any(user, {"shifts.read", "shifts.read.team", "shifts.read.self", "shifts.manage"})
+            return 200, self._list_shift_assignments(user, permissions, query)
+        if endpoint == "/shift-assignments" and method == "POST":
+            self._require(user, "shifts.manage")
+            return 201, self._assign_shift(body, user, remote_address)
+        assignment_match = re.fullmatch(r"/shift-assignments/([0-9]+)", endpoint)
+        if assignment_match and method == "DELETE":
+            self._require(user, "shifts.manage")
+            return 200, self._deactivate_shift_assignment(int(assignment_match.group(1)), user, remote_address)
+
         if endpoint == "/attendance/punch-in" and method == "POST":
             self._require(user, "attendance.punch")
             return 201, self._punch_in(user, body, remote_address)
@@ -350,6 +397,13 @@ class HRMSApplication:
                 "attendance.punch",
             })
             return 200, self._list_attendance(user, permissions, query)
+
+        if endpoint == "/leave-policy" and method == "GET":
+            self._require(user, "leave.policy.manage")
+            return 200, self._get_leave_policy()
+        if endpoint == "/leave-policy" and method == "PATCH":
+            self._require(user, "leave.policy.manage")
+            return 200, self._update_leave_policy(body, user, remote_address)
 
         if endpoint == "/leave-types" and method == "GET":
             self._require_any(user, {
@@ -816,6 +870,218 @@ class HRMSApplication:
             data.setdefault("is_active", 1)
         return data
 
+    def _list_shift_templates(self) -> dict[str, Any]:
+        with self._db() as connection:
+            rows = connection.execute(
+                "SELECT * FROM shift_templates ORDER BY is_active DESC, name"
+            ).fetchall()
+        items = [_shift_template_json(row) for row in rows]
+        return {"items": items, "total": len(items)}
+
+    def _shift_template(self, shift_id: int) -> dict[str, Any] | None:
+        with self._db() as connection:
+            row = connection.execute("SELECT * FROM shift_templates WHERE id = ?", (shift_id,)).fetchone()
+        return _shift_template_json(row) if row else None
+
+    def _create_shift_template(self, body: dict[str, Any], user: dict[str, Any], remote: str | None) -> dict[str, Any]:
+        data = self._shift_template_values(body, partial=False)
+        now = _now()
+        with self._db() as connection:
+            cursor = connection.execute(
+                """INSERT INTO shift_templates(name, start_time, end_time, break_minutes, is_active, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (data["name"], data["start_time"], data["end_time"], data["break_minutes"], data["is_active"], now, now),
+            )
+            shift_id = int(cursor.lastrowid)
+        result = self._shift_template(shift_id)
+        self._audit(user["id"], "shift_template.created", "shift_template", shift_id, {"name": result["name"]}, remote)
+        return result
+
+    def _update_shift_template(self, shift_id: int, body: dict[str, Any], user: dict[str, Any], remote: str | None) -> dict[str, Any]:
+        if not self._shift_template(shift_id):
+            raise ApiError(404, "Shift template not found.")
+        data = self._shift_template_values(body, partial=True)
+        if not data:
+            raise ApiError(400, "No editable shift fields were supplied.")
+        assignments = ", ".join(f"{key} = ?" for key in data)
+        with self._db() as connection:
+            connection.execute(
+                f"UPDATE shift_templates SET {assignments}, updated_at = ? WHERE id = ?",
+                (*data.values(), _now(), shift_id),
+            )
+        result = self._shift_template(shift_id)
+        self._audit(user["id"], "shift_template.updated", "shift_template", shift_id, {"fields": sorted(data)}, remote)
+        return result
+
+    def _deactivate_shift_template(self, shift_id: int, user: dict[str, Any], remote: str | None) -> dict[str, Any]:
+        current = self._shift_template(shift_id)
+        if not current:
+            raise ApiError(404, "Shift template not found.")
+        with self._db() as connection:
+            connection.execute(
+                "UPDATE shift_templates SET is_active = 0, updated_at = ? WHERE id = ?",
+                (_now(), shift_id),
+            )
+        result = self._shift_template(shift_id)
+        self._audit(user["id"], "shift_template.deactivated", "shift_template", shift_id, {"name": current["name"]}, remote)
+        return result
+
+    @staticmethod
+    def _shift_template_values(body: dict[str, Any], partial: bool) -> dict[str, Any]:
+        allowed = {"name", "start_time", "end_time", "break_minutes", "is_active"}
+        supplied = {key: value for key, value in body.items() if key in allowed}
+        required = {"name", "start_time", "end_time"}
+        if not partial and not required.issubset(supplied):
+            raise ApiError(400, "Shift name, start time, and end time are required.")
+        data: dict[str, Any] = {}
+        for key, value in supplied.items():
+            if key in {"start_time", "end_time"}:
+                text = str(value).strip()
+                if not re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]", text):
+                    raise ApiError(400, f"{key.replace('_', ' ').capitalize()} must use 24-hour HH:MM format.")
+                data[key] = text
+            elif key == "break_minutes":
+                minutes = _as_int(value, "Break duration")
+                if minutes < 0 or minutes > 600:
+                    raise ApiError(400, "Break duration must be between 0 and 600 minutes.")
+                data[key] = minutes
+            elif key == "is_active":
+                if isinstance(value, str):
+                    normalized = value.strip().lower()
+                    if normalized not in {"true", "false", "1", "0"}:
+                        raise ApiError(400, "is_active must be a boolean.")
+                    data[key] = int(normalized in {"true", "1"})
+                elif isinstance(value, (bool, int)):
+                    data[key] = int(bool(value))
+                else:
+                    raise ApiError(400, "is_active must be a boolean.")
+            else:
+                name = str(value).strip()
+                if not name or len(name) > 120:
+                    raise ApiError(400, "Shift name must be between 1 and 120 characters.")
+                data[key] = name
+        if not partial:
+            data.setdefault("break_minutes", 0)
+            data.setdefault("is_active", 1)
+        return data
+
+    def _list_shift_assignments(
+        self,
+        user: dict[str, Any],
+        permissions: set[str],
+        query: dict[str, str],
+    ) -> dict[str, Any]:
+        own_id = self._employee_id(user["id"])
+        global_read = bool(permissions.intersection({"shifts.read", "shifts.manage"}))
+        team_read = "shifts.read.team" in permissions
+        self_read = "shifts.read.self" in permissions
+        employee_ids: list[int] | None
+        if global_read:
+            employee_ids = None
+        elif team_read and own_id is not None:
+            with self._db() as connection:
+                rows = connection.execute(
+                    "SELECT id FROM employees WHERE id = ? OR manager_id = ?", (own_id, own_id)
+                ).fetchall()
+            employee_ids = [row["id"] for row in rows]
+        elif self_read and own_id is not None:
+            employee_ids = [own_id]
+        else:
+            employee_ids = []
+
+        conditions = ["a.is_active = 1"]
+        params: list[Any] = []
+        if employee_ids == []:
+            return {"items": [], "total": 0}
+        if employee_ids is not None:
+            placeholders = ",".join("?" for _ in employee_ids)
+            conditions.append(f"a.employee_id IN ({placeholders})")
+            params.extend(employee_ids)
+        if query.get("date"):
+            conditions.append("a.work_date = ?")
+            params.append(_date_string(query["date"]))
+        else:
+            if query.get("from"):
+                conditions.append("a.work_date >= ?")
+                params.append(_date_string(query["from"]))
+            if query.get("to"):
+                conditions.append("a.work_date <= ?")
+                params.append(_date_string(query["to"]))
+        if query.get("from") and query.get("to") and _date_string(query["to"]) < _date_string(query["from"]):
+            raise ApiError(400, "The roster end date must be on or after its start date.")
+        limit = min(max(_optional_int(query.get("limit")) or 300, 1), 500)
+        params.append(limit)
+        with self._db() as connection:
+            rows = connection.execute(
+                """SELECT a.*, s.name AS shift_name, s.start_time, s.end_time, s.break_minutes,
+                   e.employee_code, e.first_name, e.last_name, w.name AS location_name
+                   FROM shift_assignments a JOIN shift_templates s ON s.id = a.shift_id
+                   JOIN employees e ON e.id = a.employee_id
+                   LEFT JOIN work_locations w ON w.id = a.work_location_id
+                   WHERE """ + " AND ".join(conditions) + " ORDER BY a.work_date, s.start_time, e.first_name LIMIT ?",
+                params,
+            ).fetchall()
+        items = [_shift_assignment_json(row) for row in rows]
+        return {"items": items, "total": len(items)}
+
+    def _shift_assignment(self, assignment_id: int) -> dict[str, Any] | None:
+        with self._db() as connection:
+            row = connection.execute(
+                """SELECT a.*, s.name AS shift_name, s.start_time, s.end_time, s.break_minutes,
+                   e.employee_code, e.first_name, e.last_name, w.name AS location_name
+                   FROM shift_assignments a JOIN shift_templates s ON s.id = a.shift_id
+                   JOIN employees e ON e.id = a.employee_id
+                   LEFT JOIN work_locations w ON w.id = a.work_location_id WHERE a.id = ?""",
+                (assignment_id,),
+            ).fetchone()
+        return _shift_assignment_json(row) if row else None
+
+    def _assign_shift(self, body: dict[str, Any], user: dict[str, Any], remote: str | None) -> dict[str, Any]:
+        employee_id = _as_int(body.get("employee_id"), "Employee ID")
+        shift_id = _as_int(body.get("shift_id"), "Shift ID")
+        work_date = _date_string(body.get("work_date"))
+        location_id = _optional_int(body.get("work_location_id"))
+        with self._db() as connection:
+            employee = connection.execute("SELECT status FROM employees WHERE id = ?", (employee_id,)).fetchone()
+            if not employee or employee["status"] == "inactive":
+                raise ApiError(400, "Choose an active employee for the roster.")
+            if not connection.execute(
+                "SELECT 1 FROM shift_templates WHERE id = ? AND is_active = 1", (shift_id,)
+            ).fetchone():
+                raise ApiError(400, "Choose an active shift template.")
+            if location_id is not None and not connection.execute(
+                "SELECT 1 FROM work_locations WHERE id = ? AND is_active = 1", (location_id,)
+            ).fetchone():
+                raise ApiError(400, "Choose an active work location or leave it blank.")
+            cursor = connection.execute(
+                """INSERT INTO shift_assignments(employee_id, shift_id, work_date, work_location_id,
+                   is_active, assigned_by, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?, ?)""",
+                (employee_id, shift_id, work_date, location_id, user["id"], _now(), _now()),
+            )
+            assignment_id = int(cursor.lastrowid)
+        result = self._shift_assignment(assignment_id)
+        self._audit(
+            user["id"], "shift.assigned", "shift_assignment", assignment_id,
+            {"employee_id": employee_id, "shift_id": shift_id, "work_date": work_date}, remote,
+        )
+        return result
+
+    def _deactivate_shift_assignment(self, assignment_id: int, user: dict[str, Any], remote: str | None) -> dict[str, Any]:
+        current = self._shift_assignment(assignment_id)
+        if not current or not current["is_active"]:
+            raise ApiError(404, "Shift assignment not found.")
+        with self._db() as connection:
+            connection.execute(
+                "UPDATE shift_assignments SET is_active = 0, updated_at = ? WHERE id = ?",
+                (_now(), assignment_id),
+            )
+        result = self._shift_assignment(assignment_id)
+        self._audit(
+            user["id"], "shift.unassigned", "shift_assignment", assignment_id,
+            {"employee_id": current["employee_id"], "work_date": current["work_date"]}, remote,
+        )
+        return result
+
     def _punch_in(self, user: dict[str, Any], body: dict[str, Any], remote: str | None) -> dict[str, Any]:
         employee = self._employee_for_user(user["id"])
         if not employee:
@@ -947,6 +1213,98 @@ class HRMSApplication:
                 (record_id,),
             ).fetchone()
         return _attendance_json(row)
+
+    def _get_leave_policy(self) -> dict[str, Any]:
+        with self._db() as connection:
+            policy = connection.execute("SELECT * FROM leave_policy WHERE id = 1").fetchone()
+            leave_types = connection.execute(
+                "SELECT id, name, annual_allowance_days, is_paid, is_active FROM leave_types WHERE is_active = 1 ORDER BY name"
+            ).fetchall()
+        return dict(policy) | {
+            "count_weekends": bool(policy["count_weekends"]),
+            "prorate_new_hires": bool(policy["prorate_new_hires"]),
+            "carryover_enabled": bool(policy["carryover_enabled"]),
+            "leave_type_allowances": [
+                dict(row) | {"is_paid": bool(row["is_paid"]), "is_active": bool(row["is_active"])}
+                for row in leave_types
+            ],
+        }
+
+    def _update_leave_policy(self, body: dict[str, Any], user: dict[str, Any], remote: str | None) -> dict[str, Any]:
+        allowed = {
+            "period_start_month", "count_weekends", "prorate_new_hires",
+            "carryover_enabled", "carryover_limit_days", "leave_type_allowances",
+        }
+        unknown = sorted(set(body) - allowed)
+        if unknown:
+            raise ApiError(400, "One or more leave policy fields are not supported.", {"unknown": unknown})
+        updates: dict[str, int] = {}
+        if "period_start_month" in body:
+            month = _as_int(body["period_start_month"], "Leave period start month")
+            if not 1 <= month <= 12:
+                raise ApiError(400, "Leave period start month must be between 1 and 12.")
+            updates["period_start_month"] = month
+        for key, label in (
+            ("count_weekends", "Weekend counting"),
+            ("prorate_new_hires", "New-hire proration"),
+            ("carryover_enabled", "Carry-over"),
+        ):
+            if key in body:
+                updates[key] = _boolean_setting(body[key], label)
+        if "carryover_limit_days" in body:
+            limit = _as_int(body["carryover_limit_days"], "Carry-over limit")
+            if not 0 <= limit <= 365:
+                raise ApiError(400, "Carry-over limit must be between 0 and 365 days.")
+            updates["carryover_limit_days"] = limit
+
+        allowance_updates: list[tuple[int, int]] = []
+        if "leave_type_allowances" in body:
+            raw_allowances = body["leave_type_allowances"]
+            if not isinstance(raw_allowances, list):
+                raise ApiError(400, "Leave type allowances must be an array.")
+            seen: set[int] = set()
+            for item in raw_allowances:
+                if not isinstance(item, dict):
+                    raise ApiError(400, "Each leave type allowance must contain an ID and annual days.")
+                leave_type_id = _as_int(item.get("id"), "Leave type ID")
+                allowance = _as_int(item.get("annual_allowance_days"), "Annual leave allowance")
+                if leave_type_id in seen:
+                    raise ApiError(400, "A leave type allowance may only be supplied once.")
+                if not 0 <= allowance <= 3660:
+                    raise ApiError(400, "Annual leave allowance must be between 0 and 3660 days.")
+                seen.add(leave_type_id)
+                allowance_updates.append((leave_type_id, allowance))
+        if not updates and "leave_type_allowances" not in body:
+            raise ApiError(400, "No leave policy fields were supplied.")
+
+        with self._db() as connection:
+            if updates:
+                assignments = ", ".join(f"{key} = ?" for key in updates)
+                connection.execute(
+                    f"UPDATE leave_policy SET {assignments}, updated_at = ?, updated_by = ? WHERE id = 1",
+                    (*updates.values(), _now(), user["id"]),
+                )
+            elif allowance_updates:
+                connection.execute(
+                    "UPDATE leave_policy SET updated_at = ?, updated_by = ? WHERE id = 1",
+                    (_now(), user["id"]),
+                )
+            for leave_type_id, allowance in allowance_updates:
+                cursor = connection.execute(
+                    "UPDATE leave_types SET annual_allowance_days = ? WHERE id = ? AND is_active = 1",
+                    (allowance, leave_type_id),
+                )
+                if cursor.rowcount != 1:
+                    raise ApiError(404, f"Active leave type {leave_type_id} was not found.")
+        self._audit(
+            user["id"],
+            "leave.policy_updated",
+            "leave_policy",
+            "1",
+            {"fields": sorted(updates), "leave_type_ids": [item[0] for item in allowance_updates]},
+            remote,
+        )
+        return self._get_leave_policy()
 
     def _list_leave_types(self) -> dict[str, Any]:
         with self._db() as connection:
@@ -1238,11 +1596,31 @@ class HRMSApplication:
         return next(role for role in self._list_roles()["roles"] if role["id"] == role_id)
 
     def _dashboard(self, user: dict[str, Any]) -> dict[str, Any]:
-        today = datetime.now(timezone.utc).date().isoformat()
+        today_date = datetime.now(timezone.utc).date()
+        today = today_date.isoformat()
         permissions = self._permissions(user["id"])
         with self._db() as connection:
-            own_row = connection.execute("SELECT id FROM employees WHERE user_id = ?", (user["id"],)).fetchone()
+            own_row = connection.execute("SELECT id, start_date FROM employees WHERE user_id = ?", (user["id"],)).fetchone()
             own_id = own_row["id"] if own_row else None
+            policy_row = connection.execute("SELECT * FROM leave_policy WHERE id = 1").fetchone()
+            period_start_month = int(policy_row["period_start_month"])
+            count_weekends = bool(policy_row["count_weekends"])
+            prorate_new_hires = bool(policy_row["prorate_new_hires"])
+            carryover_enabled = bool(policy_row["carryover_enabled"])
+            carryover_limit_days = int(policy_row["carryover_limit_days"])
+            period_start, period_end = _leave_period_bounds(today_date, period_start_month)
+            previous_period_end = period_start - timedelta(days=1)
+            previous_period_start, _ = _leave_period_bounds(previous_period_end, period_start_month)
+            period_label = (
+                f"{period_start.year} calendar year"
+                if period_start_month == 1
+                else f"{period_start.year}–{period_end.year} leave period"
+            )
+            leave_policy_summary = " · ".join((
+                "weekends included" if count_weekends else "weekdays only",
+                "new-hire proration on" if prorate_new_hires else "no new-hire proration",
+                f"carry-over up to {carryover_limit_days} days" if carryover_enabled and carryover_limit_days else "no carry-over",
+            ))
 
             def scoped_employee_ids(global_read: bool, team_read: bool, self_read: bool) -> list[int] | None:
                 if global_read:
@@ -1280,6 +1658,18 @@ class HRMSApplication:
                     (own_id,),
                 ).fetchone()
                 own_attendance = _attendance_json(own_attendance_row)
+            own_shift = None
+            if own_id is not None and permissions.intersection({"shifts.read", "shifts.read.self", "shifts.manage"}):
+                own_shift_row = connection.execute(
+                    """SELECT a.*, s.name AS shift_name, s.start_time, s.end_time, s.break_minutes,
+                       e.employee_code, e.first_name, e.last_name, w.name AS location_name
+                       FROM shift_assignments a JOIN shift_templates s ON s.id = a.shift_id
+                       JOIN employees e ON e.id = a.employee_id
+                       LEFT JOIN work_locations w ON w.id = a.work_location_id
+                       WHERE a.employee_id = ? AND a.work_date = ? AND a.is_active = 1 LIMIT 1""",
+                    (own_id, today),
+                ).fetchone()
+                own_shift = _shift_assignment_json(own_shift_row)
 
             def scoped_count(sql: str, ids: list[int] | None, tail_params: tuple[Any, ...] = ()) -> int:
                 if ids == []:
@@ -1308,37 +1698,52 @@ class HRMSApplication:
                 leave_ids,
                 (today, today),
             )
-            leave_balance_year = int(today[:4])
+            leave_balance_year = period_start.year
+            leave_balance_period = {
+                "start_date": period_start.isoformat(),
+                "end_date": period_end.isoformat(),
+                "label": period_label,
+                "policy_summary": leave_policy_summary,
+            }
             leave_balances: list[dict[str, Any]] = []
             if own_id is not None and (leave_ids is None or own_id in leave_ids):
-                period_start = date(leave_balance_year, 1, 1)
-                period_end = date(leave_balance_year, 12, 31)
                 leave_types = connection.execute(
                     "SELECT id, name, annual_allowance_days FROM leave_types WHERE is_active = 1 ORDER BY name"
                 ).fetchall()
+                hire_date = date.fromisoformat(own_row["start_date"])
                 for leave_type in leave_types:
                     request_rows = connection.execute(
                         """SELECT start_date, end_date FROM leave_requests
                            WHERE employee_id = ? AND leave_type_id = ? AND status = 'approved'
                            AND start_date <= ? AND end_date >= ?""",
-                        (own_id, leave_type["id"], period_end.isoformat(), period_start.isoformat()),
+                        (own_id, leave_type["id"], period_end.isoformat(), previous_period_start.isoformat()),
                     ).fetchall()
-                    approved_days: set[date] = set()
-                    for request_row in request_rows:
-                        first_day = max(date.fromisoformat(request_row["start_date"]), period_start)
-                        last_day = min(date.fromisoformat(request_row["end_date"]), period_end)
-                        day = first_day
-                        while day <= last_day:
-                            approved_days.add(day)
-                            day += timedelta(days=1)
-                    allowance = int(leave_type["annual_allowance_days"])
-                    used = len(approved_days)
+                    current_used = _approved_leave_day_count(
+                        request_rows, period_start, period_end, count_weekends
+                    )
+                    previous_used = _approved_leave_day_count(
+                        request_rows, previous_period_start, previous_period_end, count_weekends
+                    )
+                    annual_allowance = int(leave_type["annual_allowance_days"])
+                    current_base = _period_allowance(
+                        annual_allowance, hire_date, period_start, period_end, prorate_new_hires
+                    )
+                    previous_base = _period_allowance(
+                        annual_allowance, hire_date, previous_period_start, previous_period_end, prorate_new_hires
+                    )
+                    carryover = min(
+                        max(previous_base - previous_used, 0), carryover_limit_days
+                    ) if carryover_enabled else 0
+                    allowance = round(current_base + carryover, 2)
+                    remaining = round(allowance - current_used, 2)
                     leave_balances.append({
                         "leave_type_id": leave_type["id"],
                         "leave_type": leave_type["name"],
+                        "base_allowance_days": current_base,
+                        "carryover_days": carryover,
                         "allowance_days": allowance,
-                        "used_days": used,
-                        "remaining_days": allowance - used,
+                        "used_days": current_used,
+                        "remaining_days": remaining,
                     })
             locations = connection.execute("SELECT COUNT(*) FROM work_locations WHERE is_active = 1").fetchone()[0] if "locations.read" in permissions else 0
             upcoming_holiday = None
@@ -1393,8 +1798,10 @@ class HRMSApplication:
             "recent_attendance": [_attendance_json(row) for row in recent],
             "pending_requests": [_leave_json(row) for row in leave_rows],
             "my_attendance": own_attendance,
+            "my_shift": own_shift,
             "my_leave_balances": leave_balances,
             "leave_balance_year": leave_balance_year,
+            "leave_balance_period": leave_balance_period,
             "upcoming_holiday": upcoming_holiday,
             "generated_at": _now(),
         }
@@ -1462,6 +1869,23 @@ def _holiday_json(row: sqlite3.Row | None) -> dict[str, Any] | None:
     return item
 
 
+def _shift_template_json(row: sqlite3.Row | None) -> dict[str, Any] | None:
+    if row is None:
+        return None
+    item = dict(row)
+    item["is_active"] = bool(row["is_active"])
+    return item
+
+
+def _shift_assignment_json(row: sqlite3.Row | None) -> dict[str, Any] | None:
+    if row is None:
+        return None
+    item = dict(row)
+    item["is_active"] = bool(row["is_active"])
+    item["employee_name"] = f"{row['first_name']} {row['last_name']}".strip()
+    return item
+
+
 def _header(headers: dict[str, str], name: str) -> str:
     for key, value in headers.items():
         if key.lower() == name.lower():
@@ -1501,6 +1925,48 @@ def _date_string(value: Any, default: str | None = None) -> str:
         raise ApiError(400, "Dates must use YYYY-MM-DD format.") from None
 
 
+def _leave_period_bounds(reference: date, start_month: int) -> tuple[date, date]:
+    start_year = reference.year if reference.month >= start_month else reference.year - 1
+    period_start = date(start_year, start_month, 1)
+    next_period_start = date(start_year + 1, start_month, 1)
+    return period_start, next_period_start - timedelta(days=1)
+
+
+def _approved_leave_day_count(
+    rows: list[sqlite3.Row],
+    period_start: date,
+    period_end: date,
+    count_weekends: bool,
+) -> int:
+    used_dates: set[date] = set()
+    for row in rows:
+        start = max(date.fromisoformat(row["start_date"]), period_start)
+        end = min(date.fromisoformat(row["end_date"]), period_end)
+        day = start
+        while day <= end:
+            if count_weekends or day.weekday() < 5:
+                used_dates.add(day)
+            day += timedelta(days=1)
+    return len(used_dates)
+
+
+def _period_allowance(
+    annual_allowance: int,
+    hire_date: date,
+    period_start: date,
+    period_end: date,
+    prorate_new_hires: bool,
+) -> float:
+    if not prorate_new_hires or hire_date <= period_start:
+        return float(annual_allowance)
+    eligible_start = max(hire_date, period_start)
+    if eligible_start > period_end:
+        return 0.0
+    eligible_days = (period_end - eligible_start).days + 1
+    period_days = (period_end - period_start).days + 1
+    return round(annual_allowance * eligible_days / period_days, 2)
+
+
 def _optional_int(value: Any) -> int | None:
     if value is None or str(value).strip() == "":
         return None
@@ -1514,6 +1980,20 @@ def _as_int(value: Any, label: str) -> int:
         return int(value)
     except (ValueError, TypeError):
         raise ApiError(400, f"{label} must be an integer.") from None
+
+
+def _boolean_setting(value: Any, label: str) -> int:
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int) and value in {0, 1}:
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1"}:
+            return 1
+        if normalized in {"false", "0"}:
+            return 0
+    raise ApiError(400, f"{label} must be a boolean.")
 
 
 def _valid_email(email: str) -> bool:

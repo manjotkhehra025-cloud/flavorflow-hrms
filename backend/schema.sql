@@ -90,12 +90,52 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS shift_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    break_minutes INTEGER NOT NULL DEFAULT 0 CHECK (break_minutes BETWEEN 0 AND 600),
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_active_shift_template_name
+    ON shift_templates(name COLLATE NOCASE) WHERE is_active = 1;
+
+CREATE TABLE IF NOT EXISTS shift_assignments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    shift_id INTEGER NOT NULL REFERENCES shift_templates(id),
+    work_date TEXT NOT NULL,
+    work_location_id INTEGER REFERENCES work_locations(id) ON DELETE SET NULL,
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+    assigned_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_active_shift_assignment_employee_date
+    ON shift_assignments(employee_id, work_date) WHERE is_active = 1;
+
 CREATE TABLE IF NOT EXISTS leave_types (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     annual_allowance_days INTEGER NOT NULL DEFAULT 0,
     is_paid INTEGER NOT NULL DEFAULT 1 CHECK (is_paid IN (0, 1)),
     is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))
+);
+
+CREATE TABLE IF NOT EXISTS leave_policy (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    period_start_month INTEGER NOT NULL DEFAULT 1 CHECK (period_start_month BETWEEN 1 AND 12),
+    count_weekends INTEGER NOT NULL DEFAULT 1 CHECK (count_weekends IN (0, 1)),
+    prorate_new_hires INTEGER NOT NULL DEFAULT 0 CHECK (prorate_new_hires IN (0, 1)),
+    carryover_enabled INTEGER NOT NULL DEFAULT 0 CHECK (carryover_enabled IN (0, 1)),
+    carryover_limit_days INTEGER NOT NULL DEFAULT 0 CHECK (carryover_limit_days BETWEEN 0 AND 365),
+    updated_at TEXT NOT NULL,
+    updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS leave_requests (
@@ -142,5 +182,7 @@ CREATE INDEX IF NOT EXISTS idx_attendance_punch_out ON attendance_records(punch_
 CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_one_open_shift ON attendance_records(employee_id) WHERE punch_out_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_leave_employee_status ON leave_requests(employee_id, status, requested_at DESC);
 CREATE INDEX IF NOT EXISTS idx_holidays_date_active ON holidays(holiday_date, is_active);
+CREATE INDEX IF NOT EXISTS idx_shift_assignments_date ON shift_assignments(work_date, is_active);
+CREATE INDEX IF NOT EXISTS idx_shift_assignments_employee_date ON shift_assignments(employee_id, work_date);
 CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_expiry ON sessions(user_id, expires_at);
