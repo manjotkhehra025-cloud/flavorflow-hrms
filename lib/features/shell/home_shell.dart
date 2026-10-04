@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_scope.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import '../admin/audit_screen.dart';
 import '../admin/roles_screen.dart';
 import '../admin/users_screen.dart';
@@ -265,7 +266,18 @@ class _SettingsScreen extends StatelessWidget {
             const SizedBox(height: 15),
             AppPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Attendance permissions', style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 14)), const SizedBox(height: 8), const Text('FlavorFlow requests native location access only when you punch in or out. The API verifies reported coordinates against the selected work location geofence.', style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5)), const SizedBox(height: 12), Row(children: [const Icon(Icons.gps_fixed_rounded, color: AppColors.blue, size: 18), const SizedBox(width: 8), Text(user.can('attendance.punch') ? 'GPS attendance is enabled for your role.' : 'Your role does not have punch permissions.', style: const TextStyle(color: AppColors.ink, fontSize: 12, fontWeight: FontWeight.w600))])])),
             const SizedBox(height: 15),
-            AppPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Security', style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 14)), const SizedBox(height: 10), _SettingLine(icon: Icons.lock_outline_rounded, title: 'Session token', subtitle: 'Stored using native secure storage.'), const Divider(height: 23), _SettingLine(icon: Icons.admin_panel_settings_outlined, title: 'Access control', subtitle: 'Role grants are managed by your HRMS administrator and enforced by the API.')])) ,
+            const AppPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Security', style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 14)),
+                  SizedBox(height: 10),
+                  _SettingLine(icon: Icons.lock_outline_rounded, title: 'Session token', subtitle: 'Stored using native secure storage.'),
+                  Divider(height: 23),
+                  _SettingLine(icon: Icons.admin_panel_settings_outlined, title: 'Access control', subtitle: 'Role grants are managed by your HRMS administrator and enforced by the API.'),
+                ],
+              ),
+            ),
           ]),
         ),
       ),

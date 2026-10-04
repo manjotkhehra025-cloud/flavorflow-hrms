@@ -66,7 +66,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Disable this location?', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Text('New punches will no longer be accepted here. Existing open shifts can still punch out at their assigned site.', style: const TextStyle(color: AppColors.muted, height: 1.45)),
+        content: const Text('New punches will no longer be accepted here. Existing open shifts can still punch out at their assigned site.', style: TextStyle(color: AppColors.muted, height: 1.45)),
         actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(context, true), style: FilledButton.styleFrom(backgroundColor: const Color(0xFFC94D54)), child: const Text('Disable'))],
       ),
     );

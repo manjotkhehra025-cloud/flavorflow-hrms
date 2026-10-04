@@ -78,7 +78,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1120),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              PageHeading(title: 'Approvals', subtitle: 'Review leave requests for your team.'),
+              const PageHeading(title: 'Approvals', subtitle: 'Review leave requests for your team.'),
               if (_error != null) ...[ErrorNotice(message: _error!, onRetry: _load), const SizedBox(height: 14)],
               if (_loading && _requests.isEmpty)
                 const SizedBox(height: 180, child: LoadingView(label: 'Loading approval queue…'))
