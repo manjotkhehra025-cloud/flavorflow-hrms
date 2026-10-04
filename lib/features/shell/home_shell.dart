@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_scope.dart';
+import '../../core/brand_config.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -123,7 +124,7 @@ class _Sidebar extends StatelessWidget {
       width: 258,
       color: AppColors.navy,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(padding: const EdgeInsets.fromLTRB(22, 25, 18, 24), child: Row(children: [Container(width: 39, height: 39, decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), gradient: const LinearGradient(colors: [AppColors.blue, AppColors.teal])), child: const Icon(Icons.bubble_chart_rounded, color: Colors.white, size: 22)), const SizedBox(width: 11), const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('FlavorFlow', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)), Text('PEOPLE PLATFORM', style: TextStyle(color: Color(0xFF91A7BB), fontSize: 8, fontWeight: FontWeight.w700, letterSpacing: 1.2))])])),
+        Padding(padding: const EdgeInsets.fromLTRB(22, 25, 18, 24), child: Row(children: [Container(width: 39, height: 39, decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), gradient: const LinearGradient(colors: [AppColors.blue, AppColors.teal])), child: const Icon(Icons.bubble_chart_rounded, color: Colors.white, size: 22)), const SizedBox(width: 11), const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(BrandConfig.appName, style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)), Text('PEOPLE PLATFORM', style: TextStyle(color: Color(0xFF91A7BB), fontSize: 8, fontWeight: FontWeight.w700, letterSpacing: 1.2))])])),
         const Padding(padding: EdgeInsets.fromLTRB(23, 0, 18, 11), child: Text('WORKSPACE', style: TextStyle(color: Color(0xFF7F97AB), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.1))),
         Expanded(
           child: ListView.separated(
@@ -185,7 +186,7 @@ class _TopBar extends StatelessWidget {
         if (!wide) ...[
           Container(width: 34, height: 34, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [AppColors.blue, AppColors.teal])), child: const Icon(Icons.bubble_chart_rounded, color: Colors.white, size: 20)),
           const SizedBox(width: 10),
-          const Text('FlavorFlow', style: TextStyle(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.w800)),
+          const Text(BrandConfig.appName, style: TextStyle(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.w800)),
           const SizedBox(width: 12),
           Container(width: 1, height: 24, color: AppColors.line),
           const SizedBox(width: 12),
@@ -330,7 +331,7 @@ class _SettingsScreen extends StatelessWidget {
             const SizedBox(height: 20),
             AppPanel(child: Row(children: [PersonAvatar(name: user.fullName, size: 53), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(user.fullName, style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 15)), const SizedBox(height: 4), Text(user.email, style: const TextStyle(color: AppColors.muted, fontSize: 12)), const SizedBox(height: 6), Text(user.roleNames.join(' · '), style: const TextStyle(color: AppColors.blue, fontSize: 11, fontWeight: FontWeight.w700))]))])),
             const SizedBox(height: 15),
-            AppPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Attendance permissions', style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 14)), const SizedBox(height: 8), const Text('FlavorFlow requests native location access only when you punch in or out. The API verifies reported coordinates against the selected work location geofence.', style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5)), const SizedBox(height: 12), Row(children: [const Icon(Icons.gps_fixed_rounded, color: AppColors.blue, size: 18), const SizedBox(width: 8), Text(user.can('attendance.punch') ? 'GPS attendance is enabled for your role.' : 'Your role does not have punch permissions.', style: const TextStyle(color: AppColors.ink, fontSize: 12, fontWeight: FontWeight.w600))])])),
+            AppPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Attendance permissions', style: TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 14)), const SizedBox(height: 8), Text('${BrandConfig.appName} requests native location access only when you punch in or out. The API verifies reported coordinates against the selected work location geofence.', style: const TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5)), const SizedBox(height: 12), Row(children: [const Icon(Icons.gps_fixed_rounded, color: AppColors.blue, size: 18), const SizedBox(width: 8), Text(user.can('attendance.punch') ? 'GPS attendance is enabled for your role.' : 'Your role does not have punch permissions.', style: const TextStyle(color: AppColors.ink, fontSize: 12, fontWeight: FontWeight.w600))])])),
             const SizedBox(height: 15),
             const AppPanel(
               child: Column(

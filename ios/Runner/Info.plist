@@ -11,7 +11,7 @@
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>FlavorFlow HRMS</string>
+    <string>HRMate</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -37,6 +37,8 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Use Face ID to securely unlock your HRMate saved session.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Your location is used to verify that attendance punches happen inside an approved work location.</string>
     <key>NSAppTransportSecurity</key>

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_scope.dart';
+import '../../core/brand_config.dart';
 import '../../core/json_helpers.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -111,7 +112,7 @@ class _UsersScreenState extends State<UsersScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1220),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              PageHeading(title: 'User accounts', subtitle: 'Manage who can access your FlavorFlow workspace.', trailing: currentUser.can('users.create') ? PrimaryButton(label: 'Invite user', icon: Icons.person_add_alt_1_rounded, onPressed: _createUser) : null),
+              PageHeading(title: 'User accounts', subtitle: 'Manage who can access your ${BrandConfig.appName} workspace.', trailing: currentUser.can('users.create') ? PrimaryButton(label: 'Invite user', icon: Icons.person_add_alt_1_rounded, onPressed: _createUser) : null),
               Container(padding: const EdgeInsets.all(17), decoration: BoxDecoration(color: AppColors.softBlue, borderRadius: BorderRadius.circular(17), border: Border.all(color: const Color(0xFFDDE9FC))), child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(Icons.admin_panel_settings_outlined, color: AppColors.blue, size: 20), SizedBox(width: 11), Expanded(child: Text('Each account receives one or more roles. Effective permissions are resolved by the API from database grants every time a protected operation is requested.', style: TextStyle(color: AppColors.ink, fontSize: 12, height: 1.5)))])),
               const SizedBox(height: 17),
               if (_loading && _users.isEmpty)

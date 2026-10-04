@@ -37,6 +37,12 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080/api/v1/
 
 `10.0.2.2` reaches the host machine from an Android emulator. For an iOS simulator, use `http://127.0.0.1:8080/api/v1/`; for a physical device, use the host's LAN address and keep the API bound to `0.0.0.0`. Production builds should pass an HTTPS URL via `API_BASE_URL`. Geolocation permissions are requested by the native app at punch time.
 
+### Biometric sign-in and branding
+
+Sign in with a password once and leave **Remember me on this device** selected to enable biometric sign-in on devices with an enrolled fingerprint or face unlock. The app never stores or sends passwords or biometric templates. When remembered sign-in is enabled, it stores the API session token, remembered email, and opt-in flag using native secure storage. At the next app launch, the native biometric prompt unlocks the saved session and the app revalidates it with `auth/me`. If the session expires, sign in with the password again. Uncheck **Remember me** to avoid saving the session.
+
+The login branding defaults to the HRMate / GD Foods reference screen. For another workspace, override the company labels at build time with `--dart-define=HRMS_COMPANY_NAME="..."` and `--dart-define=HRMS_COMPANY_SHORT_NAME="..."`.
+
 ## Checks
 
 ```sh
