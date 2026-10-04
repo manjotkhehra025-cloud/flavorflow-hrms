@@ -229,7 +229,7 @@ class _ShiftRosterScreenState extends State<ShiftRosterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PageHeading(
+                const PageHeading(
                   title: 'Shift roster',
                   subtitle: 'Date-based team schedules and assigned work sites.',
                 ),
@@ -297,7 +297,7 @@ class _ShiftRosterScreenState extends State<ShiftRosterScreen> {
                   ),
                 if (canManage) ...[
                   const SizedBox(height: 22),
-                  PageHeading(
+                  const PageHeading(
                     title: 'Shift templates',
                     subtitle: 'Saved time ranges available for date-based assignments.',
                   ),

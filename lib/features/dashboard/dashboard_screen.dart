@@ -434,7 +434,6 @@ class _MyAttendanceCard extends StatelessWidget {
         : canPunch
             ? 'No active punch. Open attendance for GPS-verified check-in.'
             : 'No open attendance record is currently available.';
-    final.';
     final color = checkedIn ? AppColors.success : AppColors.blue;
     final action = onOpen == null
         ? null
@@ -656,8 +655,9 @@ class _MyShiftCard extends StatelessWidget {
     final scheduled = shift != null && shift!.isNotEmpty;
     final location = scheduled ? stringValue(shift!['location_name']) : '';
     final breakMinutes = scheduled ? stringValue(shift!['break_minutes'], fallback: '0') : '0';
+    final locationText = location.isEmpty ? '' : ' · $location';
     final subtitle = scheduled
-        ? '${stringValue(shift!['start_time'])}–${stringValue(shift!['end_time'])} · ${breakMinutes}m break${location.isEmpty ? '' : ' · $location'}'
+        ? '${stringValue(shift!['start_time'])}–${stringValue(shift!['end_time'])} · ${breakMinutes}m break$locationText'
         : 'No shift is scheduled for you today.';
     return AppPanel(
       padding: const EdgeInsets.all(18),
@@ -666,10 +666,7 @@ class _MyShiftCard extends StatelessWidget {
           Container(
             width: 42,
             height: 42,
-            decoration: BoxDecoration(
-              color: AppColors.softBlue,
-              borderRadius: BorderRadius.circular(13),
-            ),
+            decoration: BoxDecoration(color: AppColors.softBlue, borderRadius: BorderRadius.circular(13)),
             child: const Icon(Icons.schedule_rounded, color: AppColors.teal, size: 21),
           ),
           const SizedBox(width: 12),
@@ -682,12 +679,8 @@ class _MyShiftCard extends StatelessWidget {
                   style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.w800, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.muted, fontSize: 12, height: 1.35),
-                ),
+                Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.muted, fontSize: 12, height: 1.35)),
               ],
             ),
           ),
@@ -697,11 +690,8 @@ class _MyShiftCard extends StatelessWidget {
           ],
           if (onOpen != null) ...[
             const SizedBox(width: 6),
-            IconButton(
-              onPressed: onOpen,
-              tooltip: 'Open shift roster',
-              icon: const Icon(Icons.arrow_forward_rounded, size: 19),
-            ),
+            IconButton(onPressed: onOpen, tooltip: 'Open shift roster',
+                icon: const Icon(Icons.arrow_forward_rounded, size: 19)),
           ],
         ],
       ),
@@ -812,11 +802,7 @@ class _UpcomingHolidayCard extends StatelessWidget {
 }
 
 class _LeaveBalancePanel extends StatelessWidget {
-  const _LeaveBalancePanel({
-    required this.items,
-    required this.periodLabel,
-    required this.policySummary,
-  });
+  const _LeaveBalancePanel({required this.items, required this.periodLabel, required this.policySummary});
 
   final List<Map<String, dynamic>> items;
   final String periodLabel;
@@ -874,6 +860,9 @@ class _LeaveBalanceTile extends StatelessWidget {
     final used = _leaveDayValue(item['used_days']);
     final remaining = _leaveDayValue(item['remaining_days']);
     final carryover = _leaveDayValue(item['carryover_days']);
+    final carryoverText = carryover > 0
+        ? ' · ${_formatLeaveDays(carryover)} carried over'
+        : '';
     final progress = allowance > 0
         ? (used / allowance).clamp(0.0, 1.0).toDouble()
         : 0.0;
@@ -925,7 +914,7 @@ class _LeaveBalanceTile extends StatelessWidget {
           ),
           const SizedBox(height: 13),
           Text(
-            '${_formatLeaveDays(used)} of ${_formatLeaveDays(allowance)} days used${carryover > 0 ? ' · ${_formatLeaveDays(carryover)} carried over' : ''}',
+            '${_formatLeaveDays(used)} of ${_formatLeaveDays(allowance)} days used$carryoverText',
             style: const TextStyle(color: AppColors.muted, fontSize: 11),
           ),
           const SizedBox(height: 8),
