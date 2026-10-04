@@ -40,7 +40,11 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _pageFor(String id) => switch (id) {
-        'dashboard' => const DashboardScreen(),
+        'dashboard' => DashboardScreen(
+            onOpenAttendance: () => _select('attendance'),
+            onOpenLeave: () => _select('leave'),
+            onOpenEmployees: () => _select('employees'),
+          ),
         'employees' => const EmployeesScreen(),
         'attendance' => const AttendanceScreen(),
         'locations' => const LocationsScreen(),

@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from backend.server import HRMSApplication, PERMISSION_CATALOG
@@ -94,6 +95,9 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(status, 201, record)
         self.assertIsNone(record["punch_out_at"])
         self.assertLessEqual(record["punch_in_distance_m"], 250)
+        status, dashboard = self.call("GET", "/dashboard", token=self.employee)
+        self.assertEqual(status, 200)
+        self.assertEqual(dashboard["my_attendance"]["id"], record["id"])
 
         status, error = self.call("POST", "/attendance/punch-in", inside, self.employee)
         self.assertEqual(status, 409)
@@ -144,21 +148,40 @@ class ApiTestCase(unittest.TestCase):
             "leave_type_id": leave_type, "start_date": "2026-11-05", "end_date": "2026-11-05", "reason": "Admin leave",
         }, self.admin)
 
+        today = datetime.now(timezone.utc).date().isoformat()
+        _, employee_today_leave = self.call("POST", "/leave-requests", {
+            "leave_type_id": leave_type, "start_date": today, "end_date": today, "reason": "Approved today",
+        }, self.employee)
+        status, _ = self.call(
+            "POST", f"/leave-requests/{employee_today_leave['id']}/decision", {"decision": "approved"}, self.manager
+        )
+        self.assertEqual(status, 200)
+        _, admin_today_leave = self.call("POST", "/leave-requests", {
+            "leave_type_id": leave_type, "start_date": today, "end_date": today, "reason": "Admin approved today",
+        }, self.admin)
+        status, _ = self.call(
+            "POST", f"/leave-requests/{admin_today_leave['id']}/decision", {"decision": "approved"}, self.admin
+        )
+        self.assertEqual(status, 200)
+
         status, employee_dashboard = self.call("GET", "/dashboard", token=self.employee)
         self.assertEqual(status, 200)
         self.assertEqual(employee_dashboard["stats"]["active_employees"], 1)
         self.assertEqual(employee_dashboard["stats"]["pending_leave"], 1)
+        self.assertEqual(employee_dashboard["stats"]["on_leave_today"], 1)
         self.assertEqual([item["id"] for item in employee_dashboard["pending_requests"]], [employee_request["id"]])
 
         status, manager_dashboard = self.call("GET", "/dashboard", token=self.manager)
         self.assertEqual(status, 200)
         self.assertEqual(manager_dashboard["stats"]["pending_leave"], 1)
+        self.assertEqual(manager_dashboard["stats"]["on_leave_today"], 1)
         self.assertEqual([item["id"] for item in manager_dashboard["pending_requests"]], [employee_request["id"]])
 
         status, admin_dashboard = self.call("GET", "/dashboard", token=self.admin)
         self.assertEqual(status, 200)
         self.assertEqual(admin_dashboard["stats"]["active_employees"], 5)
         self.assertEqual(admin_dashboard["stats"]["pending_leave"], 2)
+        self.assertEqual(admin_dashboard["stats"]["on_leave_today"], 2)
         self.assertEqual({item["id"] for item in admin_dashboard["pending_requests"]}, {employee_request["id"], admin_request["id"]})
 
     def test_super_admin_soft_deactivation_is_audited_and_open_shifts_are_safe(self):

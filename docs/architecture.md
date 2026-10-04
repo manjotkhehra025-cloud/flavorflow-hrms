@@ -76,7 +76,7 @@ Base URL: `http://<host>:8080/api/v1` (HTTPS in production). Except health and l
 | `POST /auth/login` | Public | `{email,password}` → `{token,user}`. |
 | `POST /auth/logout` | Authenticated | Revoke current bearer token. |
 | `GET /auth/me` | Authenticated | Profile, role ids/names, employee id and effective permission keys. |
-| `GET /dashboard` | `dashboard.read` | Employee/presence/leave/location metrics and recent activity. |
+| `GET /dashboard` | `dashboard.read` | Scope-filtered employee, presence, approved leave-today, pending leave, location metrics, recent attendance, and the caller's open punch when permitted. |
 | `GET /employees?q=` | Employee read scope | Search/list with self/team scope applied. |
 | `POST /employees` | `employees.create` | Employee profile → created record. |
 | `GET /employees/{id}` | Employee read scope | One employee profile. |

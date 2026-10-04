@@ -1150,6 +1150,19 @@ class HRMSApplication:
                 bool(permissions.intersection({"leave.read.team", "leave.approve"})),
                 bool(permissions.intersection({"leave.read.self", "leave.create"})),
             )
+            own_attendance = None
+            if own_id is not None and permissions.intersection({
+                "attendance.read", "attendance.manage", "attendance.read.self", "attendance.punch",
+            }):
+                own_attendance_row = connection.execute(
+                    """SELECT a.*, e.employee_code, e.first_name, e.last_name, e.user_id, e.manager_id,
+                       w.name AS location_name FROM attendance_records a JOIN employees e ON e.id = a.employee_id
+                       LEFT JOIN work_locations w ON w.id = a.work_location_id
+                       WHERE a.employee_id = ? AND a.punch_out_at IS NULL
+                       ORDER BY a.punch_in_at DESC LIMIT 1""",
+                    (own_id,),
+                ).fetchone()
+                own_attendance = _attendance_json(own_attendance_row)
 
             def scoped_count(sql: str, ids: list[int] | None, tail_params: tuple[Any, ...] = ()) -> int:
                 if ids == []:
@@ -1170,6 +1183,13 @@ class HRMSApplication:
             )
             pending = scoped_count(
                 "SELECT COUNT(*) FROM leave_requests WHERE employee_id__SCOPE__ AND status = 'pending'", leave_ids
+            )
+            on_leave_today = scoped_count(
+                """SELECT COUNT(DISTINCT employee_id) FROM leave_requests
+                   WHERE employee_id__SCOPE__ AND status = 'approved'
+                   AND start_date <= ? AND end_date >= ?""",
+                leave_ids,
+                (today, today),
             )
             locations = connection.execute("SELECT COUNT(*) FROM work_locations WHERE is_active = 1").fetchone()[0] if "locations.read" in permissions else 0
 
@@ -1202,9 +1222,16 @@ class HRMSApplication:
                 leave_sql += " ORDER BY lr.requested_at DESC LIMIT 4"
                 leave_rows = connection.execute(leave_sql, params).fetchall()
         return {
-            "stats": {"active_employees": employees, "present_today": present, "pending_leave": pending, "active_locations": locations},
+            "stats": {
+                "active_employees": employees,
+                "present_today": present,
+                "pending_leave": pending,
+                "on_leave_today": on_leave_today,
+                "active_locations": locations,
+            },
             "recent_attendance": [_attendance_json(row) for row in recent],
             "pending_requests": [_leave_json(row) for row in leave_rows],
+            "my_attendance": own_attendance,
             "generated_at": _now(),
         }
 
