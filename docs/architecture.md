@@ -71,6 +71,7 @@ Base URL: `http://<host>:8080/api/v1` (HTTPS in production). Except health and l
 
 | Method + path | Required capability | Request / response summary |
 |---|---|---|
+| `GET /` | Public | API base status (`/api/v1` or `/api/v1/`); points to the health check. |
 | `GET /health` | Public | Service status. |
 | `POST /auth/login` | Public | `{email,password}` → `{token,user}`. |
 | `POST /auth/logout` | Authenticated | Revoke current bearer token. |

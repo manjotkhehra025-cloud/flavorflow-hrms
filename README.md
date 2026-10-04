@@ -16,7 +16,7 @@ Python 3.10+ is sufficient; there are no third-party Python dependencies.
 python3 backend/server.py
 ```
 
-The API listens on `0.0.0.0:8080` and creates `backend/data/hrms.sqlite3` on first start. Development-only seed accounts:
+The API listens on `0.0.0.0:8080` by default and creates `backend/data/hrms.sqlite3` on first start. The API base (`/api/v1` or `/api/v1/`) and `/api/v1/health` return a small JSON status response; the API is not a browser-based HRMS website. Development-only seed accounts:
 
 | Role | Email | Password |
 |---|---|---|
@@ -24,7 +24,7 @@ The API listens on `0.0.0.0:8080` and creates `backend/data/hrms.sqlite3` on fir
 | Manager | `manager@flavorflow.com` | `Manager123!` |
 | Employee | `employee@flavorflow.com` | `Employee123!` |
 
-Set `HRMS_ADMIN_EMAIL` and `HRMS_ADMIN_PASSWORD` **before first startup** to seed a different Super Admin account. Other local options: `HRMS_DB_PATH`, `HRMS_PORT`, `HRMS_MANAGER_EMAIL`, `HRMS_MANAGER_PASSWORD`, `HRMS_EMPLOYEE_EMAIL`, and `HRMS_EMPLOYEE_PASSWORD`. The demo credentials are not production credentials. Back up the database, change demo passwords, use HTTPS, and add production-grade deployment controls before exposing the API to a network.
+Set `HRMS_ADMIN_EMAIL` and `HRMS_ADMIN_PASSWORD` **before first startup** to seed a different Super Admin account. Other options: `HRMS_DB_PATH`, `HRMS_HOST`, `HRMS_PORT`, `HRMS_MANAGER_EMAIL`, `HRMS_MANAGER_PASSWORD`, `HRMS_EMPLOYEE_EMAIL`, and `HRMS_EMPLOYEE_PASSWORD`. Seed-account settings only apply when the database has no users. The demo credentials are not production credentials; set unique strong credentials for all seeded accounts before first startup. Back up the database, use HTTPS, and add production-grade deployment controls before exposing the API to a network. See [VPS deployment](deploy/vps/README.md) for a systemd/Nginx example.
 
 ## Run the native Flutter app
 
@@ -48,7 +48,7 @@ flutter build apk --debug
 
 ## CircleCI Android build
 
-`.circleci/config.yml` runs the Python API tests, Flutter analysis and tests, then builds an installable Android **debug** APK configured for `https://hr.flavorflow.co.in/api/v1/`. If the API moves to a different HTTPS address, update the `API_BASE_URL` environment value in the `android-build` job. The Android job fails early if that value is missing or is not HTTPS, so the APK will not silently point at the Android emulator's local development address.
+`.circleci/config.yml` runs the Python API tests, Flutter analysis and tests, then builds an installable Android **debug** APK configured for `https://hr.flavorflow.co.in/api/v1/`. It does **not** deploy the Python API; the VPS must run the backend and route `/api/v1/*` to it. If the API moves to a different HTTPS address, update the `API_BASE_URL` environment value in the `android-build` job. The Android job fails early if that value is missing or is not HTTPS, so the APK will not silently point at the Android emulator's local development address.
 
 After a successful workflow, download `flavorflow-hrms-debug.apk` from the `android-build` job's **Artifacts** tab. This debug-signed APK is for installation/testing, not Google Play distribution. A Play Store release needs an Android upload keystore and signing secrets configured in CircleCI; never commit the keystore or passwords.
 

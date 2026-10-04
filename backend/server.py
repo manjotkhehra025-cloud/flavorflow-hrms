@@ -158,30 +158,20 @@ class HRMSApplication:
 
     def _seed_demo_data(self, connection: sqlite3.Connection, now: str) -> None:
         admin_email = os.environ.get("HRMS_ADMIN_EMAIL", "admin@flavorflow.com").strip().lower()
+        manager_email = os.environ.get("HRMS_MANAGER_EMAIL", "manager@flavorflow.com").strip().lower()
+        employee_email = os.environ.get("HRMS_EMPLOYEE_EMAIL", "employee@flavorflow.com").strip().lower()
         admin_password = os.environ.get("HRMS_ADMIN_PASSWORD", "Admin123!")
+        manager_password = os.environ.get("HRMS_MANAGER_PASSWORD", "Manager123!")
+        employee_password = os.environ.get("HRMS_EMPLOYEE_PASSWORD", "Employee123!")
         admin_id = self._insert_user(connection, admin_email, admin_password, "Jordan Lee", "super_admin", now)
-        manager_id = self._insert_user(
-            connection,
-            os.environ.get("HRMS_MANAGER_EMAIL", "manager@flavorflow.com").strip().lower(),
-            os.environ.get("HRMS_MANAGER_PASSWORD", "Manager123!"),
-            "Avery Chen",
-            "manager",
-            now,
-        )
-        employee_id = self._insert_user(
-            connection,
-            os.environ.get("HRMS_EMPLOYEE_EMAIL", "employee@flavorflow.com").strip().lower(),
-            os.environ.get("HRMS_EMPLOYEE_PASSWORD", "Employee123!"),
-            "Maya Patel",
-            "employee",
-            now,
-        )
+        manager_id = self._insert_user(connection, manager_email, manager_password, "Avery Chen", "manager", now)
+        employee_id = self._insert_user(connection, employee_email, employee_password, "Maya Patel", "employee", now)
 
         today = date.today().isoformat()
         seed_employees = (
             ("FF-001", "Jordan", "Lee", admin_email, "People & Culture", "People Operations Lead", None, admin_id),
-            ("FF-002", "Avery", "Chen", "manager@flavorflow.com", "Product", "Engineering Manager", None, manager_id),
-            ("FF-003", "Maya", "Patel", "employee@flavorflow.com", "Product", "Product Designer", 2, employee_id),
+            ("FF-002", "Avery", "Chen", manager_email, "Product", "Engineering Manager", None, manager_id),
+            ("FF-003", "Maya", "Patel", employee_email, "Product", "Product Designer", 2, employee_id),
             ("FF-004", "Leo", "Kim", "leo.kim@flavorflow.com", "Product", "Software Engineer", 2, None),
             ("FF-005", "Nina", "Brooks", "nina.brooks@flavorflow.com", "People & Culture", "Recruiter", 1, None),
         )
@@ -236,6 +226,8 @@ class HRMSApplication:
         parsed = urlsplit(raw_path)
         route = parsed.path.rstrip("/")
         query = {key: values[-1] for key, values in parse_qs(parsed.query).items()}
+        if route == BASE_PATH and method == "GET":
+            return 200, {"status": "ok", "service": "flavorflow-hrms-api", "health": f"{BASE_PATH}/health"}
         if route == f"{BASE_PATH}/health" and method == "GET":
             return 200, {"status": "ok", "service": "flavorflow-hrms-api"}
         if not route.startswith(BASE_PATH + "/"):
@@ -1408,13 +1400,14 @@ def _make_handler(app: HRMSApplication) -> type[_Handler]:
 
 
 def main() -> None:
+    host = os.environ.get("HRMS_HOST", "0.0.0.0")
     port = int(os.environ.get("HRMS_PORT", "8080"))
     db_path = os.environ.get("HRMS_DB_PATH", str(DEFAULT_DB))
     app = HRMSApplication(db_path)
-    server = ThreadingHTTPServer(("0.0.0.0", port), _make_handler(app))
-    print(f"FlavorFlow HRMS API listening on 0.0.0.0:{port} (database: {db_path})")
-    print("Development-only seeded admin: admin@flavorflow.com / Admin123!")
-    print("Override credentials with HRMS_ADMIN_EMAIL and HRMS_ADMIN_PASSWORD before first run.")
+    server = ThreadingHTTPServer((host, port), _make_handler(app))
+    print(f"FlavorFlow HRMS API listening on {host}:{port} (database: {db_path})")
+    print("Seed account credentials are controlled by the HRMS_* environment variables.")
+    print("Use development-only demo credentials only for local testing.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

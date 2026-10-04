@@ -234,7 +234,14 @@ class ApiTestCase(unittest.TestCase):
         status, _ = self.call("GET", "/auth/me", token=self.employee)
         self.assertEqual(status, 401)
 
-    def test_health_is_public(self):
+    def test_api_base_and_health_are_public(self):
+        for path in ("", "/"):
+            with self.subTest(path=path):
+                status, payload = self.call("GET", path)
+                self.assertEqual(status, 200)
+                self.assertEqual(payload["status"], "ok")
+                self.assertEqual(payload["health"], "/api/v1/health")
+
         status, payload = self.call("GET", "/health")
         self.assertEqual(status, 200)
         self.assertEqual(payload["status"], "ok")
