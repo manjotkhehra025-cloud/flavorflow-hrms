@@ -6,7 +6,7 @@ APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 GRADLE_VERSION=8.4
 DISTRIBUTION="gradle-${GRADLE_VERSION}-all"
 CACHE_ROOT="${GRADLE_USER_HOME:-$HOME/.gradle}/wrapper/dists/${DISTRIBUTION}/flavorflow"
-GRADLE_HOME="${CACHE_ROOT}/${DISTRIBUTION}"
+GRADLE_HOME="${CACHE_ROOT}/gradle-${GRADLE_VERSION}"
 
 if [ ! -x "$GRADLE_HOME/bin/gradle" ]; then
   mkdir -p "$CACHE_ROOT"

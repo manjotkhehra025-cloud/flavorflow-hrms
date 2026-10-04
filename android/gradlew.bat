@@ -4,7 +4,7 @@ set APP_HOME=%~dp0
 set GRADLE_VERSION=8.4
 set DISTRIBUTION=gradle-%GRADLE_VERSION%-all
 set CACHE_ROOT=%USERPROFILE%\.gradle\wrapper\dists\%DISTRIBUTION%\flavorflow
-set GRADLE_HOME=%CACHE_ROOT%\%DISTRIBUTION%
+set GRADLE_HOME=%CACHE_ROOT%\gradle-%GRADLE_VERSION%
 
 if exist "%APP_HOME%gradle\wrapper\gradle-wrapper.jar" (
   java -classpath "%APP_HOME%gradle\wrapper\gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain %*
