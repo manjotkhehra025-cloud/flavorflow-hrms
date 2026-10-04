@@ -34,8 +34,20 @@ void main() {
     expect(find.text('Email Address'), findsOneWidget);
     expect(find.text('Sign In with Password'), findsOneWidget);
     expect(find.text('WORKFORCE PORTAL'), findsOneWidget);
-    expect(find.textContaining('FlavorFlow'), findsOneWidget);
-    expect(find.textContaining('GD FOODS'), findsNothing);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is RichText && widget.text.toPlainText() == 'FlavorFlow',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is RichText && widget.text.toPlainText().contains('GD FOODS'),
+      ),
+      findsNothing,
+    );
 
     await tester.tap(find.text('Login with Biometrics / Fingerprint'));
     await tester.pumpAndSettle();
