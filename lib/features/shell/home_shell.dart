@@ -230,18 +230,69 @@ class _MobileNavigation extends StatelessWidget {
   void _showMore(BuildContext context, List<_NavItem> extra) {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
-        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.line, borderRadius: BorderRadius.circular(8)))),
-          const SizedBox(height: 15),
-          const Text('Workspace', style: TextStyle(color: AppColors.ink, fontSize: 15, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 10),
-          ...extra.map((item) => ListTile(leading: Icon(item.icon, color: AppColors.blue), title: Text(item.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)), onTap: () { Navigator.pop(context); onSelect(item.id); })),
-        ]),
-      ),
+      builder: (context) {
+        final maxHeight = MediaQuery.sizeOf(context).height * 0.82;
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.line,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    const Text(
+                      'Workspace',
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ...extra.map(
+                      (item) => ListTile(
+                        leading: Icon(item.icon, color: AppColors.blue),
+                        title: Text(
+                          item.title,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          onSelect(item.id);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
