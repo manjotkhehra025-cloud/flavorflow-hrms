@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+# Lightweight wrapper bootstrap. A standard Gradle wrapper JAR is intentionally
+# not vendored; download the pinned Gradle distribution into the user's cache.
+set -eu
+APP_HOME=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+GRADLE_VERSION=8.4
+DISTRIBUTION="gradle-${GRADLE_VERSION}-all"
+CACHE_ROOT="${GRADLE_USER_HOME:-$HOME/.gradle}/wrapper/dists/${DISTRIBUTION}/flavorflow"
+GRADLE_HOME="${CACHE_ROOT}/${DISTRIBUTION}"
+
+if [ ! -x "$GRADLE_HOME/bin/gradle" ]; then
+  mkdir -p "$CACHE_ROOT"
+  ARCHIVE="$CACHE_ROOT/${DISTRIBUTION}.zip"
+  if command -v curl >/dev/null 2>&1; then
+    curl --fail --location --silent --show-error "https://services.gradle.org/distributions/${DISTRIBUTION}.zip" --output "$ARCHIVE"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "https://services.gradle.org/distributions/${DISTRIBUTION}.zip" -O "$ARCHIVE"
+  else
+    echo "curl or wget is required to bootstrap Gradle ${GRADLE_VERSION}." >&2
+    exit 1
+  fi
+  if ! command -v unzip >/dev/null 2>&1; then
+    echo "unzip is required to unpack Gradle ${GRADLE_VERSION}." >&2
+    exit 1
+  fi
+  unzip -q -o "$ARCHIVE" -d "$CACHE_ROOT"
+  rm -f "$ARCHIVE"
+fi
+
+cd "$APP_HOME"
+exec "$GRADLE_HOME/bin/gradle" "$@"

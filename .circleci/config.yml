@@ -1,0 +1,63 @@
+version: 2.1
+
+orbs:
+  flutter: circleci/flutter@3.0.0
+
+jobs:
+  backend-tests:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: Run Python API tests
+          command: python -m unittest discover -s backend/tests -v
+
+  android-build:
+    docker:
+      - image: cimg/android:2024.11.1
+    resource_class: large
+    steps:
+      - checkout
+      - flutter/install_sdk:
+          channel: stable
+          version: 3.32.7
+      - run:
+          name: Resolve Flutter packages
+          command: flutter pub get
+      - run:
+          name: Analyze Flutter app
+          command: flutter analyze
+      - run:
+          name: Run Flutter tests
+          command: flutter test
+      - run:
+          name: Validate API_BASE_URL
+          command: |
+            if [[ -z "${API_BASE_URL:-}" ]]; then
+              echo "Set API_BASE_URL in CircleCI Project Settings > Environment Variables to your HTTPS API URL (for example, https://hrms.your-domain.com/api/v1/)." >&2
+              exit 1
+            fi
+            case "$API_BASE_URL" in
+              https://*) ;;
+              *)
+                echo "API_BASE_URL must use HTTPS for the installable build." >&2
+                exit 1
+                ;;
+            esac
+      - run:
+          name: Build installable Android debug APK
+          command: |
+            normalized_api_base_url="${API_BASE_URL%/}/"
+            flutter build apk --debug --dart-define="API_BASE_URL=${normalized_api_base_url}"
+      - store_artifacts:
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          destination: flavorflow-hrms-debug.apk
+
+workflows:
+  hrms-checks:
+    jobs:
+      - backend-tests
+      - android-build:
+          requires:
+            - backend-tests
