@@ -16,6 +16,8 @@ jobs:
   android-build:
     docker:
       - image: cimg/android:2024.11.1
+    environment:
+      API_BASE_URL: "https://hr.flavorflow.co.in/api/v1/"
     resource_class: large
     steps:
       - checkout
@@ -35,7 +37,7 @@ jobs:
           name: Validate API_BASE_URL
           command: |
             if [[ -z "${API_BASE_URL:-}" ]]; then
-              echo "Set API_BASE_URL in CircleCI Project Settings > Environment Variables to your HTTPS API URL (for example, https://hrms.your-domain.com/api/v1/)." >&2
+              echo "Set API_BASE_URL in the android-build job environment to your HTTPS API URL (for example, https://hr.flavorflow.co.in/api/v1/)." >&2
               exit 1
             fi
             case "$API_BASE_URL" in

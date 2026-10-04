@@ -48,7 +48,7 @@ flutter build apk --debug
 
 ## CircleCI Android build
 
-`.circleci/config.yml` runs the Python API tests, Flutter analysis and tests, then builds an installable Android **debug** APK. In CircleCI, add `API_BASE_URL` under **Project Settings → Environment Variables**, using the HTTPS URL for the deployed API, for example `https://hrms.your-domain.com/api/v1/`. The Android job fails early if this variable is missing or is not HTTPS, so the APK will not silently point at the Android emulator's local development address.
+`.circleci/config.yml` runs the Python API tests, Flutter analysis and tests, then builds an installable Android **debug** APK configured for `https://hr.flavorflow.co.in/api/v1/`. If the API moves to a different HTTPS address, update the `API_BASE_URL` environment value in the `android-build` job. The Android job fails early if that value is missing or is not HTTPS, so the APK will not silently point at the Android emulator's local development address.
 
 After a successful workflow, download `flavorflow-hrms-debug.apk` from the `android-build` job's **Artifacts** tab. This debug-signed APK is for installation/testing, not Google Play distribution. A Play Store release needs an Android upload keystore and signing secrets configured in CircleCI; never commit the keystore or passwords.
 
