@@ -47,6 +47,8 @@ PERMISSION_CATALOG = (
     ("locations.create", "locations", "create", "Create work locations"),
     ("locations.update", "locations", "update", "Update work locations"),
     ("locations.delete", "locations", "delete", "Delete work locations"),
+    ("calendar.read", "calendar", "read", "View the holiday calendar"),
+    ("calendar.manage", "calendar", "manage", "Manage company holidays"),
     ("leave.read", "leave", "read", "View all leave requests"),
     ("leave.read.team", "leave", "read team", "View team leave requests"),
     ("leave.read.self", "leave", "read self", "View own leave requests"),
@@ -73,7 +75,8 @@ ROLE_SEEDS: dict[str, tuple[str, str, set[str]]] = {
         {
             "dashboard.read", "employees.read", "employees.create", "employees.update",
             "attendance.read", "attendance.manage", "locations.read", "locations.create",
-            "locations.update", "leave.read", "leave.create", "leave.approve", "leave.manage",
+            "locations.update", "calendar.read", "calendar.manage", "leave.read", "leave.create",
+            "leave.approve", "leave.manage",
             "users.read", "audit.read",
         },
     ),
@@ -82,7 +85,7 @@ ROLE_SEEDS: dict[str, tuple[str, str, set[str]]] = {
         "Team-level visibility and leave approvals.",
         {
             "dashboard.read", "employees.read.team", "attendance.read.team", "locations.read",
-            "leave.read.team", "leave.read.self", "leave.create", "leave.approve",
+            "calendar.read", "leave.read.team", "leave.read.self", "leave.create", "leave.approve",
         },
     ),
     "employee": (
@@ -90,7 +93,7 @@ ROLE_SEEDS: dict[str, tuple[str, str, set[str]]] = {
         "Self-service attendance and leave access.",
         {
             "dashboard.read", "employees.read.self", "attendance.read.self", "attendance.punch",
-            "locations.read", "leave.read.self", "leave.create",
+            "locations.read", "calendar.read", "leave.read.self", "leave.create",
         },
     ),
 }
@@ -251,6 +254,11 @@ class HRMSApplication:
             message = "The requested change conflicts with existing data."
             if "UNIQUE constraint failed: attendance_records.employee_id" in str(exc):
                 message = "You are already punched in."
+            elif (
+                "holidays.name, holidays.holiday_date" in str(exc)
+                or "idx_holidays_active_name_date" in str(exc)
+            ):
+                message = "A holiday with that name and date already exists."
             elif "UNIQUE constraint failed" in str(exc):
                 message = "A record with that email or code already exists."
             return 409, {"error": {"message": message}}
@@ -308,6 +316,26 @@ class HRMSApplication:
         if location_match and method == "DELETE":
             self._require(user, "locations.delete")
             return 200, self._deactivate_location(int(location_match.group(1)), user, remote_address)
+
+        if endpoint == "/holidays" and method == "GET":
+            self._require(user, "calendar.read")
+            return 200, self._list_holidays()
+        if endpoint == "/holidays" and method == "POST":
+            self._require(user, "calendar.manage")
+            return 201, self._create_holiday(body, user, remote_address)
+        holiday_match = re.fullmatch(r"/holidays/([0-9]+)", endpoint)
+        if holiday_match and method == "GET":
+            self._require(user, "calendar.read")
+            holiday = self._holiday(int(holiday_match.group(1)))
+            if not holiday:
+                raise ApiError(404, "Holiday not found.")
+            return 200, holiday
+        if holiday_match and method == "PATCH":
+            self._require(user, "calendar.manage")
+            return 200, self._update_holiday(int(holiday_match.group(1)), body, user, remote_address)
+        if holiday_match and method == "DELETE":
+            self._require(user, "calendar.manage")
+            return 200, self._deactivate_holiday(int(holiday_match.group(1)), user, remote_address)
 
         if endpoint == "/attendance/punch-in" and method == "POST":
             self._require(user, "attendance.punch")
@@ -696,6 +724,95 @@ class HRMSApplication:
                 data[key] = text
         if not partial:
             data.setdefault("timezone", "UTC")
+            data.setdefault("is_active", 1)
+        return data
+
+    def _list_holidays(self) -> dict[str, Any]:
+        with self._db() as connection:
+            rows = connection.execute(
+                "SELECT * FROM holidays WHERE is_active = 1 ORDER BY holiday_date, name LIMIT 500"
+            ).fetchall()
+        items = [_holiday_json(row) for row in rows]
+        return {"items": items, "total": len(items)}
+
+    def _holiday(self, holiday_id: int) -> dict[str, Any] | None:
+        with self._db() as connection:
+            row = connection.execute("SELECT * FROM holidays WHERE id = ?", (holiday_id,)).fetchone()
+        return _holiday_json(row) if row else None
+
+    def _create_holiday(self, body: dict[str, Any], user: dict[str, Any], remote: str | None) -> dict[str, Any]:
+        data = self._holiday_values(body, partial=False)
+        now = _now()
+        with self._db() as connection:
+            cursor = connection.execute(
+                """INSERT INTO holidays(name, holiday_date, description, is_active, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (data["name"], data["holiday_date"], data["description"], data["is_active"], now, now),
+            )
+            holiday_id = int(cursor.lastrowid)
+        result = self._holiday(holiday_id)
+        self._audit(user["id"], "holiday.created", "holiday", holiday_id, {"name": result["name"], "date": result["holiday_date"]}, remote)
+        return result
+
+    def _update_holiday(self, holiday_id: int, body: dict[str, Any], user: dict[str, Any], remote: str | None) -> dict[str, Any]:
+        if not self._holiday(holiday_id):
+            raise ApiError(404, "Holiday not found.")
+        data = self._holiday_values(body, partial=True)
+        if not data:
+            raise ApiError(400, "No editable holiday fields were supplied.")
+        assignments = ", ".join(f"{key} = ?" for key in data)
+        with self._db() as connection:
+            connection.execute(
+                f"UPDATE holidays SET {assignments}, updated_at = ? WHERE id = ?",
+                (*data.values(), _now(), holiday_id),
+            )
+        result = self._holiday(holiday_id)
+        self._audit(user["id"], "holiday.updated", "holiday", holiday_id, {"fields": sorted(data)}, remote)
+        return result
+
+    def _deactivate_holiday(self, holiday_id: int, user: dict[str, Any], remote: str | None) -> dict[str, Any]:
+        current = self._holiday(holiday_id)
+        if not current:
+            raise ApiError(404, "Holiday not found.")
+        with self._db() as connection:
+            connection.execute(
+                "UPDATE holidays SET is_active = 0, updated_at = ? WHERE id = ?",
+                (_now(), holiday_id),
+            )
+        result = self._holiday(holiday_id)
+        self._audit(user["id"], "holiday.deactivated", "holiday", holiday_id, {"name": current["name"]}, remote)
+        return result
+
+    @staticmethod
+    def _holiday_values(body: dict[str, Any], partial: bool) -> dict[str, Any]:
+        allowed = {"name", "holiday_date", "description", "is_active"}
+        supplied = {key: value for key, value in body.items() if key in allowed}
+        if not partial and not {"name", "holiday_date"}.issubset(supplied):
+            raise ApiError(400, "Holiday name and date are required.")
+        data: dict[str, Any] = {}
+        for key, value in supplied.items():
+            if key == "holiday_date":
+                data[key] = _date_string(value)
+            elif key == "is_active":
+                if isinstance(value, str):
+                    normalized = value.strip().lower()
+                    if normalized not in {"true", "false", "1", "0"}:
+                        raise ApiError(400, "is_active must be a boolean.")
+                    data[key] = int(normalized in {"true", "1"})
+                elif isinstance(value, (bool, int)):
+                    data[key] = int(bool(value))
+                else:
+                    raise ApiError(400, "is_active must be a boolean.")
+            else:
+                text = str(value).strip()
+                limit = 120 if key == "name" else 1000
+                if key == "name" and not text:
+                    raise ApiError(400, "Holiday name cannot be empty.")
+                if len(text) > limit:
+                    raise ApiError(400, f"{key.replace('_', ' ').capitalize()} cannot exceed {limit} characters.")
+                data[key] = text
+        if not partial:
+            data.setdefault("description", "")
             data.setdefault("is_active", 1)
         return data
 
@@ -1191,7 +1308,51 @@ class HRMSApplication:
                 leave_ids,
                 (today, today),
             )
+            leave_balance_year = int(today[:4])
+            leave_balances: list[dict[str, Any]] = []
+            if own_id is not None and (leave_ids is None or own_id in leave_ids):
+                period_start = date(leave_balance_year, 1, 1)
+                period_end = date(leave_balance_year, 12, 31)
+                leave_types = connection.execute(
+                    "SELECT id, name, annual_allowance_days FROM leave_types WHERE is_active = 1 ORDER BY name"
+                ).fetchall()
+                for leave_type in leave_types:
+                    request_rows = connection.execute(
+                        """SELECT start_date, end_date FROM leave_requests
+                           WHERE employee_id = ? AND leave_type_id = ? AND status = 'approved'
+                           AND start_date <= ? AND end_date >= ?""",
+                        (own_id, leave_type["id"], period_end.isoformat(), period_start.isoformat()),
+                    ).fetchall()
+                    approved_days: set[date] = set()
+                    for request_row in request_rows:
+                        first_day = max(date.fromisoformat(request_row["start_date"]), period_start)
+                        last_day = min(date.fromisoformat(request_row["end_date"]), period_end)
+                        day = first_day
+                        while day <= last_day:
+                            approved_days.add(day)
+                            day += timedelta(days=1)
+                    allowance = int(leave_type["annual_allowance_days"])
+                    used = len(approved_days)
+                    leave_balances.append({
+                        "leave_type_id": leave_type["id"],
+                        "leave_type": leave_type["name"],
+                        "allowance_days": allowance,
+                        "used_days": used,
+                        "remaining_days": allowance - used,
+                    })
             locations = connection.execute("SELECT COUNT(*) FROM work_locations WHERE is_active = 1").fetchone()[0] if "locations.read" in permissions else 0
+            upcoming_holiday = None
+            if "calendar.read" in permissions:
+                holiday_row = connection.execute(
+                    """SELECT * FROM holidays WHERE is_active = 1 AND holiday_date >= ?
+                       ORDER BY holiday_date, name LIMIT 1""",
+                    (today,),
+                ).fetchone()
+                upcoming_holiday = _holiday_json(holiday_row)
+                if upcoming_holiday is not None:
+                    upcoming_holiday["days_until"] = (
+                        date.fromisoformat(upcoming_holiday["holiday_date"]) - date.fromisoformat(today)
+                    ).days
 
             if attendance_ids == []:
                 recent = []
@@ -1232,6 +1393,9 @@ class HRMSApplication:
             "recent_attendance": [_attendance_json(row) for row in recent],
             "pending_requests": [_leave_json(row) for row in leave_rows],
             "my_attendance": own_attendance,
+            "my_leave_balances": leave_balances,
+            "leave_balance_year": leave_balance_year,
+            "upcoming_holiday": upcoming_holiday,
             "generated_at": _now(),
         }
 
@@ -1287,6 +1451,14 @@ def _leave_json(row: sqlite3.Row | None) -> dict[str, Any] | None:
         return None
     item = dict(row)
     item["employee_name"] = f"{row['first_name']} {row['last_name']}".strip()
+    return item
+
+
+def _holiday_json(row: sqlite3.Row | None) -> dict[str, Any] | None:
+    if row is None:
+        return None
+    item = dict(row)
+    item["is_active"] = bool(row["is_active"])
     return item
 
 

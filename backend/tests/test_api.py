@@ -1,6 +1,6 @@
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from backend.server import HRMSApplication, PERMISSION_CATALOG
@@ -112,6 +112,44 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(len(history["items"]), 1)
         self.assertIsNone(history["active"])
 
+    def test_holiday_calendar_is_managed_and_dashboard_uses_next_active_holiday(self):
+        holiday_date = (datetime.now(timezone.utc).date() + timedelta(days=7)).isoformat()
+        status, holiday = self.call("POST", "/holidays", {
+            "name": "Company Foundation Day",
+            "holiday_date": holiday_date,
+            "description": "Company-wide closure",
+        }, self.admin)
+        self.assertEqual(status, 201, holiday)
+        self.assertTrue(holiday["is_active"])
+
+        status, items = self.call("GET", "/holidays", token=self.manager)
+        self.assertEqual(status, 200)
+        self.assertEqual(items["total"], 1)
+        self.assertEqual(items["items"][0]["id"], holiday["id"])
+
+        status, dashboard = self.call("GET", "/dashboard", token=self.employee)
+        self.assertEqual(status, 200)
+        self.assertEqual(dashboard["upcoming_holiday"]["id"], holiday["id"])
+        self.assertEqual(dashboard["upcoming_holiday"]["days_until"], 7)
+
+        status, error = self.call("POST", "/holidays", {
+            "name": "Not allowed", "holiday_date": holiday_date,
+        }, self.employee)
+        self.assertEqual(status, 403)
+
+        status, duplicate = self.call("POST", "/holidays", {
+            "name": "Company Foundation Day", "holiday_date": holiday_date,
+        }, self.admin)
+        self.assertEqual(status, 409)
+        self.assertIn("already exists", duplicate["error"]["message"])
+
+        status, disabled = self.call("DELETE", f"/holidays/{holiday['id']}", token=self.admin)
+        self.assertEqual(status, 200)
+        self.assertFalse(disabled["is_active"])
+        status, dashboard = self.call("GET", "/dashboard", token=self.employee)
+        self.assertEqual(status, 200)
+        self.assertIsNone(dashboard["upcoming_holiday"])
+
     def test_leave_submission_and_manager_approval(self):
         status, types = self.call("GET", "/leave-types", token=self.employee)
         self.assertEqual(status, 200)
@@ -169,6 +207,13 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(employee_dashboard["stats"]["active_employees"], 1)
         self.assertEqual(employee_dashboard["stats"]["pending_leave"], 1)
         self.assertEqual(employee_dashboard["stats"]["on_leave_today"], 1)
+        annual_balance = next(
+            item for item in employee_dashboard["my_leave_balances"]
+            if item["leave_type"] == "Annual leave"
+        )
+        self.assertEqual(annual_balance["allowance_days"], 20)
+        self.assertEqual(annual_balance["used_days"], 1)
+        self.assertEqual(annual_balance["remaining_days"], 19)
         self.assertEqual([item["id"] for item in employee_dashboard["pending_requests"]], [employee_request["id"]])
 
         status, manager_dashboard = self.call("GET", "/dashboard", token=self.manager)

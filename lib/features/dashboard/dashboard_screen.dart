@@ -12,11 +12,13 @@ class DashboardScreen extends StatefulWidget {
     this.onOpenAttendance,
     this.onOpenLeave,
     this.onOpenEmployees,
+    this.onOpenCalendar,
   });
 
   final VoidCallback? onOpenAttendance;
   final VoidCallback? onOpenLeave;
   final VoidCallback? onOpenEmployees;
+  final VoidCallback? onOpenCalendar;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -63,6 +65,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final stats = asJsonMap(_data['stats']);
     final attendance = asJsonList(_data['recent_attendance']);
     final pending = asJsonList(_data['pending_requests']);
+    final leaveBalances = asJsonList(_data['my_leave_balances']);
+    final leaveBalanceYear = stringValue(_data['leave_balance_year']);
     final canSeeEmployees = user.canAny(const [
       'employees.read',
       'employees.read.team',
@@ -84,6 +88,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'leave.approve',
       'leave.manage',
     ]);
+    final canSeeCalendar = user.can('calendar.read');
+    final upcomingHolidayValue = _data['upcoming_holiday'];
+    final upcomingHoliday = upcomingHolidayValue == null
+        ? null
+        : asJsonMap(upcomingHolidayValue);
     final canSeeMyAttendance = user.canAny(const [
       'attendance.read',
       'attendance.manage',
@@ -108,6 +117,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             : 'My profile',
         icon: Icons.groups_2_outlined,
         onPressed: widget.onOpenEmployees!,
+      ));
+    }
+    if (canSeeCalendar && widget.onOpenCalendar != null) {
+      quickActions.add(_DashboardAction(
+        label: 'Open calendar',
+        icon: Icons.calendar_month_rounded,
+        onPressed: widget.onOpenCalendar!,
       ));
     }
     final hour = DateTime.now().hour;
@@ -207,12 +223,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 18),
                   ],
+                  if (canSeeLeave && leaveBalances.isNotEmpty) ...[
+                    _LeaveBalancePanel(
+                      items: leaveBalances,
+                      year: leaveBalanceYear,
+                    ),
+                    const SizedBox(height: 18),
+                  ],
                   if (canSeePulse) ...[
                     _WorkforcePulse(
                       activeEmployees: activeEmployees,
                       presentToday: presentToday,
                       onLeaveToday: onLeaveToday,
                       canSeeLeave: canSeeLeave,
+                    ),
+                    const SizedBox(height: 18),
+                  ],
+                  if (canSeeCalendar) ...[
+                    _UpcomingHolidayCard(
+                      holiday: upcomingHoliday,
+                      onOpen: widget.onOpenCalendar,
                     ),
                     const SizedBox(height: 18),
                   ],
@@ -575,6 +605,237 @@ class _PulseMetric extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _UpcomingHolidayCard extends StatelessWidget {
+  const _UpcomingHolidayCard({required this.holiday, required this.onOpen});
+
+  final Map<String, dynamic>? holiday;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasHoliday = holiday != null && holiday!.isNotEmpty;
+    final days = hasHoliday ? int.tryParse(stringValue(holiday!['days_until'])) : null;
+    final countdown = days == null
+        ? ''
+        : days == 0
+            ? 'Today'
+            : days == 1
+                ? 'Tomorrow'
+                : 'In $days days';
+    final description = hasHoliday ? stringValue(holiday!['description']) : '';
+    final subtitle = hasHoliday
+        ? '${formatDate(holiday!['holiday_date'])} · $countdown${description.isEmpty ? '' : ' · $description'}'
+        : 'No upcoming company holidays have been scheduled.';
+
+    return AppPanel(
+      padding: const EdgeInsets.all(18),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 560;
+          final details = Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.softAmber,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(
+                  Icons.event_available_rounded,
+                  color: Color(0xFFAE751C),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasHoliday ? stringValue(holiday!['name'], fallback: 'Holiday') : 'Upcoming holiday',
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+          final action = onOpen == null
+              ? null
+              : TextButton.icon(
+                  onPressed: onOpen,
+                  icon: const Icon(Icons.calendar_month_rounded, size: 17),
+                  label: const Text('Calendar'),
+                );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                details,
+                if (action != null) ...[
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerLeft, child: action),
+                ],
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: details),
+              if (action != null) ...[
+                const SizedBox(width: 12),
+                action,
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LeaveBalancePanel extends StatelessWidget {
+  const _LeaveBalancePanel({required this.items, required this.year});
+
+  final List<Map<String, dynamic>> items;
+  final String year;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppPanel(
+      padding: const EdgeInsets.all(19),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(
+            title: 'My leave balance',
+            subtitle: '$year calendar year · approved calendar dates, weekends count; no proration or carry-over',
+          ),
+          const SizedBox(height: 15),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 900
+                  ? 3
+                  : constraints.maxWidth >= 540
+                      ? 2
+                      : 1;
+              const gap = 11.0;
+              final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: items
+                    .map(
+                      (item) => SizedBox(
+                        width: width,
+                        child: _LeaveBalanceTile(item: item),
+                      ),
+                    )
+                    .toList(growable: false),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeaveBalanceTile extends StatelessWidget {
+  const _LeaveBalanceTile({required this.item});
+
+  final Map<String, dynamic> item;
+
+  @override
+  Widget build(BuildContext context) {
+    final allowance = int.tryParse(stringValue(item['allowance_days'])) ?? 0;
+    final used = int.tryParse(stringValue(item['used_days'])) ?? 0;
+    final remaining = int.tryParse(stringValue(item['remaining_days'])) ?? 0;
+    final progress = allowance > 0
+        ? (used / allowance).clamp(0.0, 1.0).toDouble()
+        : 0.0;
+    final remainingText = remaining < 0
+        ? '${remaining.abs()} over'
+        : '$remaining left';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.canvas,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: AppColors.line.withValues(alpha: 0.75)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  stringValue(item['leave_type'], fallback: 'Leave'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: remaining < 0 ? AppColors.softRed : AppColors.softGreen,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Text(
+                  remainingText,
+                  style: TextStyle(
+                    color: remaining < 0 ? const Color(0xFFC94D54) : AppColors.success,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+          Text(
+            '$used of $allowance days used',
+            style: const TextStyle(color: AppColors.muted, fontSize: 11),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: Colors.white,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                remaining < 0 ? const Color(0xFFC94D54) : AppColors.teal,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

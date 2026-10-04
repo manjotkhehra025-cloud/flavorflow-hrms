@@ -20,6 +20,7 @@
 | `/attendance` | GPS punch in/out and current shift | `attendance.punch` or an attendance read capability |
 | `/attendance/history` | Attendance history | `attendance.read`, `attendance.read.team`, or `attendance.read.self` |
 | `/locations` | Work locations and geofence editor | `locations.read`; writes require `locations.create`/`locations.update` |
+| `/calendar` | Company holiday calendar | `calendar.read`; writes require `calendar.manage` |
 | `/leave` | My/team/all leave requests and request form | Leave read scope or `leave.create` |
 | `/leave/new` | Submit leave request | `leave.create` |
 | `/leave/:id` | Leave request details | Leave read scope |
@@ -76,7 +77,7 @@ Base URL: `http://<host>:8080/api/v1` (HTTPS in production). Except health and l
 | `POST /auth/login` | Public | `{email,password}` → `{token,user}`. |
 | `POST /auth/logout` | Authenticated | Revoke current bearer token. |
 | `GET /auth/me` | Authenticated | Profile, role ids/names, employee id and effective permission keys. |
-| `GET /dashboard` | `dashboard.read` | Scope-filtered employee, presence, approved leave-today, pending leave, location metrics, recent attendance, and the caller's open punch when permitted. |
+| `GET /dashboard` | `dashboard.read` | Scope-filtered metrics, the caller's open punch and next holiday; self leave balance uses calendar-year approved calendar dates (weekends count; no proration/carry-over). |
 | `GET /employees?q=` | Employee read scope | Search/list with self/team scope applied. |
 | `POST /employees` | `employees.create` | Employee profile → created record. |
 | `GET /employees/{id}` | Employee read scope | One employee profile. |
@@ -87,6 +88,11 @@ Base URL: `http://<host>:8080/api/v1` (HTTPS in production). Except health and l
 | `GET /locations/{id}` | `locations.read` | One work site. |
 | `PATCH /locations/{id}` | `locations.update` | Partial site/geofence update. |
 | `DELETE /locations/{id}` | `locations.delete` | Disable a site for new punches; an open shift can still check out there. |
+| `GET /holidays` | `calendar.read` | Active company holidays, ordered by date. |
+| `POST /holidays` | `calendar.manage` | `{name,holiday_date,description?}`. |
+| `GET /holidays/{id}` | `calendar.read` | One company holiday. |
+| `PATCH /holidays/{id}` | `calendar.manage` | Update a holiday name, date, description, or active state. |
+| `DELETE /holidays/{id}` | `calendar.manage` | Soft-disable a holiday and keep its audit trail. |
 | `POST /attendance/punch-in` | `attendance.punch` | `{latitude,longitude,accuracy_m?}`; server picks nearest active geofence and rejects out-of-range punches. |
 | `POST /attendance/punch-out` | `attendance.punch` | Same GPS fields; server checks the assigned work-site geofence. |
 | `GET /attendance?date=&employee_id=&limit=` | Attendance read/punch scope | History, own open record and applicable self/team/all scope. |

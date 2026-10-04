@@ -112,6 +112,19 @@ CREATE TABLE IF NOT EXISTS leave_requests (
     decision_note TEXT
 );
 
+CREATE TABLE IF NOT EXISTS holidays (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    holiday_date TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_holidays_active_name_date
+    ON holidays(name COLLATE NOCASE, holiday_date) WHERE is_active = 1;
+
 CREATE TABLE IF NOT EXISTS audit_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     actor_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -128,5 +141,6 @@ CREATE INDEX IF NOT EXISTS idx_attendance_employee_punch_in ON attendance_record
 CREATE INDEX IF NOT EXISTS idx_attendance_punch_out ON attendance_records(punch_out_at);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_attendance_one_open_shift ON attendance_records(employee_id) WHERE punch_out_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_leave_employee_status ON leave_requests(employee_id, status, requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_holidays_date_active ON holidays(holiday_date, is_active);
 CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_expiry ON sessions(user_id, expires_at);

@@ -8,6 +8,7 @@ import '../admin/audit_screen.dart';
 import '../admin/roles_screen.dart';
 import '../admin/users_screen.dart';
 import '../attendance/attendance_screen.dart';
+import '../calendar/calendar_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../employees/employees_screen.dart';
 import '../leave/approvals_screen.dart';
@@ -30,6 +31,7 @@ class _HomeShellState extends State<HomeShell> {
     if (user.canAny(const ['employees.read', 'employees.read.team', 'employees.read.self'])) items.add(const _NavItem('employees', 'Employees', Icons.groups_2_outlined));
     if (user.canAny(const ['attendance.punch', 'attendance.read', 'attendance.read.team', 'attendance.read.self', 'attendance.manage'])) items.add(const _NavItem('attendance', 'Attendance', Icons.schedule_rounded));
     if (user.can('locations.read')) items.add(const _NavItem('locations', 'Work locations', Icons.location_on_outlined));
+    if (user.can('calendar.read')) items.add(const _NavItem('calendar', 'Calendar', Icons.calendar_month_rounded));
     if (user.canAny(const ['leave.read', 'leave.read.self', 'leave.read.team', 'leave.create', 'leave.manage'])) items.add(const _NavItem('leave', 'Leave', Icons.event_note_outlined));
     if (user.can('leave.approve')) items.add(const _NavItem('approvals', 'Approvals', Icons.fact_check_outlined, badge: true));
     if (user.can('users.read')) items.add(const _NavItem('users', 'User accounts', Icons.manage_accounts_outlined));
@@ -44,10 +46,12 @@ class _HomeShellState extends State<HomeShell> {
             onOpenAttendance: () => _select('attendance'),
             onOpenLeave: () => _select('leave'),
             onOpenEmployees: () => _select('employees'),
+            onOpenCalendar: () => _select('calendar'),
           ),
         'employees' => const EmployeesScreen(),
         'attendance' => const AttendanceScreen(),
         'locations' => const LocationsScreen(),
+        'calendar' => const CalendarScreen(),
         'leave' => const LeaveScreen(),
         'approvals' => const ApprovalsScreen(),
         'users' => const UsersScreen(),
