@@ -48,6 +48,12 @@ jobs:
                 ;;
             esac
       - run:
+          name: Install Ninja for Android native builds
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y ninja-build
+            ninja --version
+      - run:
           name: Build installable Android debug APK
           command: |
             normalized_api_base_url="${API_BASE_URL%/}/"
