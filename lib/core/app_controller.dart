@@ -121,7 +121,7 @@ class AppController extends ChangeNotifier {
     bool authenticated;
     try {
       authenticated = await _localAuth.authenticate(
-        localizedReason: 'Verify your identity to sign in to HRMate',
+        localizedReason: 'Verify your identity to sign in to FlavorFlow HRMS',
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,

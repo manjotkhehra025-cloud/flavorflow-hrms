@@ -15,7 +15,7 @@ class _LoginTestController extends AppController {
 }
 
 void main() {
-  testWidgets('login screen shows the HRMate sign-in options', (tester) async {
+  testWidgets('login screen shows the FlavorFlow sign-in options', (tester) async {
     final controller = _LoginTestController();
     addTearDown(controller.dispose);
 
@@ -33,7 +33,9 @@ void main() {
     expect(find.text('Login with Biometrics / Fingerprint'), findsOneWidget);
     expect(find.text('Email Address'), findsOneWidget);
     expect(find.text('Sign In with Password'), findsOneWidget);
-    expect(find.textContaining('GD FOODS MFG.'), findsOneWidget);
+    expect(find.text('WORKFORCE PORTAL'), findsOneWidget);
+    expect(find.textContaining('FlavorFlow'), findsOneWidget);
+    expect(find.textContaining('GD FOODS'), findsNothing);
 
     await tester.tap(find.text('Login with Biometrics / Fingerprint'));
     await tester.pumpAndSettle();

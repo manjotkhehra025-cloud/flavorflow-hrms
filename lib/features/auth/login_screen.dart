@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_scope.dart';
-import '../../core/brand_config.dart';
 import '../../core/theme.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -169,8 +168,8 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (context) => AlertDialog(
         title: Text(copy.text('Forgot your password?', 'ਪਾਸਵਰਡ ਭੁੱਲ ਗਏ?')),
         content: Text(copy.text(
-          'For account security, password resets are handled by your HR team. Contact ${BrandConfig.companyShortName} HR to reset your account.',
-          'ਖਾਤੇ ਦੀ ਸੁਰੱਖਿਆ ਲਈ ਪਾਸਵਰਡ ਰੀਸੈੱਟ ਤੁਹਾਡੀ HR ਟੀਮ ਕਰਦੀ ਹੈ। ਖਾਤਾ ਰੀਸੈੱਟ ਕਰਨ ਲਈ ${BrandConfig.companyShortName} HR ਨਾਲ ਸੰਪਰਕ ਕਰੋ।',
+          'For account security, ask your HR team to reset your password.',
+          'ਖਾਤੇ ਦੀ ਸੁਰੱਖਿਆ ਲਈ ਆਪਣੀ HR ਟੀਮ ਨੂੰ ਪਾਸਵਰਡ ਰੀਸੈੱਟ ਕਰਨ ਲਈ ਕਹੋ।',
         )),
         actions: [
           TextButton(
@@ -510,8 +509,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(height: compact ? 20 : 26),
                         Text(
                           copy.text(
-                            'New employee? Contact your HR Manager at ${BrandConfig.companyShortName}.',
-                            'ਨਵੇਂ ਕਰਮਚਾਰੀ? ${BrandConfig.companyShortName} ਦੇ HR ਮੈਨੇਜਰ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।',
+                            'New employee? Contact your HR Manager.',
+                            'ਨਵੇਂ ਕਰਮਚਾਰੀ? ਆਪਣੇ HR ਮੈਨੇਜਰ ਨਾਲ ਸੰਪਰਕ ਕਰੋ।',
                           ),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
@@ -622,7 +621,7 @@ class _BrandHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _HRMateLogo(size: compact ? 66 : 88),
+        _FlavorFlowLogo(size: compact ? 66 : 88),
         SizedBox(height: compact ? 12 : 17),
         RichText(
           text: TextSpan(
@@ -633,14 +632,14 @@ class _BrandHeader extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
             children: const [
-              TextSpan(text: 'HR', style: TextStyle(color: AppColors.ink)),
-              TextSpan(text: 'Mate', style: TextStyle(color: AppColors.blue)),
+              TextSpan(text: 'Flavor', style: TextStyle(color: AppColors.ink)),
+              TextSpan(text: 'Flow', style: TextStyle(color: AppColors.blue)),
             ],
           ),
         ),
         SizedBox(height: compact ? 9 : 14),
         Text(
-          '${BrandConfig.companyName} · ${copy.text('WORKFORCE PORTAL', 'ਵਰਕਫੋਰਸ ਪੋਰਟਲ')}',
+          copy.text('WORKFORCE PORTAL', 'ਵਰਕਫੋਰਸ ਪੋਰਟਲ'),
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: Color(0xFF1CA57F),
@@ -655,63 +654,26 @@ class _BrandHeader extends StatelessWidget {
   }
 }
 
-class _HRMateLogo extends StatelessWidget {
-  const _HRMateLogo({required this.size});
+class _FlavorFlowLogo extends StatelessWidget {
+  const _FlavorFlowLogo({required this.size});
 
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    final stemWidth = size * 0.16;
-    final sideInset = size * 0.25;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: AppColors.navy,
         borderRadius: BorderRadius.circular(size * 0.25),
+        gradient: const LinearGradient(
+          colors: [AppColors.blue, AppColors.teal],
+        ),
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            left: sideInset,
-            top: size * 0.2,
-            bottom: size * 0.2,
-            child: Container(
-              width: stemWidth,
-              decoration: BoxDecoration(
-                color: AppColors.blue,
-                borderRadius: BorderRadius.circular(stemWidth),
-              ),
-            ),
-          ),
-          Positioned(
-            right: sideInset,
-            top: size * 0.2,
-            bottom: size * 0.2,
-            child: Container(
-              width: stemWidth,
-              decoration: BoxDecoration(
-                color: AppColors.teal,
-                borderRadius: BorderRadius.circular(stemWidth),
-              ),
-            ),
-          ),
-          Positioned(
-            left: sideInset,
-            right: sideInset,
-            top: size * 0.43,
-            child: Container(
-              height: stemWidth,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.blue, AppColors.teal],
-                ),
-                borderRadius: BorderRadius.circular(stemWidth),
-              ),
-            ),
-          ),
-        ],
+      child: Icon(
+        Icons.bubble_chart_rounded,
+        color: Colors.white,
+        size: size * 0.52,
       ),
     );
   }

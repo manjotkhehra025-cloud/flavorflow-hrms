@@ -41,7 +41,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080/api/v1/
 
 Sign in with a password once and leave **Remember me on this device** selected to enable biometric sign-in on devices with an enrolled fingerprint or face unlock. The app never stores or sends passwords or biometric templates. When remembered sign-in is enabled, it stores the API session token, remembered email, and opt-in flag using native secure storage. At the next app launch, the native biometric prompt unlocks the saved session and the app revalidates it with `auth/me`. If the session expires, sign in with the password again. Uncheck **Remember me** to avoid saving the session.
 
-The login branding defaults to the HRMate / GD Foods reference screen. For another workspace, override the company labels at build time with `--dart-define=HRMS_COMPANY_NAME="..."` and `--dart-define=HRMS_COMPANY_SHORT_NAME="..."`.
+The login screen keeps the existing FlavorFlow HRMS identity while following the reference screen’s workforce-portal layout. Password resets are handled by the user's HR team; the app does not store raw passwords.
 
 ## Checks
 

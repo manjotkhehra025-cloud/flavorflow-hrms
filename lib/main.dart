@@ -40,7 +40,7 @@ class _FlavorFlowAppState extends State<FlavorFlowApp> {
     return AppScope(
       controller: _controller,
       child: MaterialApp(
-        title: BrandConfig.appName,
+        title: BrandConfig.productName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         home: const _SessionRouter(),
