@@ -3,6 +3,7 @@ import 'package:flavorflow_hrms/core/app_controller.dart';
 import 'package:flavorflow_hrms/core/app_scope.dart';
 import 'package:flavorflow_hrms/core/session_inactivity_guard.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _IdleGuardController extends AppController {
@@ -68,6 +69,25 @@ void main() {
     await tester.pump(const Duration(minutes: 14));
     await tester.tap(find.text('Session active'));
     await tester.pump();
+    await tester.pump(const Duration(minutes: 14, seconds: 59));
+    await tester.pump();
+
+    expect(controller.inactivitySignOuts, 0);
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(controller.inactivitySignOuts, 1);
+  });
+
+  testWidgets('keyboard activity resets the 15-minute inactivity timer', (
+    tester,
+  ) async {
+    final controller = _IdleGuardController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_guardedApp(controller));
+    await tester.pump(const Duration(minutes: 14));
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump(const Duration(minutes: 14, seconds: 59));
     await tester.pump();
 

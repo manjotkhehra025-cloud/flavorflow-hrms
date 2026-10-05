@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'app_controller.dart';
 
@@ -33,6 +34,7 @@ class _SessionInactivityGuardState extends State<SessionInactivityGuard>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    HardwareKeyboard.instance.addHandler(_onHardwareKeyEvent);
     widget.controller.addListener(_onControllerChanged);
     _wasAuthenticated = widget.controller.isAuthenticated;
     _lastActivityAt = widget.controller.lastActivityAt;
@@ -65,6 +67,11 @@ class _SessionInactivityGuardState extends State<SessionInactivityGuard>
       _wasAuthenticated = false;
       _idleTimer?.cancel();
     }
+  }
+
+  bool _onHardwareKeyEvent(KeyEvent _) {
+    _registerActivity();
+    return false;
   }
 
   void _registerActivity() {
@@ -139,26 +146,20 @@ class _SessionInactivityGuardState extends State<SessionInactivityGuard>
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      canRequestFocus: false,
-      onKeyEvent: (node, event) {
-        _registerActivity();
-        return KeyEventResult.ignored;
-      },
-      child: Listener(
-        behavior: HitTestBehavior.translucent,
-        onPointerDown: (PointerDownEvent event) => _registerActivity(),
-        onPointerMove: (PointerMoveEvent event) => _registerActivity(),
-        onPointerSignal: (PointerSignalEvent event) => _registerActivity(),
-        onPointerHover: (PointerHoverEvent event) => _registerActivity(),
-        child: widget.child,
-      ),
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _registerActivity(),
+      onPointerMove: (_) => _registerActivity(),
+      onPointerSignal: (_) => _registerActivity(),
+      onPointerHover: (_) => _registerActivity(),
+      child: widget.child,
     );
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    HardwareKeyboard.instance.removeHandler(_onHardwareKeyEvent);
     widget.controller.removeListener(_onControllerChanged);
     _idleTimer?.cancel();
     super.dispose();
