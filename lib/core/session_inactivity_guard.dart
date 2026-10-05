@@ -75,7 +75,7 @@ class _SessionInactivityGuardState extends State<SessionInactivityGuard>
   }
 
   void _registerActivity() {
-    if (!widget.controller.isAuthenticated) return;
+    if (!_isForeground || !widget.controller.isAuthenticated) return;
     _lastActivityAt = DateTime.now().toUtc();
     unawaited(widget.controller.recordUserActivity());
     _scheduleIdleTimeout();
