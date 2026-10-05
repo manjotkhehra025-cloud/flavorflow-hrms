@@ -161,9 +161,11 @@ class _LoginScreenState extends State<LoginScreen> {
             ));
       }
     } on ApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted && !automatic) {
+        setState(() => _error = error.message);
+      }
     } catch (_) {
-      if (mounted) {
+      if (mounted && !automatic) {
         setState(() => _error = _copy.text(
               'Biometric sign-in could not be completed. Please use your password.',
               'ਬਾਇਓਮੈਟ੍ਰਿਕ ਸਾਈਨ ਇਨ ਪੂਰਾ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਕਿਰਪਾ ਕਰਕੇ ਪਾਸਵਰਡ ਵਰਤੋ।',

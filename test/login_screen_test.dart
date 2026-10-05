@@ -16,6 +16,7 @@ class _LoginTestController extends AppController {
 
 class _AutoBiometricController extends _LoginTestController {
   int biometricAttempts = 0;
+  bool failBiometricSignIn = false;
 
   @override
   Future<bool> canUseBiometricsOnDevice() async => true;
@@ -23,6 +24,9 @@ class _AutoBiometricController extends _LoginTestController {
   @override
   Future<bool> signInWithBiometrics() async {
     biometricAttempts++;
+    if (failBiometricSignIn) {
+      throw const ApiException('Automatic biometric check failed.');
+    }
     return true;
   }
 }
@@ -91,5 +95,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.biometricAttempts, 1);
+  });
+
+  testWidgets('failed automatic biometric check falls back without an error', (
+    tester,
+  ) async {
+    final controller = _AutoBiometricController()
+      ..hasBiometricLoginSession = true
+      ..autoBiometricPromptPending = true
+      ..failBiometricSignIn = true;
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      AppScope(
+        controller: controller,
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const LoginScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.biometricAttempts, 1);
+    expect(find.text('Automatic biometric check failed.'), findsNothing);
   });
 }
