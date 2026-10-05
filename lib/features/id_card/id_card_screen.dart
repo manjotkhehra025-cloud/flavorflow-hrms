@@ -753,9 +753,7 @@ Future<Uint8List> _buildCardPdf(Map<String, dynamic> card) async {
   pw.Widget field(String label, Object? value) => pw.Padding(
         padding: const pw.EdgeInsets.only(bottom: 10),
         child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-          // pdf TextStyle compares FontWeight instances internally, so this must stay non-const.
-          // ignore: prefer_const_constructors
-          pw.Text(label.toUpperCase(), style: pw.TextStyle(color: PdfColor.fromInt(0xFF9DBCC8), fontSize: 7, fontWeight: pw.FontWeight.bold, letterSpacing: 1)),
+          pw.Text(label.toUpperCase(), style: pw.TextStyle(color: const PdfColor.fromInt(0xFF9DBCC8), fontSize: 7, fontWeight: pw.FontWeight.bold, letterSpacing: 1)),
           pw.SizedBox(height: 3),
           pw.Text(_pdfValue(value), style: pw.TextStyle(color: PdfColors.white, fontSize: 13, fontWeight: pw.FontWeight.bold)),
         ]),
