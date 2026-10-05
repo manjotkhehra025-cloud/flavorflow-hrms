@@ -37,6 +37,12 @@ class ApiClient {
   Future<dynamic> post(String path, [Map<String, dynamic>? body]) =>
       request('POST', path, body: body ?? const <String, dynamic>{});
 
+  Future<dynamic> postWithToken(
+    String path,
+    Map<String, dynamic> body,
+    String bearerToken,
+  ) => request('POST', path, body: body, bearerToken: bearerToken);
+
   Future<dynamic> patch(String path, Map<String, dynamic> body) =>
       request('PATCH', path, body: body);
 
@@ -47,6 +53,7 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     Map<String, String>? query,
+    String? bearerToken,
   }) async {
     final basePath = _baseUri.path.endsWith('/')
         ? _baseUri.path
@@ -63,7 +70,7 @@ class ApiClient {
           );
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.contentType = ContentType.json;
-      final currentToken = token;
+      final currentToken = bearerToken ?? token;
       if (currentToken != null && currentToken.isNotEmpty) {
         request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $currentToken');
       }

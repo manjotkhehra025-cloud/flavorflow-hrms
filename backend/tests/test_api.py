@@ -1,3 +1,4 @@
+import hashlib
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -432,6 +433,106 @@ class ApiTestCase(unittest.TestCase):
         status, logs = self.call("GET", "/audit-logs", token=self.admin)
         self.assertEqual(status, 200)
         self.assertTrue(any(item["action"] == "employee.created" for item in logs["items"]))
+
+    def test_biometric_login_uses_a_rotating_device_token_after_local_auth(self):
+        status, login = self.call("POST", "/auth/login", {
+            "email": "employee@flavorflow.com",
+            "password": "Employee123!",
+            "enable_biometrics": True,
+        })
+        self.assertEqual(status, 200, login)
+        first_device_token = login["biometric_token"]
+        with self.app._db() as connection:
+            stored = connection.execute(
+                "SELECT token_hash FROM biometric_login_tokens WHERE user_id = ?",
+                (login["user"]["id"],),
+            ).fetchone()
+        self.assertEqual(
+            stored["token_hash"], hashlib.sha256(first_device_token.encode()).hexdigest()
+        )
+
+        # An inactivity sign-out revokes the API token but leaves the separate
+        # device credential available for biometric re-authentication.
+        status, _ = self.call("POST", "/auth/logout", token=login["token"])
+        self.assertEqual(status, 200)
+        status, _ = self.call("GET", "/auth/me", token=login["token"])
+        self.assertEqual(status, 401)
+
+        status, refreshed = self.call("POST", "/auth/biometric-login", {
+            "biometric_token": first_device_token,
+        })
+        self.assertEqual(status, 200, refreshed)
+        self.assertNotEqual(refreshed["token"], login["token"])
+        self.assertNotEqual(refreshed["biometric_token"], first_device_token)
+        status, _ = self.call("GET", "/auth/me", token=refreshed["token"])
+        self.assertEqual(status, 200)
+        status, _ = self.call("POST", "/auth/biometric-login", {
+            "biometric_token": first_device_token,
+        })
+        self.assertEqual(status, 401)
+
+        status, revoked = self.call("POST", "/auth/biometric-revoke", {
+            "biometric_token": refreshed["biometric_token"],
+        })
+        self.assertEqual(status, 200, revoked)
+        status, _ = self.call("POST", "/auth/biometric-login", {
+            "biometric_token": refreshed["biometric_token"],
+        })
+        self.assertEqual(status, 401)
+
+    def test_legacy_authenticated_session_can_register_a_biometric_device_token(self):
+        status, registration = self.call(
+            "POST", "/auth/biometric-register", token=self.employee
+        )
+        self.assertEqual(status, 201, registration)
+        self.assertTrue(registration["biometric_token"])
+        status, refreshed = self.call("POST", "/auth/biometric-login", {
+            "biometric_token": registration["biometric_token"],
+            "previous_session_token": self.employee,
+        })
+        self.assertEqual(status, 200, refreshed)
+        status, _ = self.call("GET", "/auth/me", token=self.employee)
+        self.assertEqual(status, 401)
+
+    def test_biometric_refresh_revokes_the_previous_api_session(self):
+        status, login = self.call("POST", "/auth/login", {
+            "email": "employee@flavorflow.com",
+            "password": "Employee123!",
+            "enable_biometrics": True,
+        })
+        self.assertEqual(status, 200, login)
+        status, refreshed = self.call("POST", "/auth/biometric-login", {
+            "biometric_token": login["biometric_token"],
+            "previous_session_token": login["token"],
+        })
+        self.assertEqual(status, 200, refreshed)
+        status, _ = self.call("GET", "/auth/me", token=login["token"])
+        self.assertEqual(status, 401)
+        status, _ = self.call("GET", "/auth/me", token=refreshed["token"])
+        self.assertEqual(status, 200)
+
+    def test_password_login_can_replace_an_existing_biometric_device_token(self):
+        _, first = self.call("POST", "/auth/login", {
+            "email": "employee@flavorflow.com",
+            "password": "Employee123!",
+            "enable_biometrics": True,
+        })
+        status, second = self.call("POST", "/auth/login", {
+            "email": "employee@flavorflow.com",
+            "password": "Employee123!",
+            "enable_biometrics": True,
+            "replace_biometric_token": first["biometric_token"],
+        })
+        self.assertEqual(status, 200, second)
+        self.assertNotEqual(second["biometric_token"], first["biometric_token"])
+        status, _ = self.call("POST", "/auth/biometric-login", {
+            "biometric_token": first["biometric_token"],
+        })
+        self.assertEqual(status, 401)
+        status, _ = self.call("POST", "/auth/biometric-login", {
+            "biometric_token": second["biometric_token"],
+        })
+        self.assertEqual(status, 200)
 
     def test_sessions_are_revocable_and_failed_credentials_are_rejected(self):
         status, _ = self.call("POST", "/auth/login", {"email": "admin@flavorflow.com", "password": "bad"})

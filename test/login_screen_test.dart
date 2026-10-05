@@ -14,6 +14,19 @@ class _LoginTestController extends AppController {
   Future<bool> canUseBiometricsOnDevice() async => false;
 }
 
+class _AutoBiometricController extends _LoginTestController {
+  int biometricAttempts = 0;
+
+  @override
+  Future<bool> canUseBiometricsOnDevice() async => true;
+
+  @override
+  Future<bool> signInWithBiometrics() async {
+    biometricAttempts++;
+    return true;
+  }
+}
+
 void main() {
   testWidgets('login screen shows the FlavorFlow sign-in options', (tester) async {
     final controller = _LoginTestController();
@@ -56,5 +69,27 @@ void main() {
       find.textContaining('Fingerprint or face unlock is not available.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('saved biometric sign-in prompts automatically on app open', (
+    tester,
+  ) async {
+    final controller = _AutoBiometricController()
+      ..hasBiometricLoginSession = true
+      ..autoBiometricPromptPending = true;
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      AppScope(
+        controller: controller,
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const LoginScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.biometricAttempts, 1);
   });
 }

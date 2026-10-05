@@ -27,6 +27,8 @@ BASE_PATH = "/api/v1"
 ROOT = Path(__file__).resolve().parent
 DEFAULT_DB = ROOT / "data" / "hrms.sqlite3"
 PBKDF2_ROUNDS = 240_000
+SESSION_TOKEN_DAYS = 7
+BIOMETRIC_LOGIN_TOKEN_DAYS = 30
 
 # This is the server-owned permission catalog. It is stored in `permissions`,
 # delivered to the app by GET /roles, and checked again on every protected API.
@@ -253,9 +255,15 @@ class HRMSApplication:
         try:
             if endpoint == "/auth/login" and method == "POST":
                 return 200, self._login(body, remote_address)
+            if endpoint == "/auth/biometric-login" and method == "POST":
+                return 200, self._biometric_login(body, remote_address)
+            if endpoint == "/auth/biometric-revoke" and method == "POST":
+                return 200, self._revoke_biometric_login(body)
             user = self._authenticate(headers)
             if endpoint == "/auth/logout" and method == "POST":
                 return 200, self._logout(user, headers, remote_address)
+            if endpoint == "/auth/biometric-register" and method == "POST":
+                return 201, self._register_biometric_login(user, remote_address)
             if endpoint == "/auth/me" and method == "GET":
                 return 200, self._session_payload(user["id"])
             return self._route(method, endpoint, query, body, user, remote_address)
@@ -461,26 +469,168 @@ class HRMSApplication:
         password = str(body.get("password", ""))
         if not email or not password:
             raise ApiError(400, "Email and password are required.")
+
+        enable_biometrics = body.get("enable_biometrics") is True
+        previous_biometric_token = str(body.get("replace_biometric_token", "")).strip()
         with self._db() as connection:
-            row = connection.execute("SELECT * FROM users WHERE email = ? COLLATE NOCASE", (email,)).fetchone()
+            row = connection.execute(
+                "SELECT * FROM users WHERE email = ? COLLATE NOCASE", (email,)
+            ).fetchone()
             if not row or not row["is_active"] or not _verify_password(password, row["password_hash"]):
                 raise ApiError(401, "Email or password is incorrect.")
-            token = secrets.token_urlsafe(36)
-            token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
-            now = datetime.now(timezone.utc)
-            expires = (now + timedelta(days=7)).isoformat(timespec="seconds").replace("+00:00", "Z")
-            connection.execute(
-                "INSERT INTO sessions(token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
-                (token_hash, row["id"], expires, _now()),
-            )
-        self._audit(row["id"], "auth.login", "session", None, {"email": email}, remote_address)
-        return {"token": token, "user": self._session_payload(row["id"])}
 
-    def _logout(self, user: dict[str, Any], headers: dict[str, str], remote_address: str | None) -> dict[str, Any]:
+            user_id = int(row["id"])
+            now = datetime.now(timezone.utc)
+            if previous_biometric_token:
+                connection.execute(
+                    "DELETE FROM biometric_login_tokens WHERE token_hash = ?",
+                    (hashlib.sha256(previous_biometric_token.encode("utf-8")).hexdigest(),),
+                )
+            token = self._issue_session_token(connection, user_id, now)
+            biometric_token = (
+                self._issue_biometric_login_token(connection, user_id, now)
+                if enable_biometrics
+                else None
+            )
+
+        self._audit(
+            user_id,
+            "auth.login",
+            "session",
+            None,
+            {"email": email, "biometric_login_enabled": enable_biometrics},
+            remote_address,
+        )
+        result = {"token": token, "user": self._session_payload(user_id)}
+        if biometric_token is not None:
+            result["biometric_token"] = biometric_token
+        return result
+
+    def _biometric_login(
+        self, body: dict[str, Any], remote_address: str | None
+    ) -> dict[str, Any]:
+        biometric_token = str(body.get("biometric_token", "")).strip()
+        previous_session_token = str(body.get("previous_session_token", "")).strip()
+        if not biometric_token:
+            raise ApiError(400, "A biometric device token is required.")
+
+        token_hash = hashlib.sha256(biometric_token.encode("utf-8")).hexdigest()
+        now = datetime.now(timezone.utc)
+        now_text = now.isoformat(timespec="seconds").replace("+00:00", "Z")
+        inactive = False
+        with self._db() as connection:
+            row = connection.execute(
+                """SELECT t.user_id, u.is_active FROM biometric_login_tokens t
+                   JOIN users u ON u.id = t.user_id
+                   WHERE t.token_hash = ? AND t.expires_at > ?""",
+                (token_hash, now_text),
+            ).fetchone()
+            if row is None:
+                raise ApiError(401, "Biometric sign-in expired. Sign in with your password again.")
+
+            user_id = int(row["user_id"])
+            if not row["is_active"]:
+                connection.execute(
+                    "DELETE FROM biometric_login_tokens WHERE token_hash = ?", (token_hash,)
+                )
+                inactive = True
+            else:
+                # Revoke the previous API session, then rotate the device
+                # credential atomically with a fresh authenticated session.
+                if previous_session_token:
+                    connection.execute(
+                        "DELETE FROM sessions WHERE token_hash = ? AND user_id = ?",
+                        (
+                            hashlib.sha256(previous_session_token.encode("utf-8")).hexdigest(),
+                            user_id,
+                        ),
+                    )
+                connection.execute(
+                    "DELETE FROM biometric_login_tokens WHERE token_hash = ?", (token_hash,)
+                )
+                session_token = self._issue_session_token(connection, user_id, now)
+                next_biometric_token = self._issue_biometric_login_token(
+                    connection, user_id, now
+                )
+
+        if inactive:
+            raise ApiError(401, "This account is inactive. Contact your HR team.")
+
+        self._audit(user_id, "auth.biometric_login", "session", None, {}, remote_address)
+        return {
+            "token": session_token,
+            "biometric_token": next_biometric_token,
+            "user": self._session_payload(user_id),
+        }
+
+    def _register_biometric_login(
+        self, user: dict[str, Any], remote_address: str | None
+    ) -> dict[str, Any]:
+        now = datetime.now(timezone.utc)
+        with self._db() as connection:
+            biometric_token = self._issue_biometric_login_token(
+                connection, int(user["id"]), now
+            )
+        self._audit(
+            user["id"], "auth.biometric_login_registered", "session", None, {}, remote_address
+        )
+        return {"biometric_token": biometric_token}
+
+    def _revoke_biometric_login(self, body: dict[str, Any]) -> dict[str, Any]:
+        biometric_token = str(body.get("biometric_token", "")).strip()
+        if biometric_token:
+            token_hash = hashlib.sha256(biometric_token.encode("utf-8")).hexdigest()
+            with self._db() as connection:
+                connection.execute(
+                    "DELETE FROM biometric_login_tokens WHERE token_hash = ?", (token_hash,)
+                )
+        # Idempotent response avoids revealing whether a device token existed.
+        return {"message": "Biometric sign-in disabled."}
+
+    @staticmethod
+    def _issue_session_token(
+        connection: sqlite3.Connection, user_id: int, now: datetime
+    ) -> str:
+        token = secrets.token_urlsafe(36)
+        expires = (now + timedelta(days=SESSION_TOKEN_DAYS)).isoformat(
+            timespec="seconds"
+        ).replace("+00:00", "Z")
+        created = now.isoformat(timespec="seconds").replace("+00:00", "Z")
+        connection.execute(
+            "INSERT INTO sessions(token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+            (hashlib.sha256(token.encode("utf-8")).hexdigest(), user_id, expires, created),
+        )
+        return token
+
+    @staticmethod
+    def _issue_biometric_login_token(
+        connection: sqlite3.Connection, user_id: int, now: datetime
+    ) -> str:
+        token = secrets.token_urlsafe(48)
+        expires = (now + timedelta(days=BIOMETRIC_LOGIN_TOKEN_DAYS)).isoformat(
+            timespec="seconds"
+        ).replace("+00:00", "Z")
+        created = now.isoformat(timespec="seconds").replace("+00:00", "Z")
+        connection.execute(
+            """INSERT INTO biometric_login_tokens(token_hash, user_id, expires_at, created_at)
+               VALUES (?, ?, ?, ?)""",
+            (hashlib.sha256(token.encode("utf-8")).hexdigest(), user_id, expires, created),
+        )
+        return token
+
+    def _logout(
+        self,
+        user: dict[str, Any],
+        headers: dict[str, str],
+        remote_address: str | None,
+    ) -> dict[str, Any]:
         token = _header(headers, "authorization").removeprefix("Bearer ").strip()
         if token:
             with self._db() as connection:
-                connection.execute("DELETE FROM sessions WHERE token_hash = ?", (hashlib.sha256(token.encode()).hexdigest(),))
+                connection.execute(
+                    "DELETE FROM sessions WHERE token_hash = ?",
+                    (hashlib.sha256(token.encode("utf-8")).hexdigest(),),
+                )
         self._audit(user["id"], "auth.logout", "session", None, {}, remote_address)
         return {"message": "Signed out."}
 

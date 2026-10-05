@@ -42,7 +42,8 @@ The executable schema is `backend/schema.sql`.
 |---|---|
 | `users` | Login identity, PBKDF2 digest, display name and active flag. |
 | `employees` | Employee directory/profile; optional `user_id`; self-reference through `manager_id`. |
-| `sessions` | Hashed opaque bearer token, expiry, and user FK. |
+| `sessions` | Hashed opaque API bearer token, expiry, and user FK. |
+| `biometric_login_tokens` | Hashed, rotating device credential used only after local biometric verification; expires 30 days after issue/use and cascades with its user. |
 | `roles` | Named roles; `super_admin` is the protected system role. |
 | `permissions` | Server-owned permission catalog: stable key, module, action and label. |
 | `user_roles` | Many-to-many user/role assignments. |
@@ -74,14 +75,17 @@ Super Admin effective access is the complete live permission catalog even if cat
 
 ## API contract
 
-Base URL: `http://<host>:8080/api/v1` (HTTPS in production). Except health and login, send `Authorization: Bearer <token>`. Requests/responses use JSON; list endpoints return `{"items": [...], "total": n}` unless noted. Errors return `{"error":{"message":"...","details":...}}` with an HTTP status. Dates use `YYYY-MM-DD`; API timestamps are UTC ISO-8601.
+Base URL: `http://<host>:8080/api/v1` (HTTPS in production). Except health/login and the device-credential biometric exchange/revoke endpoints, send `Authorization: Bearer <token>`. Requests/responses use JSON; list endpoints return `{"items": [...], "total": n}` unless noted. Errors return `{"error":{"message":"...","details":...}}` with an HTTP status. Dates use `YYYY-MM-DD`; API timestamps are UTC ISO-8601.
 
 | Method + path | Required capability | Request / response summary |
 |---|---|---|
 | `GET /` | Public | API base status (`/api/v1` or `/api/v1/`); points to the health check. |
 | `GET /health` | Public | Service status. |
-| `POST /auth/login` | Public | `{email,password}` → `{token,user}`. |
-| `POST /auth/logout` | Authenticated | Revoke current bearer token. |
+| `POST /auth/login` | Public | `{email,password,enable_biometrics?,replace_biometric_token?}` → `{token,user,biometric_token?}`. The optional device token is issued only on password-authenticated opt-in. |
+| `POST /auth/biometric-login` | Device credential | `{biometric_token,previous_session_token?}` → a new API token plus rotated biometric token; the app calls this only after local device authentication. |
+| `POST /auth/biometric-register` | Authenticated | Issue a device token to migrate a still-valid biometric session from the earlier app version. |
+| `POST /auth/biometric-revoke` | Device credential | Idempotently revoke the caller-supplied device token on explicit sign-out. |
+| `POST /auth/logout` | Authenticated | Revoke current API bearer token; inactivity sign-out deliberately preserves the separate device credential. |
 | `GET /auth/me` | Authenticated | Profile, role ids/names, employee id and effective permission keys. |
 | `GET /dashboard` | `dashboard.read` | Scope-filtered metrics, caller's open punch and own shift, next holiday, and self leave balance calculated from the configured period/day-counting/proration/carry-over policy. |
 | `GET /employees?q=` | Employee read scope | Search/list with self/team scope applied. |

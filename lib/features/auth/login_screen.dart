@@ -24,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _busyAction;
   String? _error;
   bool _loadedSavedEmail = false;
+  bool _automaticBiometricPromptQueued = false;
   Future<bool>? _biometricCheck;
 
   bool get _busy => _busyAction != null;
@@ -40,9 +41,21 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_loadedSavedEmail) return;
-    _email.text = AppScope.of(context).rememberedEmail ?? '';
-    _loadedSavedEmail = true;
+    final controller = AppScope.of(context);
+    if (!_loadedSavedEmail) {
+      _email.text = controller.rememberedEmail ?? '';
+      _loadedSavedEmail = true;
+    }
+    if (!controller.autoBiometricPromptPending ||
+        _automaticBiometricPromptQueued) {
+      return;
+    }
+    _automaticBiometricPromptQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _automaticBiometricPromptQueued = false;
+      if (!mounted || !controller.consumeAutomaticBiometricPrompt()) return;
+      _signInWithBiometrics(automatic: true);
+    });
   }
 
   @override
@@ -107,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _signInWithBiometrics() async {
+  Future<void> _signInWithBiometrics({bool automatic = false}) async {
     if (_busy) return;
     setState(() {
       _busyAction = 'biometric';
@@ -120,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
           : _biometricsAvailable;
       if (!mounted) return;
       if (!available) {
-        if (mounted) {
+        if (mounted && !automatic) {
           setState(() => _error = _copy.text(
                 'Fingerprint or face unlock is not available. Set it up in your device settings, or sign in with your password.',
                 'ਇਸ ਡਿਵਾਈਸ ’ਤੇ ਫਿੰਗਰਪ੍ਰਿੰਟ ਜਾਂ ਫੇਸ ਅਨਲੌਕ ਉਪਲਬਧ ਨਹੀਂ। ਡਿਵਾਈਸ ਸੈਟਿੰਗਾਂ ਵਿੱਚ ਸੈੱਟ ਕਰੋ ਜਾਂ ਪਾਸਵਰਡ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ।',
@@ -131,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final controller = AppScope.of(context);
       if (!controller.hasBiometricLoginSession) {
-        if (mounted) {
+        if (mounted && !automatic) {
           setState(() => _error = _copy.text(
                 'Sign in with your password once and keep “Remember me on this device” checked. Biometric sign-in will then be ready next time.',
                 'ਪਹਿਲਾਂ ਪਾਸਵਰਡ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ ਅਤੇ “ਇਸ ਡਿਵਾਈਸ ’ਤੇ ਮੈਨੂੰ ਯਾਦ ਰੱਖੋ” ਚੁਣੋ। ਫਿਰ ਅਗਲੀ ਵਾਰ ਬਾਇਓਮੈਟ੍ਰਿਕ ਨਾਲ ਸਾਈਨ ਇਨ ਹੋ ਸਕੇਗਾ।',
@@ -141,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final authenticated = await controller.signInWithBiometrics();
-      if (!authenticated && mounted) {
+      if (!authenticated && mounted && !automatic) {
         setState(() => _error = _copy.text(
               'Biometric check was cancelled. You can use your password instead.',
               'ਬਾਇਓਮੈਟ੍ਰਿਕ ਜਾਂਚ ਰੱਦ ਹੋ ਗਈ। ਤੁਸੀਂ ਪਾਸਵਰਡ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰ ਸਕਦੇ ਹੋ।',

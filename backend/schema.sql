@@ -60,6 +60,18 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at TEXT NOT NULL
 );
 
+-- A device-scoped secret used only after local biometric verification. Its hash
+-- is stored server-side and exchanged for a short-lived API session at sign-in.
+CREATE TABLE IF NOT EXISTS biometric_login_tokens (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_biometric_login_tokens_user_expiry
+    ON biometric_login_tokens(user_id, expires_at);
+
 CREATE TABLE IF NOT EXISTS work_locations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
