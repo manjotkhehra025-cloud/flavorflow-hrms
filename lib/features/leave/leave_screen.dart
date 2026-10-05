@@ -255,7 +255,7 @@ class _LeaveScreenState extends State<LeaveScreen> {
                 else if (visibleRequests.isEmpty)
                   AppPanel(
                     child: EmptyNotice(
-                      title: _statusFilter == 'all' ? 'No leave requests yet' : 'No ${_statusFilter} requests',
+                      title: _statusFilter == 'all' ? 'No leave requests yet' : 'No $_statusFilter requests',
                       subtitle: 'New applications and their approval status will show here.',
                       icon: Icons.event_available_outlined,
                     ),

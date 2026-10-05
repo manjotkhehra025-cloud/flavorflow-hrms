@@ -430,12 +430,12 @@ class _PrivacyHint extends StatelessWidget {
   const _PrivacyHint();
 
   @override
-  Widget build(BuildContext context) => AppPanel(
-        padding: const EdgeInsets.all(13),
+  Widget build(BuildContext context) => const AppPanel(
+        padding: EdgeInsets.all(13),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Icon(Icons.lock_outline_rounded, color: AppColors.blue, size: 17),
-          const SizedBox(width: 9),
-          const Expanded(child: Text('Phone and mailing address are protected by your role permissions. Employee identity, role, department and employment status are populated from current employee records.', style: TextStyle(color: AppColors.muted, fontSize: 10, height: 1.4))),
+          Icon(Icons.lock_outline_rounded, color: AppColors.blue, size: 17),
+          SizedBox(width: 9),
+          Expanded(child: Text('Phone and mailing address are protected by your role permissions. Employee identity, role, department and employment status are populated from current employee records.', style: TextStyle(color: AppColors.muted, fontSize: 10, height: 1.4))),
         ]),
       );
 }
@@ -730,9 +730,9 @@ class _PassDateField extends StatelessWidget {
 
 Future<Uint8List> _buildCardPdf(Map<String, dynamic> card) async {
   final pdf = pw.Document();
-  final navy = PdfColor.fromInt(0xFF081C33);
-  final teal = PdfColor.fromInt(0xFF087A7C);
-  final muted = PdfColor.fromInt(0xFF718198);
+  const navy = PdfColor.fromInt(0xFF081C33);
+  const teal = PdfColor.fromInt(0xFF087A7C);
+  const muted = PdfColor.fromInt(0xFF718198);
   pw.Widget side(String title, List<pw.Widget> lines) => pw.Container(
         width: 390,
         height: 242,
@@ -747,13 +747,13 @@ Future<Uint8List> _buildCardPdf(Map<String, dynamic> card) async {
           pw.SizedBox(height: 22),
           ...lines,
           pw.Spacer(),
-          pw.Text('People, connected.', style: pw.TextStyle(color: PdfColor.fromInt(0xFFB9D2DC), fontSize: 9)),
+          pw.Text('People, connected.', style: const pw.TextStyle(color: PdfColor.fromInt(0xFFB9D2DC), fontSize: 9)),
         ]),
       );
   pw.Widget field(String label, Object? value) => pw.Padding(
         padding: const pw.EdgeInsets.only(bottom: 10),
         child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-          pw.Text(label.toUpperCase(), style: pw.TextStyle(color: PdfColor.fromInt(0xFF9DBCC8), fontSize: 7, fontWeight: pw.FontWeight.bold, letterSpacing: 1)),
+          pw.Text(label.toUpperCase(), style: const pw.TextStyle(color: PdfColor.fromInt(0xFF9DBCC8), fontSize: 7, fontWeight: pw.FontWeight.bold, letterSpacing: 1)),
           pw.SizedBox(height: 3),
           pw.Text(_pdfValue(value), style: pw.TextStyle(color: PdfColors.white, fontSize: 13, fontWeight: pw.FontWeight.bold)),
         ]),

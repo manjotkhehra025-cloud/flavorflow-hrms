@@ -400,7 +400,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 if (visibleRequests.isEmpty)
                   AppPanel(
                     child: EmptyNotice(
-                      title: _requestStatus == 'all' ? 'No ${_requestType == 'overtime' ? 'overtime' : 'manual-punch'} requests' : 'No ${_requestStatus} requests',
+                      title: _requestStatus == 'all' ? 'No ${_requestType == 'overtime' ? 'overtime' : 'manual-punch'} requests' : 'No $_requestStatus requests',
                       subtitle: canRequest ? 'Requests and approval status will show here after submission.' : 'There are no requests in this review queue.',
                       icon: _requestType == 'overtime' ? Icons.more_time_rounded : Icons.edit_calendar_outlined,
                     ),
@@ -500,12 +500,12 @@ class _MonthAttendanceCalendar extends StatelessWidget {
           },
         ),
         const SizedBox(height: 13),
-        Wrap(spacing: 12, runSpacing: 8, children: [
+        const Wrap(spacing: 12, runSpacing: 8, children: [
           _CalendarLegend(color: AppColors.success, label: 'Present'),
           _CalendarLegend(color: AppColors.blue, label: 'Leave'),
-          _CalendarLegend(color: const Color(0xFFAE751C), label: 'Holiday'),
+          _CalendarLegend(color: Color(0xFFAE751C), label: 'Holiday'),
           _CalendarLegend(color: AppColors.muted, label: 'Weekly off'),
-          _CalendarLegend(color: const Color(0xFFC94D54), label: 'No punch'),
+          _CalendarLegend(color: Color(0xFFC94D54), label: 'No punch'),
         ]),
         const SizedBox(height: 14),
         LayoutBuilder(builder: (context, constraints) {
