@@ -555,5 +555,153 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(payload["status"], "ok")
 
 
+    def test_team_directory_uses_current_employee_records_without_personal_fields(self):
+        status, team = self.call("GET", "/team", token=self.employee)
+        self.assertEqual(status, 200, team)
+        self.assertGreater(team["summary"]["total"], 0)
+        self.assertTrue(all("full_name" in item and "presence" in item for item in team["items"]))
+        self.assertTrue(all("address" not in item and "email" not in item for item in team["items"]))
+
+        status, filtered = self.call(
+            "GET", "/team?department=Product", token=self.employee
+        )
+        self.assertEqual(status, 200, filtered)
+        self.assertTrue(all(item["department"] == "Product" for item in filtered["items"]))
+        self.assertIn("Product", filtered["departments"])
+
+    def test_id_cards_are_role_scoped_and_home_contact_details_are_separate(self):
+        status, own_cards = self.call("GET", "/id-cards", token=self.employee)
+        self.assertEqual(status, 200, own_cards)
+        self.assertEqual(own_cards["total"], 1)
+        own_card = own_cards["items"][0]
+        self.assertTrue(own_card["employee_code"])
+        self.assertEqual(own_card["address"], "")
+
+        status, team_cards = self.call("GET", "/id-cards", token=self.manager)
+        self.assertEqual(status, 200, team_cards)
+        report_card = next(item for item in team_cards["items"] if item["employee_code"] == "FF-003")
+        self.assertNotIn("address", report_card)
+        self.assertNotIn("phone", report_card)
+
+        status, employee_rows = self.call("GET", "/employees", token=self.employee)
+        self.assertEqual(status, 200, employee_rows)
+        self.assertNotIn("address", employee_rows["items"][0])
+        self.assertNotIn("phone", employee_rows["items"][0])
+
+        status, denied = self.call(
+            "GET", f"/id-cards?employee_id=1", token=self.employee
+        )
+        self.assertEqual(status, 404)
+        status, saved = self.call(
+            "PATCH", f"/id-cards/{own_card['id']}", {"address": "Private test address"}, self.admin
+        )
+        self.assertEqual(status, 200, saved)
+        self.assertEqual(saved["address"], "Private test address")
+        status, _ = self.call(
+            "PATCH", f"/id-cards/{own_card['id']}", {"address": "Not allowed"}, self.employee
+        )
+        self.assertEqual(status, 403)
+
+    def test_leave_balance_adjustment_is_audited_and_applied_to_self_balance(self):
+        status, employee_profile = self.call("GET", "/auth/me", token=self.employee)
+        self.assertEqual(status, 200)
+        status, employee_rows = self.call("GET", "/employees", token=self.admin)
+        self.assertEqual(status, 200)
+        employee = next(row for row in employee_rows["items"] if row["employee_code"] == "FF-003")
+        status, leave_types = self.call("GET", "/leave-types", token=self.employee)
+        self.assertEqual(status, 200)
+        annual = next(item for item in leave_types["items"] if item["name"] == "Annual leave")
+
+        status, adjustment = self.call("POST", "/leave-balance-adjustments", {
+            "employee_id": employee["id"],
+            "leave_type_id": annual["id"],
+            "days": 2.5,
+            "reason": "Approved policy correction",
+        }, self.admin)
+        self.assertEqual(status, 201, adjustment)
+        self.assertEqual(adjustment["days"], 2.5)
+        status, dashboard = self.call("GET", "/dashboard", token=self.employee)
+        self.assertEqual(status, 200, dashboard)
+        balance = next(item for item in dashboard["my_leave_balances"] if item["leave_type_id"] == annual["id"])
+        self.assertEqual(balance["adjustment_days"], 2.5)
+        self.assertEqual(balance["remaining_days"], 2.5)
+        status, _ = self.call("POST", "/leave-balance-adjustments", {
+            "employee_id": employee["id"], "leave_type_id": annual["id"],
+            "days": 1, "reason": "Not authorized",
+        }, self.employee)
+        self.assertEqual(status, 403)
+
+    def test_overtime_and_manual_punch_requests_follow_review_scopes(self):
+        work_date = datetime.now(timezone.utc).date().isoformat()
+        status, overtime = self.call("POST", "/attendance/overtime-requests", {
+            "work_date": work_date, "hours": 2.5, "reason": "Approved production support",
+        }, self.employee)
+        self.assertEqual(status, 201, overtime)
+        status, manager_queue = self.call(
+            "GET", "/attendance/overtime-requests?status=pending", token=self.manager
+        )
+        self.assertEqual(status, 200, manager_queue)
+        self.assertTrue(any(item["id"] == overtime["id"] for item in manager_queue["items"]))
+        status, decided = self.call(
+            "POST", f"/attendance/overtime-requests/{overtime['id']}/decision",
+            {"decision": "approved", "note": "Reviewed"}, self.manager,
+        )
+        self.assertEqual(status, 200, decided)
+        self.assertEqual(decided["status"], "approved")
+
+        now = datetime.now(timezone.utc)
+        punch_in = (now - timedelta(hours=10)).isoformat(timespec="seconds").replace("+00:00", "Z")
+        punch_out = (now - timedelta(hours=2)).isoformat(timespec="seconds").replace("+00:00", "Z")
+        status, manual = self.call("POST", "/attendance/manual-punch-requests", {
+            "work_date": punch_in[:10], "punch_in": punch_in, "punch_out": punch_out,
+            "reason": "The terminal was temporarily unavailable",
+        }, self.employee)
+        self.assertEqual(status, 201, manual)
+        status, approved = self.call(
+            "POST", f"/attendance/manual-punch-requests/{manual['id']}/decision",
+            {"decision": "approved"}, self.manager,
+        )
+        self.assertEqual(status, 200, approved)
+        self.assertEqual(approved["status"], "approved")
+
+        corrected_in = (now - timedelta(hours=11)).isoformat(timespec="seconds").replace("+00:00", "Z")
+        status, correction = self.call("POST", "/attendance/manual-punch-requests", {
+            "work_date": punch_in[:10], "punch_in": corrected_in, "punch_out": None,
+            "reason": "Correct the recorded arrival time",
+        }, self.employee)
+        self.assertEqual(status, 201, correction)
+        status, corrected = self.call(
+            "POST", f"/attendance/manual-punch-requests/{correction['id']}/decision",
+            {"decision": "approved"}, self.manager,
+        )
+        self.assertEqual(status, 200, corrected)
+        self.assertEqual(corrected["attendance_record_id"], approved["attendance_record_id"])
+
+        status, history = self.call("GET", "/attendance?limit=100", token=self.employee)
+        self.assertEqual(status, 200, history)
+        manual_record = next(item for item in history["items"] if item["id"] == approved["attendance_record_id"])
+        self.assertEqual(manual_record["punch_source"], "manual")
+        self.assertEqual(manual_record["punch_in_at"], corrected_in)
+
+    def test_gate_passes_issue_a_reference_code_only_after_authorized_approval(self):
+        start = datetime.now(timezone.utc) + timedelta(hours=2)
+        end = start + timedelta(hours=2)
+        iso = lambda value: value.isoformat(timespec="seconds").replace("+00:00", "Z")
+        status, request = self.call("POST", "/gate-passes", {
+            "pass_type": "official_duty", "purpose": "Scheduled company work",
+            "valid_from": iso(start), "valid_until": iso(end),
+        }, self.employee)
+        self.assertEqual(status, 201, request)
+        self.assertIsNone(request["reference_code"])
+        status, approved = self.call(
+            "POST", f"/gate-passes/{request['id']}/decision", {"decision": "approved"}, self.manager
+        )
+        self.assertEqual(status, 200, approved)
+        self.assertEqual(approved["status"], "approved")
+        self.assertTrue(approved["reference_code"].startswith("FFGP-"))
+        status, own_passes = self.call("GET", "/gate-passes", token=self.employee)
+        self.assertEqual(status, 200, own_passes)
+        self.assertTrue(any(item["id"] == request["id"] for item in own_passes["items"]))
+
 if __name__ == "__main__":
     unittest.main()

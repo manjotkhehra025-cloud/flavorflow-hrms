@@ -40,11 +40,18 @@ PERMISSION_CATALOG = (
     ("employees.create", "employees", "create", "Create employees"),
     ("employees.update", "employees", "update", "Update employees"),
     ("employees.delete", "employees", "delete", "Delete employees"),
+    ("team.read", "team", "read", "View the team directory and attendance presence"),
+    ("idcard.read", "id card", "read", "View employee ID cards"),
+    ("idcard.read.team", "id card", "read team", "View reporting-team ID cards"),
+    ("idcard.read.self", "id card", "read self", "View own ID card"),
+    ("idcard.update", "id card", "update", "Edit employee ID card contact details"),
     ("attendance.read", "attendance", "read", "View all attendance"),
     ("attendance.read.team", "attendance", "read team", "View team attendance"),
     ("attendance.read.self", "attendance", "read self", "View own attendance"),
     ("attendance.punch", "attendance", "punch", "Punch in and out"),
     ("attendance.manage", "attendance", "manage", "Manage attendance records"),
+    ("attendance.request", "attendance", "request", "Request overtime and attendance corrections"),
+    ("attendance.approve", "attendance", "approve", "Review team overtime and attendance corrections"),
     ("locations.read", "locations", "read", "View work locations"),
     ("locations.create", "locations", "create", "Create work locations"),
     ("locations.update", "locations", "update", "Update work locations"),
@@ -62,6 +69,13 @@ PERMISSION_CATALOG = (
     ("leave.approve", "leave", "approve", "Approve or reject leave requests"),
     ("leave.manage", "leave", "manage", "Manage all leave requests"),
     ("leave.policy.manage", "leave", "manage policy", "Configure leave balance and period rules"),
+    ("leave.balance.manage", "leave", "manage balance", "Adjust employee leave balances"),
+    ("gatepass.read", "gate pass", "read", "View all gate passes"),
+    ("gatepass.read.team", "gate pass", "read team", "View reporting-team gate passes"),
+    ("gatepass.read.self", "gate pass", "read self", "View own gate passes"),
+    ("gatepass.create", "gate pass", "create", "Request a gate pass"),
+    ("gatepass.approve", "gate pass", "approve", "Review reporting-team gate passes"),
+    ("gatepass.manage", "gate pass", "manage", "Manage all gate passes"),
     ("users.read", "users", "read", "View user accounts"),
     ("users.create", "users", "create", "Create user accounts"),
     ("users.update", "users", "update", "Update user accounts"),
@@ -81,10 +95,12 @@ ROLE_SEEDS: dict[str, tuple[str, str, set[str]]] = {
         "People operations access for employee, attendance, location, and leave administration.",
         {
             "dashboard.read", "employees.read", "employees.create", "employees.update",
-            "attendance.read", "attendance.manage", "locations.read", "locations.create",
+            "team.read", "idcard.read", "idcard.update", "attendance.read", "attendance.manage",
+            "attendance.request", "attendance.approve", "locations.read", "locations.create",
             "locations.update", "calendar.read", "calendar.manage", "shifts.read", "shifts.manage",
             "leave.read", "leave.create",
-            "leave.approve", "leave.manage", "leave.policy.manage",
+            "leave.approve", "leave.manage", "leave.policy.manage", "leave.balance.manage",
+            "gatepass.read", "gatepass.create", "gatepass.approve", "gatepass.manage",
             "users.read", "audit.read",
         },
     ),
@@ -93,6 +109,8 @@ ROLE_SEEDS: dict[str, tuple[str, str, set[str]]] = {
         "Team-level visibility and leave approvals.",
         {
             "dashboard.read", "employees.read.team", "attendance.read.team", "locations.read",
+            "team.read", "idcard.read.team", "idcard.read.self", "attendance.request", "attendance.approve",
+            "gatepass.read.team", "gatepass.read.self", "gatepass.create", "gatepass.approve",
             "calendar.read", "shifts.read.team", "shifts.read.self", "leave.read.team",
             "leave.read.self", "leave.create", "leave.approve",
         },
@@ -101,8 +119,10 @@ ROLE_SEEDS: dict[str, tuple[str, str, set[str]]] = {
         "Employee",
         "Self-service attendance and leave access.",
         {
-            "dashboard.read", "employees.read.self", "attendance.read.self", "attendance.punch",
-            "locations.read", "calendar.read", "shifts.read.self", "leave.read.self", "leave.create",
+            "dashboard.read", "employees.read.self", "team.read", "idcard.read.self",
+            "attendance.read.self", "attendance.punch", "attendance.request", "gatepass.read.self",
+            "gatepass.create", "locations.read", "calendar.read", "shifts.read.self",
+            "leave.read.self", "leave.create",
         },
     ),
 }
@@ -141,6 +161,15 @@ class HRMSApplication:
     def _initialize(self) -> None:
         with self._init_lock, self._db() as connection:
             connection.executescript((ROOT / "schema.sql").read_text(encoding="utf-8"))
+            self._ensure_column(connection, "employees", "phone", "TEXT NOT NULL DEFAULT ''")
+            self._ensure_column(connection, "employees", "address", "TEXT NOT NULL DEFAULT ''")
+            self._ensure_column(connection, "employees", "weekly_off_days", "TEXT NOT NULL DEFAULT '[]'")
+            self._ensure_column(
+                connection,
+                "attendance_records",
+                "punch_source",
+                "TEXT NOT NULL DEFAULT 'gps' CHECK (punch_source IN ('gps', 'manual'))",
+            )
             now = _now()
             connection.execute(
                 """INSERT OR IGNORE INTO leave_policy
@@ -174,6 +203,12 @@ class HRMSApplication:
 
             if connection.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
                 self._seed_demo_data(connection, now)
+
+    @staticmethod
+    def _ensure_column(connection: sqlite3.Connection, table: str, column: str, declaration: str) -> None:
+        existing = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+        if column not in existing:
+            connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
 
     def _seed_demo_data(self, connection: sqlite3.Connection, now: str) -> None:
         admin_email = os.environ.get("HRMS_ADMIN_EMAIL", "admin@flavorflow.com").strip().lower()
@@ -326,6 +361,19 @@ class HRMSApplication:
                 self._require(user, "employees.delete")
                 return 200, self._deactivate_employee(employee_id, user, remote_address)
 
+        if endpoint == "/team" and method == "GET":
+            self._require(user, "team.read")
+            return 200, self._list_team(query)
+
+        if endpoint == "/id-cards" and method == "GET":
+            permissions = self._permissions(user["id"])
+            self._require_any(user, {"idcard.read", "idcard.read.team", "idcard.read.self", "idcard.update"})
+            return 200, self._list_id_cards(user, permissions, query)
+        id_card_match = re.fullmatch(r"/id-cards/(\d+)", endpoint)
+        if id_card_match and method == "PATCH":
+            self._require(user, "idcard.update")
+            return 200, self._update_id_card(int(id_card_match.group(1)), body, user, remote_address)
+
         if endpoint == "/locations" and method == "GET":
             self._require(user, "locations.read")
             return 200, self._list_locations()
@@ -405,6 +453,61 @@ class HRMSApplication:
                 "attendance.punch",
             })
             return 200, self._list_attendance(user, permissions, query)
+
+        if endpoint == "/attendance/overtime-requests" and method == "GET":
+            permissions = self._permissions(user["id"])
+            self._require_any(user, {
+                "attendance.request", "attendance.approve", "attendance.manage", "attendance.read",
+                "attendance.read.team", "attendance.read.self", "attendance.punch",
+            })
+            return 200, self._list_attendance_requests("overtime", user, permissions, query)
+        if endpoint == "/attendance/overtime-requests" and method == "POST":
+            self._require(user, "attendance.request")
+            return 201, self._create_overtime_request(body, user, remote_address)
+        overtime_decision = re.fullmatch(r"/attendance/overtime-requests/(\d+)/decision", endpoint)
+        if overtime_decision and method == "POST":
+            self._require_any(user, {"attendance.approve", "attendance.manage"})
+            return 200, self._decide_attendance_request(
+                "overtime", int(overtime_decision.group(1)), body, user, remote_address
+            )
+
+        if endpoint == "/attendance/manual-punch-requests" and method == "GET":
+            permissions = self._permissions(user["id"])
+            self._require_any(user, {
+                "attendance.request", "attendance.approve", "attendance.manage", "attendance.read",
+                "attendance.read.team", "attendance.read.self", "attendance.punch",
+            })
+            return 200, self._list_attendance_requests("manual", user, permissions, query)
+        if endpoint == "/attendance/manual-punch-requests" and method == "POST":
+            self._require(user, "attendance.request")
+            return 201, self._create_manual_punch_request(body, user, remote_address)
+        manual_decision = re.fullmatch(r"/attendance/manual-punch-requests/(\d+)/decision", endpoint)
+        if manual_decision and method == "POST":
+            self._require_any(user, {"attendance.approve", "attendance.manage"})
+            return 200, self._decide_attendance_request(
+                "manual", int(manual_decision.group(1)), body, user, remote_address
+            )
+
+        if endpoint == "/leave-balance-adjustments" and method == "POST":
+            self._require(user, "leave.balance.manage")
+            return 201, self._create_leave_balance_adjustment(body, user, remote_address)
+
+        if endpoint == "/gate-passes" and method == "GET":
+            permissions = self._permissions(user["id"])
+            self._require_any(user, {
+                "gatepass.read", "gatepass.read.team", "gatepass.read.self", "gatepass.create",
+                "gatepass.approve", "gatepass.manage",
+            })
+            return 200, self._list_gate_passes(user, permissions, query)
+        if endpoint == "/gate-passes" and method == "POST":
+            self._require_any(user, {"gatepass.create", "gatepass.manage"})
+            return 201, self._create_gate_pass(body, user, remote_address)
+        gate_pass_decision = re.fullmatch(r"/gate-passes/(\d+)/decision", endpoint)
+        if gate_pass_decision and method == "POST":
+            self._require_any(user, {"gatepass.approve", "gatepass.manage"})
+            return 200, self._decide_gate_pass(
+                int(gate_pass_decision.group(1)), body, user, remote_address
+            )
 
         if endpoint == "/leave-policy" and method == "GET":
             self._require(user, "leave.policy.manage")
@@ -750,6 +853,11 @@ class HRMSApplication:
             raise ApiError(400, "Enter a valid employee email address.")
         start_date = _date_string(body.get("start_date"), date.today().isoformat())
         manager_id = _optional_int(body.get("manager_id"))
+        phone = str(body.get("phone", "")).strip()
+        address = str(body.get("address", "")).strip()
+        weekly_off_days = _weekly_off_days(body.get("weekly_off_days", []))
+        if len(phone) > 40 or len(address) > 240:
+            raise ApiError(400, "Phone or address is longer than the allowed limit.")
         status = str(body.get("status", "active"))
         if status not in {"active", "inactive", "on_leave"}:
             raise ApiError(400, "Employee status must be active, inactive, or on_leave.")
@@ -759,12 +867,13 @@ class HRMSApplication:
                 raise ApiError(400, "The selected manager does not exist.")
             cursor = connection.execute(
                 """INSERT INTO employees(employee_code, first_name, last_name, email, department, title,
-                   employment_type, status, start_date, manager_id, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   employment_type, phone, address, weekly_off_days, status, start_date, manager_id,
+                   created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     values["employee_code"], values["first_name"], values["last_name"], values["email"],
                     values["department"], values["title"], str(body.get("employment_type", "Full-time")),
-                    status, start_date, manager_id, now, now,
+                    phone, address, weekly_off_days, status, start_date, manager_id, now, now,
                 ),
             )
             employee_id = int(cursor.lastrowid)
@@ -776,7 +885,7 @@ class HRMSApplication:
     def _update_employee(self, employee_id: int, body: dict[str, Any], user: dict[str, Any], remote: str | None) -> dict[str, Any]:
         allowed = {
             "employee_code", "first_name", "last_name", "email", "department", "title",
-            "employment_type", "status", "start_date", "manager_id",
+            "employment_type", "phone", "address", "weekly_off_days", "status", "start_date", "manager_id",
         }
         updates = {key: value for key, value in body.items() if key in allowed}
         if not updates:
@@ -791,6 +900,13 @@ class HRMSApplication:
                     normalized[key] = _optional_int(value)
                 elif key == "start_date":
                     normalized[key] = _date_string(value)
+                elif key == "weekly_off_days":
+                    normalized[key] = _weekly_off_days(value)
+                elif key in {"phone", "address"}:
+                    normalized[key] = str(value or "").strip()
+                    limit = 40 if key == "phone" else 240
+                    if len(normalized[key]) > limit:
+                        raise ApiError(400, f"{key.capitalize()} is longer than the allowed limit.")
                 elif key == "status":
                     value = str(value)
                     if value not in {"active", "inactive", "on_leave"}:
@@ -834,6 +950,187 @@ class HRMSApplication:
             updated = connection.execute("SELECT * FROM employees WHERE id = ?", (employee_id,)).fetchone()
         self._audit(user["id"], "employee.deactivated", "employee", employee_id, {"employee_code": row["employee_code"]}, remote)
         return _employee_json(updated)
+
+    def _list_team(self, query: dict[str, str]) -> dict[str, Any]:
+        requested_date = _date_string(
+            query.get("date"), datetime.now(timezone.utc).date().isoformat()
+        )
+        target_date = date.fromisoformat(requested_date)
+        department_filter = query.get("department", "").strip().casefold()
+        search = query.get("q", "").strip().casefold()
+        next_window = (target_date + timedelta(days=90)).isoformat()
+        with self._db() as connection:
+            employees = connection.execute(
+                "SELECT * FROM employees WHERE status != 'inactive' ORDER BY first_name, last_name"
+            ).fetchall()
+            attendance_rows = connection.execute(
+                """SELECT employee_id, punch_in_at, punch_out_at FROM attendance_records
+                   WHERE substr(punch_in_at, 1, 10) = ? ORDER BY punch_in_at DESC""",
+                (requested_date,),
+            ).fetchall()
+            approved_leave_rows = connection.execute(
+                """SELECT lr.employee_id, lr.start_date, lr.end_date, lt.name AS leave_type
+                   FROM leave_requests lr JOIN leave_types lt ON lt.id = lr.leave_type_id
+                   JOIN employees e ON e.id = lr.employee_id
+                   WHERE e.status != 'inactive' AND lr.status = 'approved'
+                   AND lr.start_date <= ? AND lr.end_date >= ?
+                   ORDER BY lr.start_date, e.first_name, e.last_name""",
+                (next_window, requested_date),
+            ).fetchall()
+            shift_rows = connection.execute(
+                """SELECT a.employee_id, s.name AS shift_name, s.start_time, s.end_time
+                   FROM shift_assignments a JOIN shift_templates s ON s.id = a.shift_id
+                   WHERE a.work_date = ? AND a.is_active = 1""",
+                (requested_date,),
+            ).fetchall()
+
+        departments = sorted({str(row["department"]) for row in employees if row["department"]})
+        attendance_by_employee: dict[int, sqlite3.Row] = {}
+        for row in attendance_rows:
+            attendance_by_employee.setdefault(int(row["employee_id"]), row)
+        leave_by_employee: dict[int, sqlite3.Row] = {}
+        for row in approved_leave_rows:
+            if row["start_date"] <= requested_date <= row["end_date"]:
+                leave_by_employee.setdefault(int(row["employee_id"]), row)
+        shift_by_employee = {int(row["employee_id"]): row for row in shift_rows}
+
+        visible_rows = [
+            row for row in employees
+            if (not department_filter or str(row["department"]).casefold() == department_filter)
+            and (
+                not search
+                or search in " ".join(str(row[key] or "") for key in (
+                    "employee_code", "first_name", "last_name", "department", "title"
+                )).casefold()
+            )
+        ]
+        items: list[dict[str, Any]] = []
+        for employee in visible_rows:
+            employee_id = int(employee["id"])
+            punch = attendance_by_employee.get(employee_id)
+            leave = leave_by_employee.get(employee_id)
+            weekly_days = _parse_weekly_off_days(employee["weekly_off_days"])
+            if leave or employee["status"] == "on_leave":
+                presence = "on_leave"
+            elif _WEEKDAYS[target_date.weekday()] in weekly_days:
+                presence = "weekly_off"
+            elif punch:
+                presence = "present" if punch["punch_out_at"] is None else "checked_out"
+            else:
+                presence = "not_punched"
+            shift = shift_by_employee.get(employee_id)
+            items.append({
+                "id": employee_id,
+                "employee_code": employee["employee_code"],
+                "full_name": f"{employee['first_name']} {employee['last_name']}".strip(),
+                "department": employee["department"],
+                "title": employee["title"],
+                "employment_type": employee["employment_type"],
+                "status": employee["status"],
+                "weekly_off_days": weekly_days,
+                "presence": presence,
+                "punch_in_at": punch["punch_in_at"] if punch else None,
+                "punch_out_at": punch["punch_out_at"] if punch else None,
+                "shift_name": shift["shift_name"] if shift else None,
+                "shift_start_time": shift["start_time"] if shift else None,
+                "shift_end_time": shift["end_time"] if shift else None,
+            })
+
+        upcoming_leaves = []
+        for leave in approved_leave_rows:
+            employee = next((row for row in employees if int(row["id"]) == int(leave["employee_id"])), None)
+            if employee is None:
+                continue
+            if department_filter and str(employee["department"]).casefold() != department_filter:
+                continue
+            name = f"{employee['first_name']} {employee['last_name']}".strip()
+            if search and search not in " ".join((name, employee["employee_code"], employee["department"], employee["title"])).casefold():
+                continue
+            upcoming_leaves.append({
+                "employee_id": employee["id"],
+                "employee_name": name,
+                "employee_code": employee["employee_code"],
+                "department": employee["department"],
+                "leave_type": leave["leave_type"],
+                "start_date": leave["start_date"],
+                "end_date": leave["end_date"],
+                "is_current": leave["start_date"] <= requested_date <= leave["end_date"],
+            })
+
+        summary = {
+            "total": len(items),
+            "present": sum(item["presence"] == "present" for item in items),
+            "checked_out": sum(item["presence"] == "checked_out" for item in items),
+            "on_leave": sum(item["presence"] == "on_leave" for item in items),
+            "weekly_off": sum(item["presence"] == "weekly_off" for item in items),
+            "not_punched": sum(item["presence"] == "not_punched" for item in items),
+        }
+        return {
+            "date": requested_date,
+            "summary": summary,
+            "items": items,
+            "departments": departments,
+            "upcoming_leaves": upcoming_leaves,
+        }
+
+    def _list_id_cards(
+        self, user: dict[str, Any], permissions: set[str], query: dict[str, str]
+    ) -> dict[str, Any]:
+        own_id = self._employee_id(user["id"])
+        with self._db() as connection:
+            rows = connection.execute(
+                "SELECT * FROM employees WHERE status != 'inactive' ORDER BY first_name, last_name"
+            ).fetchall()
+        if "idcard.read" not in permissions and "idcard.update" not in permissions:
+            if "idcard.read.team" in permissions and own_id is not None:
+                rows = [row for row in rows if row["id"] == own_id or row["manager_id"] == own_id]
+            elif "idcard.read.self" in permissions and own_id is not None:
+                rows = [row for row in rows if row["id"] == own_id]
+            else:
+                rows = []
+        employee_id = _optional_int(query.get("employee_id"))
+        if employee_id is not None:
+            rows = [row for row in rows if int(row["id"]) == employee_id]
+            if not rows:
+                raise ApiError(404, "Employee ID card not found or not available to your role.")
+        search = query.get("q", "").strip().casefold()
+        if search:
+            rows = [
+                row for row in rows
+                if search in " ".join(str(row[key] or "") for key in (
+                    "employee_code", "first_name", "last_name", "department", "title", "email"
+                )).casefold()
+            ]
+        global_reader = "idcard.read" in permissions or "idcard.update" in permissions
+        return {
+            "items": [
+                _id_card_json(row, include_private=global_reader or row["user_id"] == user["id"])
+                for row in rows
+            ],
+            "total": len(rows),
+            "can_edit": "idcard.update" in permissions,
+        }
+
+    def _update_id_card(
+        self, employee_id: int, body: dict[str, Any], user: dict[str, Any], remote: str | None
+    ) -> dict[str, Any]:
+        updates = {key: body[key] for key in ("phone", "address") if key in body}
+        if not updates:
+            raise ApiError(400, "Supply a phone number or mailing address to update.")
+        normalized = {key: str(value or "").strip() for key, value in updates.items()}
+        if len(normalized.get("phone", "")) > 40 or len(normalized.get("address", "")) > 240:
+            raise ApiError(400, "Phone or address is longer than the allowed limit.")
+        with self._db() as connection:
+            if not connection.execute("SELECT 1 FROM employees WHERE id = ?", (employee_id,)).fetchone():
+                raise ApiError(404, "Employee not found.")
+            assignments = ", ".join(f"{key} = ?" for key in normalized)
+            connection.execute(
+                f"UPDATE employees SET {assignments}, updated_at = ? WHERE id = ?",
+                (*normalized.values(), _now(), employee_id),
+            )
+            row = connection.execute("SELECT * FROM employees WHERE id = ?", (employee_id,)).fetchone()
+        self._audit(user["id"], "id_card.updated", "employee", employee_id, {"fields": sorted(normalized)}, remote)
+        return _id_card_json(row)
 
     def _list_locations(self) -> dict[str, Any]:
         with self._db() as connection:
@@ -1364,6 +1661,241 @@ class HRMSApplication:
             ).fetchone()
         return _attendance_json(row)
 
+    def _list_attendance_requests(
+        self, kind: str, user: dict[str, Any], permissions: set[str], query: dict[str, str]
+    ) -> dict[str, Any]:
+        if kind == "overtime":
+            table = "overtime_requests"
+            selected = "r.*, e.first_name, e.last_name, e.employee_code, e.user_id, e.manager_id"
+        elif kind == "manual":
+            table = "manual_punch_requests"
+            selected = "r.*, e.first_name, e.last_name, e.employee_code, e.user_id, e.manager_id"
+        else:
+            raise ApiError(400, "Unknown attendance request type.")
+        status_filter = query.get("status", "").strip().lower()
+        if status_filter and status_filter not in {"pending", "approved", "rejected"}:
+            raise ApiError(400, "Request status must be pending, approved, or rejected.")
+        sql = f"SELECT {selected} FROM {table} r JOIN employees e ON e.id = r.employee_id"
+        params: list[Any] = []
+        if status_filter:
+            sql += " WHERE r.status = ?"
+            params.append(status_filter)
+        sql += " ORDER BY CASE WHEN r.status = 'pending' THEN 0 ELSE 1 END, r.requested_at DESC LIMIT 200"
+        with self._db() as connection:
+            rows = connection.execute(sql, params).fetchall()
+            own = connection.execute(
+                "SELECT id FROM employees WHERE user_id = ?", (user["id"],)
+            ).fetchone()
+        if not permissions.intersection({"attendance.manage", "attendance.read"}):
+            own_id = int(own["id"]) if own else None
+            visible = []
+            for row in rows:
+                is_self = row["user_id"] == user["id"] and bool(permissions.intersection({
+                    "attendance.request", "attendance.read.self", "attendance.punch"
+                }))
+                is_team = (
+                    own_id is not None
+                    and row["manager_id"] == own_id
+                    and bool(permissions.intersection({"attendance.read.team", "attendance.approve"}))
+                )
+                if is_self or is_team:
+                    visible.append(row)
+            rows = visible
+        return {"items": [_attendance_request_json(row) for row in rows], "total": len(rows)}
+
+    def _create_overtime_request(
+        self, body: dict[str, Any], user: dict[str, Any], remote: str | None
+    ) -> dict[str, Any]:
+        employee = self._employee_for_user(user["id"])
+        if not employee or employee["status"] == "inactive":
+            raise ApiError(409, "Your account is not linked to an active employee profile.")
+        work_date = _date_string(body.get("work_date"))
+        try:
+            hours = float(body.get("hours"))
+        except (TypeError, ValueError):
+            raise ApiError(400, "Overtime hours must be a number.") from None
+        if not math.isfinite(hours) or not 0 < hours <= 24:
+            raise ApiError(400, "Overtime hours must be greater than zero and at most 24.")
+        reason = str(body.get("reason", "")).strip()
+        if not reason or len(reason) > 500:
+            raise ApiError(400, "A reason of up to 500 characters is required.")
+        requested_at = _now()
+        with self._db() as connection:
+            cursor = connection.execute(
+                """INSERT INTO overtime_requests
+                   (employee_id, work_date, hours, reason, status, requested_at)
+                   VALUES (?, ?, ?, ?, 'pending', ?)""",
+                (employee["id"], work_date, round(hours, 2), reason, requested_at),
+            )
+            request_id = int(cursor.lastrowid)
+        result = self._attendance_request("overtime", request_id)
+        self._audit(
+            user["id"], "attendance.overtime_requested", "overtime_request", request_id,
+            {"work_date": work_date, "hours": round(hours, 2)}, remote,
+        )
+        return result
+
+    def _create_manual_punch_request(
+        self, body: dict[str, Any], user: dict[str, Any], remote: str | None
+    ) -> dict[str, Any]:
+        employee = self._employee_for_user(user["id"])
+        if not employee or employee["status"] == "inactive":
+            raise ApiError(409, "Your account is not linked to an active employee profile.")
+        work_date = _date_string(body.get("work_date"))
+        punch_in = _datetime_string(body.get("punch_in"), "Punch-in time")
+        punch_out = _datetime_string(body.get("punch_out"), "Punch-out time", optional=True)
+        start = _parse_datetime(punch_in, "Punch-in time")
+        end = _parse_datetime(punch_out, "Punch-out time") if punch_out else None
+        if start.date().isoformat() != work_date:
+            raise ApiError(400, "Punch-in time must fall on the selected work date.")
+        now = datetime.now(timezone.utc)
+        comparable_start = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
+        if comparable_start.astimezone(timezone.utc) > now + timedelta(hours=1):
+            raise ApiError(400, "A manual punch cannot be more than one hour in the future.")
+        if end:
+            comparable_end = end if end.tzinfo else end.replace(tzinfo=timezone.utc)
+            comparable_start = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
+            if comparable_end.astimezone(timezone.utc) <= comparable_start.astimezone(timezone.utc):
+                raise ApiError(400, "Punch-out must be later than punch-in.")
+            if comparable_end.astimezone(timezone.utc) - comparable_start.astimezone(timezone.utc) > timedelta(hours=24):
+                raise ApiError(400, "A manual attendance entry cannot exceed 24 hours.")
+            if comparable_end.astimezone(timezone.utc) > now + timedelta(hours=1):
+                raise ApiError(400, "A manual punch-out cannot be more than one hour in the future.")
+        reason = str(body.get("reason", "")).strip()
+        if not reason or len(reason) > 500:
+            raise ApiError(400, "A reason of up to 500 characters is required.")
+        with self._db() as connection:
+            duplicate = connection.execute(
+                """SELECT 1 FROM manual_punch_requests
+                   WHERE employee_id = ? AND work_date = ? AND status = 'pending' LIMIT 1""",
+                (employee["id"], work_date),
+            ).fetchone()
+            if duplicate:
+                raise ApiError(409, "You already have a pending manual-punch request for this date.")
+            cursor = connection.execute(
+                """INSERT INTO manual_punch_requests
+                   (employee_id, work_date, requested_punch_in, requested_punch_out, reason, status, requested_at)
+                   VALUES (?, ?, ?, ?, ?, 'pending', ?)""",
+                (employee["id"], work_date, punch_in, punch_out, reason, _now()),
+            )
+            request_id = int(cursor.lastrowid)
+        result = self._attendance_request("manual", request_id)
+        self._audit(
+            user["id"], "attendance.manual_punch_requested", "manual_punch_request", request_id,
+            {"work_date": work_date}, remote,
+        )
+        return result
+
+    def _attendance_request(self, kind: str, request_id: int) -> dict[str, Any]:
+        table = "overtime_requests" if kind == "overtime" else "manual_punch_requests"
+        with self._db() as connection:
+            row = connection.execute(
+                f"""SELECT r.*, e.first_name, e.last_name, e.employee_code
+                    FROM {table} r JOIN employees e ON e.id = r.employee_id WHERE r.id = ?""",
+                (request_id,),
+            ).fetchone()
+        if row is None:
+            raise ApiError(404, "Attendance request not found.")
+        return _attendance_request_json(row)
+
+    def _decide_attendance_request(
+        self, kind: str, request_id: int, body: dict[str, Any], user: dict[str, Any], remote: str | None
+    ) -> dict[str, Any]:
+        decision = str(body.get("decision", "")).strip().lower()
+        if decision not in {"approved", "rejected"}:
+            raise ApiError(400, "Decision must be approved or rejected.")
+        table = "overtime_requests" if kind == "overtime" else "manual_punch_requests"
+        with self._db() as connection:
+            row = connection.execute(
+                f"""SELECT r.*, e.user_id, e.manager_id FROM {table} r
+                    JOIN employees e ON e.id = r.employee_id WHERE r.id = ?""",
+                (request_id,),
+            ).fetchone()
+            if not row:
+                raise ApiError(404, "Attendance request not found.")
+            permissions = self._permissions(user["id"])
+            if "attendance.manage" not in permissions:
+                actor_employee = connection.execute(
+                    "SELECT id FROM employees WHERE user_id = ?", (user["id"],)
+                ).fetchone()
+                if not actor_employee or row["manager_id"] != actor_employee["id"] or row["user_id"] == user["id"]:
+                    raise ApiError(403, "You may only decide attendance requests from your reporting team.")
+            if row["status"] != "pending":
+                raise ApiError(409, "Only pending attendance requests can be decided.")
+            note = str(body.get("note", "")).strip() or None
+            attendance_record_id = None
+            if kind == "manual" and decision == "approved":
+                requested_start = _parse_datetime(row["requested_punch_in"], "Punch-in time")
+                request_timezone = requested_start.tzinfo or timezone.utc
+                employee_records = connection.execute(
+                    """SELECT * FROM attendance_records
+                       WHERE employee_id = ? ORDER BY punch_in_at DESC""",
+                    (row["employee_id"],),
+                ).fetchall()
+                existing_rows = []
+                for candidate in employee_records:
+                    candidate_start = _parse_datetime(candidate["punch_in_at"], "Recorded punch-in time")
+                    if candidate_start.tzinfo is None:
+                        candidate_start = candidate_start.replace(tzinfo=timezone.utc)
+                    if candidate_start.astimezone(request_timezone).date().isoformat() == row["work_date"]:
+                        existing_rows.append(candidate)
+                if len(existing_rows) > 1:
+                    raise ApiError(409, "More than one attendance record exists for this date; ask HR to reconcile it.")
+                existing = existing_rows[0] if existing_rows else None
+                punch_out_at = row["requested_punch_out"]
+                if existing:
+                    if punch_out_at is None:
+                        punch_out_at = existing["punch_out_at"]
+                    if punch_out_at is not None:
+                        requested_end = _parse_datetime(punch_out_at, "Punch-out time")
+                        comparable_start = requested_start if requested_start.tzinfo else requested_start.replace(tzinfo=timezone.utc)
+                        comparable_end = requested_end if requested_end.tzinfo else requested_end.replace(tzinfo=timezone.utc)
+                        if comparable_end.astimezone(timezone.utc) <= comparable_start.astimezone(timezone.utc):
+                            raise ApiError(400, "The corrected punch-out must be later than punch-in.")
+                    active = connection.execute(
+                        """SELECT id FROM attendance_records WHERE employee_id = ?
+                           AND punch_out_at IS NULL AND id != ? LIMIT 1""",
+                        (row["employee_id"], existing["id"]),
+                    ).fetchone()
+                    if active and punch_out_at is None:
+                        raise ApiError(409, "This employee already has a different open attendance punch.")
+                    connection.execute(
+                        """UPDATE attendance_records SET punch_in_at = ?, punch_out_at = ?, punch_source = 'manual'
+                           WHERE id = ?""",
+                        (row["requested_punch_in"], punch_out_at, existing["id"]),
+                    )
+                    attendance_record_id = int(existing["id"])
+                else:
+                    if punch_out_at is None:
+                        active = connection.execute(
+                            "SELECT id FROM attendance_records WHERE employee_id = ? AND punch_out_at IS NULL LIMIT 1",
+                            (row["employee_id"],),
+                        ).fetchone()
+                        if active:
+                            raise ApiError(409, "This employee already has an open attendance punch.")
+                    cursor = connection.execute(
+                        """INSERT INTO attendance_records
+                           (employee_id, work_location_id, punch_in_at, punch_in_latitude, punch_in_longitude,
+                            punch_in_accuracy_m, punch_in_distance_m, punch_out_at, punch_source, created_at)
+                           VALUES (?, NULL, ?, 0, 0, NULL, 0, ?, 'manual', ?)""",
+                        (row["employee_id"], row["requested_punch_in"], punch_out_at, _now()),
+                    )
+                    attendance_record_id = int(cursor.lastrowid)
+            connection.execute(
+                f"""UPDATE {table} SET status = ?, decided_at = ?, approver_id = ?, decision_note = ?
+                    {', attendance_record_id = ?' if kind == 'manual' else ''} WHERE id = ?""",
+                (
+                    (decision, _now(), user["id"], note, attendance_record_id, request_id)
+                    if kind == "manual"
+                    else (decision, _now(), user["id"], note, request_id)
+                ),
+            )
+        self._audit(
+            user["id"], f"attendance.{kind}_{decision}", f"{kind}_request", request_id,
+            {"attendance_record_id": attendance_record_id} if attendance_record_id else {"note": note}, remote,
+        )
+        return self._attendance_request(kind, request_id)
+
     def _get_leave_policy(self) -> dict[str, Any]:
         with self._db() as connection:
             policy = connection.execute("SELECT * FROM leave_policy WHERE id = 1").fetchone()
@@ -1455,6 +1987,57 @@ class HRMSApplication:
             remote,
         )
         return self._get_leave_policy()
+
+    def _create_leave_balance_adjustment(
+        self, body: dict[str, Any], user: dict[str, Any], remote: str | None
+    ) -> dict[str, Any]:
+        employee_id = _as_int(body.get("employee_id"), "Employee ID")
+        leave_type_id = _as_int(body.get("leave_type_id"), "Leave type ID")
+        try:
+            days = float(body.get("days"))
+        except (TypeError, ValueError):
+            raise ApiError(400, "Adjustment days must be a number.") from None
+        if not math.isfinite(days) or days == 0 or abs(days) > 365:
+            raise ApiError(400, "Adjustment must be a non-zero amount between -365 and 365 days.")
+        reason = str(body.get("reason", "")).strip()
+        if not reason or len(reason) > 500:
+            raise ApiError(400, "A reason of up to 500 characters is required for a balance adjustment.")
+        with self._db() as connection:
+            employee = connection.execute(
+                "SELECT id FROM employees WHERE id = ? AND status != 'inactive'", (employee_id,)
+            ).fetchone()
+            leave_type = connection.execute(
+                "SELECT id, name FROM leave_types WHERE id = ? AND is_active = 1", (leave_type_id,)
+            ).fetchone()
+            if not employee:
+                raise ApiError(404, "Active employee not found.")
+            if not leave_type:
+                raise ApiError(404, "Active leave type not found.")
+            policy = connection.execute("SELECT period_start_month FROM leave_policy WHERE id = 1").fetchone()
+            period_start, _ = _leave_period_bounds(
+                datetime.now(timezone.utc).date(), int(policy["period_start_month"])
+            )
+            cursor = connection.execute(
+                """INSERT INTO leave_balance_adjustments
+                   (employee_id, leave_type_id, period_start, days, reason, adjusted_by, adjusted_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (employee_id, leave_type_id, period_start.isoformat(), days, reason, user["id"], _now()),
+            )
+            adjustment_id = int(cursor.lastrowid)
+        result = {
+            "id": adjustment_id,
+            "employee_id": employee_id,
+            "leave_type_id": leave_type_id,
+            "leave_type": leave_type["name"],
+            "period_start": period_start.isoformat(),
+            "days": days,
+            "reason": reason,
+        }
+        self._audit(
+            user["id"], "leave.balance_adjusted", "leave_balance_adjustment", adjustment_id,
+            {"employee_id": employee_id, "leave_type_id": leave_type_id, "days": days}, remote,
+        )
+        return result
 
     def _list_leave_types(self) -> dict[str, Any]:
         with self._db() as connection:
@@ -1589,6 +2172,140 @@ class HRMSApplication:
             )
         self._audit(user["id"], f"leave.{decision}", "leave_request", request_id, {"note": note}, remote)
         return _leave_json(self._leave_row(request_id))
+
+    def _list_gate_passes(
+        self, user: dict[str, Any], permissions: set[str], query: dict[str, str]
+    ) -> dict[str, Any]:
+        status_filter = query.get("status", "").strip().lower()
+        if status_filter and status_filter not in {"pending", "approved", "rejected"}:
+            raise ApiError(400, "Gate-pass status must be pending, approved, or rejected.")
+        sql = """SELECT p.*, e.first_name, e.last_name, e.employee_code, e.department, e.title,
+                 e.user_id, e.manager_id FROM gate_passes p
+                 JOIN employees e ON e.id = p.employee_id"""
+        params: list[Any] = []
+        if status_filter:
+            sql += " WHERE p.status = ?"
+            params.append(status_filter)
+        sql += " ORDER BY CASE WHEN p.status = 'pending' THEN 0 ELSE 1 END, p.requested_at DESC LIMIT 200"
+        with self._db() as connection:
+            rows = connection.execute(sql, params).fetchall()
+            own = connection.execute("SELECT id FROM employees WHERE user_id = ?", (user["id"],)).fetchone()
+        if not permissions.intersection({"gatepass.read", "gatepass.manage"}):
+            own_id = int(own["id"]) if own else None
+            visible = []
+            for row in rows:
+                is_self = row["user_id"] == user["id"] and bool(permissions.intersection({
+                    "gatepass.read.self", "gatepass.create"
+                }))
+                is_team = (
+                    own_id is not None
+                    and row["manager_id"] == own_id
+                    and bool(permissions.intersection({"gatepass.read.team", "gatepass.approve"}))
+                )
+                if is_self or is_team:
+                    visible.append(row)
+            rows = visible
+        return {"items": [_gate_pass_json(row) for row in rows], "total": len(rows)}
+
+    def _create_gate_pass(
+        self, body: dict[str, Any], user: dict[str, Any], remote: str | None
+    ) -> dict[str, Any]:
+        permissions = self._permissions(user["id"])
+        requested_employee_id = _optional_int(body.get("employee_id"))
+        if "gatepass.manage" in permissions and requested_employee_id is not None:
+            employee_id = requested_employee_id
+        else:
+            employee = self._employee_for_user(user["id"])
+            if not employee:
+                raise ApiError(409, "Your account is not linked to an employee profile.")
+            employee_id = int(employee["id"])
+            if requested_employee_id is not None and requested_employee_id != employee_id:
+                raise ApiError(403, "You may only request a gate pass for your own employee profile.")
+        pass_type = str(body.get("pass_type", "")).strip().lower()
+        if pass_type not in {"personal_exit", "official_duty", "visitor"}:
+            raise ApiError(400, "Choose a supported gate-pass type.")
+        purpose = str(body.get("purpose", "")).strip()
+        if not purpose or len(purpose) > 500:
+            raise ApiError(400, "A purpose of up to 500 characters is required.")
+        valid_from = _datetime_string(body.get("valid_from"), "Valid-from time")
+        valid_until = _datetime_string(body.get("valid_until"), "Valid-until time")
+        starts_at = _parse_datetime(valid_from, "Valid-from time")
+        ends_at = _parse_datetime(valid_until, "Valid-until time")
+        comparable_start = starts_at if starts_at.tzinfo else starts_at.replace(tzinfo=timezone.utc)
+        comparable_end = ends_at if ends_at.tzinfo else ends_at.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        if comparable_start.astimezone(timezone.utc) < now - timedelta(hours=1):
+            raise ApiError(400, "A gate pass cannot begin more than one hour in the past.")
+        if comparable_end.astimezone(timezone.utc) <= comparable_start.astimezone(timezone.utc):
+            raise ApiError(400, "The gate-pass end time must be after its start time.")
+        if comparable_end.astimezone(timezone.utc) - comparable_start.astimezone(timezone.utc) > timedelta(days=7):
+            raise ApiError(400, "A gate pass cannot be valid for more than seven days.")
+        with self._db() as connection:
+            employee_row = connection.execute(
+                "SELECT status FROM employees WHERE id = ?", (employee_id,)
+            ).fetchone()
+            if not employee_row or employee_row["status"] == "inactive":
+                raise ApiError(404, "Active employee not found.")
+            cursor = connection.execute(
+                """INSERT INTO gate_passes
+                   (employee_id, requested_by, pass_type, purpose, valid_from, valid_until, status, requested_at)
+                   VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)""",
+                (employee_id, user["id"], pass_type, purpose, valid_from, valid_until, _now()),
+            )
+            pass_id = int(cursor.lastrowid)
+        result = self._gate_pass(pass_id)
+        self._audit(
+            user["id"], "gate_pass.requested", "gate_pass", pass_id,
+            {"employee_id": employee_id, "pass_type": pass_type}, remote,
+        )
+        return result
+
+    def _gate_pass(self, pass_id: int) -> dict[str, Any]:
+        with self._db() as connection:
+            row = connection.execute(
+                """SELECT p.*, e.first_name, e.last_name, e.employee_code, e.department, e.title
+                   FROM gate_passes p JOIN employees e ON e.id = p.employee_id WHERE p.id = ?""",
+                (pass_id,),
+            ).fetchone()
+        if row is None:
+            raise ApiError(404, "Gate pass not found.")
+        return _gate_pass_json(row)
+
+    def _decide_gate_pass(
+        self, pass_id: int, body: dict[str, Any], user: dict[str, Any], remote: str | None
+    ) -> dict[str, Any]:
+        decision = str(body.get("decision", "")).strip().lower()
+        if decision not in {"approved", "rejected"}:
+            raise ApiError(400, "Decision must be approved or rejected.")
+        with self._db() as connection:
+            row = connection.execute(
+                """SELECT p.*, e.user_id, e.manager_id FROM gate_passes p
+                   JOIN employees e ON e.id = p.employee_id WHERE p.id = ?""",
+                (pass_id,),
+            ).fetchone()
+            if not row:
+                raise ApiError(404, "Gate pass not found.")
+            permissions = self._permissions(user["id"])
+            if "gatepass.manage" not in permissions:
+                actor_employee = connection.execute(
+                    "SELECT id FROM employees WHERE user_id = ?", (user["id"],)
+                ).fetchone()
+                if not actor_employee or row["manager_id"] != actor_employee["id"] or row["user_id"] == user["id"]:
+                    raise ApiError(403, "You may only review gate passes from your reporting team.")
+            if row["status"] != "pending":
+                raise ApiError(409, "Only pending gate passes can be decided.")
+            note = str(body.get("note", "")).strip() or None
+            reference_code = f"FFGP-{secrets.token_hex(4).upper()}" if decision == "approved" else None
+            connection.execute(
+                """UPDATE gate_passes SET status = ?, decided_at = ?, decided_by = ?,
+                   decision_note = ?, reference_code = ? WHERE id = ?""",
+                (decision, _now(), user["id"], note, reference_code, pass_id),
+            )
+        self._audit(
+            user["id"], f"gate_pass.{decision}", "gate_pass", pass_id,
+            {"reference_issued": decision == "approved"}, remote,
+        )
+        return self._gate_pass(pass_id)
 
     def _list_users(self) -> dict[str, Any]:
         with self._db() as connection:
@@ -1881,17 +2598,31 @@ class HRMSApplication:
                     previous_base = _period_allowance(
                         annual_allowance, hire_date, previous_period_start, previous_period_end, prorate_new_hires
                     )
+                    current_adjustment_row = connection.execute(
+                        """SELECT COALESCE(SUM(days), 0) FROM leave_balance_adjustments
+                           WHERE employee_id = ? AND leave_type_id = ? AND period_start = ?""",
+                        (own_id, leave_type["id"], period_start.isoformat()),
+                    ).fetchone()
+                    previous_adjustment_row = connection.execute(
+                        """SELECT COALESCE(SUM(days), 0) FROM leave_balance_adjustments
+                           WHERE employee_id = ? AND leave_type_id = ? AND period_start = ?""",
+                        (own_id, leave_type["id"], previous_period_start.isoformat()),
+                    ).fetchone()
+                    current_adjustment = round(float(current_adjustment_row[0] or 0), 2)
+                    previous_adjustment = round(float(previous_adjustment_row[0] or 0), 2)
                     carryover = min(
-                        max(previous_base - previous_used, 0), carryover_limit_days
+                        max(previous_base + previous_adjustment - previous_used, 0), carryover_limit_days
                     ) if carryover_enabled else 0
-                    allowance = round(current_base + carryover, 2)
+                    allowance = round(current_base + carryover + current_adjustment, 2)
                     remaining = round(allowance - current_used, 2)
                     leave_balances.append({
                         "leave_type_id": leave_type["id"],
                         "leave_type": leave_type["name"],
                         "base_allowance_days": current_base,
                         "carryover_days": carryover,
+                        "adjustment_days": current_adjustment,
                         "allowance_days": allowance,
+                        "accrued_days": round(current_base + current_adjustment, 2),
                         "used_days": current_used,
                         "remaining_days": remaining,
                     })
@@ -1991,7 +2722,50 @@ class HRMSApplication:
 
 def _employee_json(row: sqlite3.Row) -> dict[str, Any]:
     item = dict(row)
+    item.pop("phone", None)
+    item.pop("address", None)
+    item["weekly_off_days"] = _parse_weekly_off_days(item.get("weekly_off_days"))
     item["full_name"] = f"{row['first_name']} {row['last_name']}".strip()
+    return item
+
+
+def _id_card_json(row: sqlite3.Row, include_private: bool = True) -> dict[str, Any]:
+    item = {
+        "id": row["id"],
+        "employee_code": row["employee_code"],
+        "first_name": row["first_name"],
+        "last_name": row["last_name"],
+        "full_name": f"{row['first_name']} {row['last_name']}".strip(),
+        "email": row["email"],
+        "department": row["department"],
+        "title": row["title"],
+        "employment_type": row["employment_type"],
+        "status": row["status"],
+        "start_date": row["start_date"],
+    }
+    if include_private:
+        item["phone"] = row["phone"]
+        item["address"] = row["address"]
+    return item
+
+
+def _attendance_request_json(row: sqlite3.Row) -> dict[str, Any]:
+    item = dict(row)
+    item.pop("user_id", None)
+    item.pop("manager_id", None)
+    item["employee_name"] = f"{row['first_name']} {row['last_name']}".strip()
+    item.pop("first_name", None)
+    item.pop("last_name", None)
+    return item
+
+
+def _gate_pass_json(row: sqlite3.Row) -> dict[str, Any]:
+    item = dict(row)
+    item.pop("user_id", None)
+    item.pop("manager_id", None)
+    item["employee_name"] = f"{row['first_name']} {row['last_name']}".strip()
+    item.pop("first_name", None)
+    item.pop("last_name", None)
     return item
 
 
@@ -2075,6 +2849,26 @@ def _date_string(value: Any, default: str | None = None) -> str:
         raise ApiError(400, "Dates must use YYYY-MM-DD format.") from None
 
 
+def _parse_datetime(value: str, label: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if "T" not in value and " " not in value:
+            raise ValueError
+        return parsed
+    except (ValueError, TypeError):
+        raise ApiError(400, f"{label} must be a valid ISO date and time.") from None
+
+
+def _datetime_string(value: Any, label: str, optional: bool = False) -> str | None:
+    if value is None or str(value).strip() == "":
+        if optional:
+            return None
+        raise ApiError(400, f"{label} is required.")
+    raw = str(value).strip()
+    parsed = _parse_datetime(raw, label)
+    return parsed.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
 def _leave_period_bounds(reference: date, start_month: int) -> tuple[date, date]:
     start_year = reference.year if reference.month >= start_month else reference.year - 1
     period_start = date(start_year, start_month, 1)
@@ -2115,6 +2909,51 @@ def _period_allowance(
     eligible_days = (period_end - eligible_start).days + 1
     period_days = (period_end - period_start).days + 1
     return round(annual_allowance * eligible_days / period_days, 2)
+
+
+_WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+
+
+def _parse_weekly_off_days(value: Any) -> list[str]:
+    if isinstance(value, list):
+        raw_days = value
+    elif isinstance(value, str):
+        try:
+            decoded = json.loads(value or "[]")
+            raw_days = decoded if isinstance(decoded, list) else []
+        except json.JSONDecodeError:
+            raw_days = []
+    else:
+        raw_days = []
+    by_key = {day.casefold(): day for day in _WEEKDAYS}
+    by_key.update({day[:3].casefold(): day for day in _WEEKDAYS})
+    result: list[str] = []
+    for raw in raw_days:
+        if isinstance(raw, int) and not isinstance(raw, bool) and 0 <= raw <= 6:
+            day = _WEEKDAYS[raw]
+        else:
+            day = by_key.get(str(raw).strip().casefold())
+        if day and day not in result:
+            result.append(day)
+    return [day for day in _WEEKDAYS if day in result]
+
+
+def _weekly_off_days(value: Any) -> str:
+    if value is None:
+        value = []
+    if isinstance(value, str):
+        try:
+            decoded = json.loads(value)
+        except json.JSONDecodeError:
+            decoded = [part.strip() for part in value.split(",") if part.strip()]
+        value = decoded
+    if not isinstance(value, list):
+        raise ApiError(400, "Weekly-off days must be supplied as a list of weekday names.")
+    # Reject unknown input instead of silently persisting a typo as a schedule.
+    normalized = _parse_weekly_off_days(value)
+    if len(normalized) != len({str(item).strip().casefold() for item in value}):
+        raise ApiError(400, "Choose valid weekday names for the weekly off.")
+    return json.dumps(normalized, separators=(",", ":"))
 
 
 def _optional_int(value: Any) -> int | None:

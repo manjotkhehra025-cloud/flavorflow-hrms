@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS employees (
     department TEXT NOT NULL,
     title TEXT NOT NULL,
     employment_type TEXT NOT NULL DEFAULT 'Full-time',
+    phone TEXT NOT NULL DEFAULT '',
+    address TEXT NOT NULL DEFAULT '',
+    weekly_off_days TEXT NOT NULL DEFAULT '[]',
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'on_leave')),
     start_date TEXT NOT NULL,
     manager_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
@@ -99,6 +102,7 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     punch_out_longitude REAL,
     punch_out_accuracy_m REAL,
     punch_out_distance_m REAL,
+    punch_source TEXT NOT NULL DEFAULT 'gps' CHECK (punch_source IN ('gps', 'manual')),
     created_at TEXT NOT NULL
 );
 
@@ -176,6 +180,72 @@ CREATE TABLE IF NOT EXISTS holidays (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_holidays_active_name_date
     ON holidays(name COLLATE NOCASE, holiday_date) WHERE is_active = 1;
+
+
+CREATE TABLE IF NOT EXISTS leave_balance_adjustments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    leave_type_id INTEGER NOT NULL REFERENCES leave_types(id),
+    period_start TEXT NOT NULL,
+    days REAL NOT NULL CHECK (days BETWEEN -365 AND 365 AND days != 0),
+    reason TEXT NOT NULL,
+    adjusted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    adjusted_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_leave_adjustments_employee_period
+    ON leave_balance_adjustments(employee_id, leave_type_id, period_start);
+
+CREATE TABLE IF NOT EXISTS overtime_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    work_date TEXT NOT NULL,
+    hours REAL NOT NULL CHECK (hours > 0 AND hours <= 24),
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    requested_at TEXT NOT NULL,
+    decided_at TEXT,
+    approver_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    decision_note TEXT
+);
+
+CREATE TABLE IF NOT EXISTS manual_punch_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    work_date TEXT NOT NULL,
+    requested_punch_in TEXT NOT NULL,
+    requested_punch_out TEXT,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    attendance_record_id INTEGER REFERENCES attendance_records(id) ON DELETE SET NULL,
+    requested_at TEXT NOT NULL,
+    decided_at TEXT,
+    approver_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    decision_note TEXT
+);
+
+CREATE TABLE IF NOT EXISTS gate_passes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    requested_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    pass_type TEXT NOT NULL CHECK (pass_type IN ('personal_exit', 'official_duty', 'visitor')),
+    purpose TEXT NOT NULL,
+    valid_from TEXT NOT NULL,
+    valid_until TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    reference_code TEXT UNIQUE,
+    requested_at TEXT NOT NULL,
+    decided_at TEXT,
+    decided_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    decision_note TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_overtime_employee_status
+    ON overtime_requests(employee_id, status, requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_manual_punch_employee_status
+    ON manual_punch_requests(employee_id, status, requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_gate_pass_employee_status
+    ON gate_passes(employee_id, status, requested_at DESC);
 
 CREATE TABLE IF NOT EXISTS audit_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

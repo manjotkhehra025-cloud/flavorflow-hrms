@@ -116,6 +116,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
               _ProfileLine(label: 'Department', value: stringValue(employee['department'])),
               _ProfileLine(label: 'Email', value: stringValue(employee['email'])),
               _ProfileLine(label: 'Start date', value: formatDate(employee['start_date'])),
+              _ProfileLine(label: 'Weekly off', value: asStringList(employee['weekly_off_days']).join(', ').isEmpty ? 'Not set' : asStringList(employee['weekly_off_days']).join(', ')),
               _ProfileLine(label: 'Status', value: stringValue(employee['status'])),
             ],
           ),
@@ -271,6 +272,7 @@ class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
   late final TextEditingController _title;
   late final TextEditingController _startDate;
   late final TextEditingController _employmentType;
+  late final TextEditingController _weeklyOffDays;
   late String _status;
   int? _managerId;
 
@@ -286,13 +288,14 @@ class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
     _title = TextEditingController(text: stringValue(employee['title']));
     _startDate = TextEditingController(text: stringValue(employee['start_date'], fallback: DateTime.now().toIso8601String().substring(0, 10)));
     _employmentType = TextEditingController(text: stringValue(employee['employment_type'], fallback: 'Full-time'));
+    _weeklyOffDays = TextEditingController(text: asStringList(employee['weekly_off_days']).join(', '));
     _status = stringValue(employee['status'], fallback: 'active');
     _managerId = int.tryParse(stringValue(employee['manager_id']));
   }
 
   @override
   void dispose() {
-    for (final controller in [_code, _first, _last, _email, _department, _title, _startDate, _employmentType]) {
+    for (final controller in [_code, _first, _last, _email, _department, _title, _startDate, _employmentType, _weeklyOffDays]) {
       controller.dispose();
     }
     super.dispose();
@@ -309,6 +312,7 @@ class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
       'title': _title.text.trim(),
       'start_date': _startDate.text.trim(),
       'employment_type': _employmentType.text.trim(),
+      'weekly_off_days': _weeklyOffDays.text.split(',').map((day) => day.trim()).where((day) => day.isNotEmpty).toList(),
       'status': _status,
       'manager_id': _managerId,
     });
@@ -364,6 +368,17 @@ class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
                             )),
                   ],
                   onChanged: (value) => setState(() => _managerId = value),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _weeklyOffDays,
+                  decoration: const InputDecoration(labelText: 'Weekly off days', hintText: 'For example: Sunday or Saturday, Sunday'),
+                  validator: (value) {
+                    final invalid = (value ?? '').split(',').map((day) => day.trim()).where((day) => day.isNotEmpty).any(
+                      (day) => !const ['mon', 'monday', 'tue', 'tuesday', 'wed', 'wednesday', 'thu', 'thursday', 'fri', 'friday', 'sat', 'saturday', 'sun', 'sunday'].contains(day.toLowerCase()),
+                    );
+                    return invalid ? 'Use weekday names separated by commas' : null;
+                  },
                 ),
               ],
             ),

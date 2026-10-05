@@ -13,6 +13,8 @@ import '../attendance/shift_roster_screen.dart';
 import '../calendar/calendar_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../employees/employees_screen.dart';
+import '../id_card/id_card_screen.dart';
+import '../team/team_screen.dart';
 import '../leave/approvals_screen.dart';
 import '../leave/leave_policy_screen.dart';
 import '../leave/leave_screen.dart';
@@ -32,7 +34,9 @@ class _HomeShellState extends State<HomeShell> {
     final items = <_NavItem>[];
     if (user.can('dashboard.read')) items.add(const _NavItem('dashboard', 'Overview', Icons.grid_view_rounded));
     if (user.canAny(const ['employees.read', 'employees.read.team', 'employees.read.self'])) items.add(const _NavItem('employees', 'Employees', Icons.groups_2_outlined));
-    if (user.canAny(const ['attendance.punch', 'attendance.read', 'attendance.read.team', 'attendance.read.self', 'attendance.manage'])) items.add(const _NavItem('attendance', 'Attendance', Icons.schedule_rounded));
+    if (user.can('team.read')) items.add(const _NavItem('team', 'Team directory', Icons.groups_rounded));
+    if (user.canAny(const ['idcard.read', 'idcard.read.team', 'idcard.read.self', 'idcard.update', 'gatepass.read', 'gatepass.read.team', 'gatepass.read.self', 'gatepass.create', 'gatepass.manage'])) items.add(const _NavItem('id_card', 'ID Card & Pass', Icons.badge_outlined));
+    if (user.canAny(const ['attendance.punch', 'attendance.read', 'attendance.read.team', 'attendance.read.self', 'attendance.manage', 'attendance.request', 'attendance.approve'])) items.add(const _NavItem('attendance', 'Attendance', Icons.schedule_rounded));
     if (user.canAny(const ['shifts.read', 'shifts.read.team', 'shifts.read.self', 'shifts.manage'])) items.add(const _NavItem('shifts', 'Shift roster', Icons.view_timeline_outlined));
     if (user.can('locations.read')) items.add(const _NavItem('locations', 'Work locations', Icons.location_on_outlined));
     if (user.can('calendar.read')) items.add(const _NavItem('calendar', 'Calendar', Icons.calendar_month_rounded));
@@ -55,6 +59,8 @@ class _HomeShellState extends State<HomeShell> {
             onOpenShifts: () => _select('shifts'),
           ),
         'employees' => const EmployeesScreen(),
+        'team' => const TeamScreen(),
+        'id_card' => const IdCardScreen(),
         'attendance' => const AttendanceScreen(),
         'shifts' => const ShiftRosterScreen(),
         'locations' => const LocationsScreen(),
@@ -219,8 +225,18 @@ class _MobileNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasMore = items.length > 4;
-    final visible = hasMore ? items.take(3).toList() : items;
+    const primaryOrder = ['dashboard', 'leave', 'team', 'attendance'];
+    final visible = <_NavItem>[];
+    for (final id in primaryOrder) {
+      final match = items.where((item) => item.id == id);
+      if (match.isNotEmpty) visible.add(match.first);
+    }
+    for (final item in items) {
+      if (visible.length >= 4) break;
+      if (!visible.any((visibleItem) => visibleItem.id == item.id)) visible.add(item);
+    }
+    final extra = items.where((item) => !visible.any((visibleItem) => visibleItem.id == item.id)).toList();
+    final hasMore = extra.isNotEmpty;
     final currentVisible = visible.indexWhere((item) => item.id == selectedId);
     final selectedIndex = currentVisible >= 0 ? currentVisible : (hasMore ? visible.length : 0);
     final destinations = <NavigationDestination>[
@@ -236,7 +252,7 @@ class _MobileNavigation extends StatelessWidget {
         if (index < visible.length) {
           onSelect(visible[index].id);
         } else {
-          _showMore(context, items.skip(3).toList());
+          _showMore(context, extra);
         }
       },
       destinations: destinations,
