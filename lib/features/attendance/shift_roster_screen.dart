@@ -696,10 +696,15 @@ class _ShiftAssignmentDialogState extends State<_ShiftAssignmentDialog> {
               children: [
                 DropdownButtonFormField<int>(
                   value: _employeeId,
+                  isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Employee'),
                   items: widget.employees.map((employee) => DropdownMenuItem<int>(
                     value: int.tryParse(stringValue(employee['id'])),
-                    child: Text('${stringValue(employee['full_name'], fallback: 'Team member')} · ${stringValue(employee['employee_code'])}', overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      '${stringValue(employee['full_name'], fallback: 'Team member')} · ${stringValue(employee['employee_code'])}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   )).toList(),
                   onChanged: (value) => setState(() => _employeeId = value),
                   validator: (value) => value == null ? 'Choose an employee' : null,
@@ -707,10 +712,15 @@ class _ShiftAssignmentDialogState extends State<_ShiftAssignmentDialog> {
                 const SizedBox(height: 10),
                 DropdownButtonFormField<int>(
                   value: _shiftId,
+                  isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Shift template'),
                   items: widget.templates.map((template) => DropdownMenuItem<int>(
                     value: int.tryParse(stringValue(template['id'])),
-                    child: Text('${stringValue(template['name'])} · ${stringValue(template['start_time'])}–${stringValue(template['end_time'])}', overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      '${stringValue(template['name'])} · ${stringValue(template['start_time'])}–${stringValue(template['end_time'])}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   )).toList(),
                   onChanged: (value) => setState(() => _shiftId = value),
                   validator: (value) => value == null ? 'Choose a shift template' : null,
@@ -718,12 +728,20 @@ class _ShiftAssignmentDialogState extends State<_ShiftAssignmentDialog> {
                 const SizedBox(height: 10),
                 DropdownButtonFormField<int?>(
                   value: _locationId,
+                  isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Work location (optional)'),
                   items: [
-                    const DropdownMenuItem<int?>(value: null, child: Text('No specific location')),
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('No specific location', maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
                     ...widget.locations.map((location) => DropdownMenuItem<int?>(
                       value: int.tryParse(stringValue(location['id'])),
-                      child: Text(stringValue(location['name']), overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        stringValue(location['name']),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     )),
                   ],
                   onChanged: (value) => setState(() => _locationId = value),
