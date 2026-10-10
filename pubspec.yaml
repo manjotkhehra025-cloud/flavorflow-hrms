@@ -10,8 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_secure_storage: ^9.2.2
+  local_auth: ^2.3.0
   geolocator: ^13.0.2
+  url_launcher: ^6.3.2
   google_fonts: ^6.2.1
+  pdf: ^3.11.1
+  printing: ^5.13.4
 
 dev_dependencies:
   flutter_test:

@@ -23,7 +23,9 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _load();
+    });
   }
 
   @override
@@ -112,8 +114,10 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
               _ProfileLine(label: 'Employee ID', value: stringValue(employee['employee_code'])),
               _ProfileLine(label: 'Role', value: stringValue(employee['title'])),
               _ProfileLine(label: 'Department', value: stringValue(employee['department'])),
+              _ProfileLine(label: 'Employee type', value: stringValue(employee['employment_category_label'], fallback: _employmentCategoryLabel(employee['employment_type']))),
               _ProfileLine(label: 'Email', value: stringValue(employee['email'])),
               _ProfileLine(label: 'Start date', value: formatDate(employee['start_date'])),
+              _ProfileLine(label: 'Weekly off', value: asStringList(employee['weekly_off_days']).join(', ').isEmpty ? 'Not set' : asStringList(employee['weekly_off_days']).join(', ')),
               _ProfileLine(label: 'Status', value: stringValue(employee['status'])),
             ],
           ),
@@ -223,7 +227,11 @@ class _EmployeeRow extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 670;
-            final identity = Row(children: [PersonAvatar(name: name, size: 42), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w700)), const SizedBox(height: 4), Text('${stringValue(employee['employee_code'])} · ${stringValue(employee['title'])}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted, fontSize: 11))]))]);
+            final category = stringValue(
+              employee['employment_category_label'],
+              fallback: _employmentCategoryLabel(employee['employment_type']),
+            );
+            final identity = Row(children: [PersonAvatar(name: name, size: 42), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w700)), const SizedBox(height: 4), Text('${stringValue(employee['employee_code'])} · ${stringValue(employee['title'])}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted, fontSize: 11)), const SizedBox(height: 3), Text(category, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.blue, fontSize: 10, fontWeight: FontWeight.w600))]))]);
             if (!wide) {
               return Row(children: [Expanded(child: identity), const SizedBox(width: 9), StatusBadge(status: stringValue(employee['status'], fallback: 'active')), const SizedBox(width: 5), const Icon(Icons.chevron_right_rounded, color: AppColors.muted)]);
             }
@@ -250,6 +258,13 @@ class _ProfileLine extends StatelessWidget {
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [SizedBox(width: 105, child: Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 12))), Expanded(child: Text(value, style: const TextStyle(color: AppColors.ink, fontSize: 12, fontWeight: FontWeight.w600)))]));
 }
 
+String _employmentCategoryLabel(Object? value) {
+  final category = stringValue(value).toLowerCase();
+  return category.contains('yellow')
+      ? 'Yellow Card Staff (15 EL Only)'
+      : 'Official Staff';
+}
+
 class _EmployeeFormDialog extends StatefulWidget {
   const _EmployeeFormDialog({this.employee, required this.employees});
   final Map<String, dynamic>? employee;
@@ -260,15 +275,29 @@ class _EmployeeFormDialog extends StatefulWidget {
 }
 
 class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
+  static const _departments = <String>[
+    'Production',
+    'Agriculture',
+    'Security',
+    'Engineering',
+    'Accounts',
+    'Quality',
+    // Keep departments already used by existing employee records selectable.
+    'Management',
+    'Quality - Lab',
+    'Production & Quality',
+  ];
+
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _code;
   late final TextEditingController _first;
   late final TextEditingController _last;
   late final TextEditingController _email;
-  late final TextEditingController _department;
   late final TextEditingController _title;
   late final TextEditingController _startDate;
-  late final TextEditingController _employmentType;
+  late final TextEditingController _weeklyOffDays;
+  late String _department;
+  late String _employmentType;
   late String _status;
   int? _managerId;
 
@@ -280,17 +309,19 @@ class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
     _first = TextEditingController(text: stringValue(employee['first_name']));
     _last = TextEditingController(text: stringValue(employee['last_name']));
     _email = TextEditingController(text: stringValue(employee['email']));
-    _department = TextEditingController(text: stringValue(employee['department']));
+    _department = stringValue(employee['department'], fallback: 'Production');
     _title = TextEditingController(text: stringValue(employee['title']));
     _startDate = TextEditingController(text: stringValue(employee['start_date'], fallback: DateTime.now().toIso8601String().substring(0, 10)));
-    _employmentType = TextEditingController(text: stringValue(employee['employment_type'], fallback: 'Full-time'));
+    final category = stringValue(employee['employment_type'], fallback: 'Official Staff').toLowerCase();
+    _employmentType = category.contains('yellow') ? 'Yellow Card' : 'Official Staff';
+    _weeklyOffDays = TextEditingController(text: asStringList(employee['weekly_off_days']).join(', '));
     _status = stringValue(employee['status'], fallback: 'active');
     _managerId = int.tryParse(stringValue(employee['manager_id']));
   }
 
   @override
   void dispose() {
-    for (final controller in [_code, _first, _last, _email, _department, _title, _startDate, _employmentType]) {
+    for (final controller in [_code, _first, _last, _email, _title, _startDate, _weeklyOffDays]) {
       controller.dispose();
     }
     super.dispose();
@@ -303,10 +334,11 @@ class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
       'first_name': _first.text.trim(),
       'last_name': _last.text.trim(),
       'email': _email.text.trim(),
-      'department': _department.text.trim(),
+      'department': _department,
       'title': _title.text.trim(),
       'start_date': _startDate.text.trim(),
-      'employment_type': _employmentType.text.trim(),
+      'employment_type': _employmentType,
+      'weekly_off_days': _weeklyOffDays.text.split(',').map((day) => day.trim()).where((day) => day.isNotEmpty).toList(),
       'status': _status,
       'manager_id': _managerId,
     });
@@ -325,10 +357,47 @@ class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
             key: _formKey,
             child: Column(
               children: [
-                Row(children: [Expanded(child: _field('Employee ID', _code)), const SizedBox(width: 12), Expanded(child: _field('Department', _department))]),
+                Row(
+                  children: [
+                    Expanded(child: _field('Employee ID', _code)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _department,
+                        decoration: const InputDecoration(labelText: 'Department'),
+                        items: [
+                          ..._departments.map((value) => DropdownMenuItem(value: value, child: Text(value))),
+                          if (_department.isNotEmpty && !_departments.contains(_department))
+                            DropdownMenuItem(value: _department, child: Text(_department)),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) setState(() => _department = value);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
                 Row(children: [Expanded(child: _field('First name', _first)), const SizedBox(width: 12), Expanded(child: _field('Last name', _last))]),
                 _field('Work email', _email, keyboardType: TextInputType.emailAddress),
-                Row(children: [Expanded(child: _field('Job title', _title)), const SizedBox(width: 12), Expanded(child: _field('Employment type', _employmentType))]),
+                Row(
+                  children: [
+                    Expanded(child: _field('Job title', _title)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _employmentType,
+                        decoration: const InputDecoration(labelText: 'Employee type'),
+                        items: const [
+                          DropdownMenuItem(value: 'Official Staff', child: Text('Official Staff')),
+                          DropdownMenuItem(value: 'Yellow Card', child: Text('Yellow Card Staff (15 EL Only)')),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) setState(() => _employmentType = value);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
                 Row(
                   children: [
                     Expanded(child: _field('Start date (YYYY-MM-DD)', _startDate)),
@@ -362,6 +431,17 @@ class _EmployeeFormDialogState extends State<_EmployeeFormDialog> {
                             )),
                   ],
                   onChanged: (value) => setState(() => _managerId = value),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _weeklyOffDays,
+                  decoration: const InputDecoration(labelText: 'Weekly off days', hintText: 'For example: Sunday or Saturday, Sunday'),
+                  validator: (value) {
+                    final invalid = (value ?? '').split(',').map((day) => day.trim()).where((day) => day.isNotEmpty).any(
+                      (day) => !const ['mon', 'monday', 'tue', 'tuesday', 'wed', 'wednesday', 'thu', 'thursday', 'fri', 'friday', 'sat', 'saturday', 'sun', 'sunday'].contains(day.toLowerCase()),
+                    );
+                    return invalid ? 'Use weekday names separated by commas' : null;
+                  },
                 ),
               ],
             ),

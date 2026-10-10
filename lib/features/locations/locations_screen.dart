@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_scope.dart';
@@ -21,7 +23,9 @@ class _LocationsScreenState extends State<LocationsScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _load();
+    });
   }
 
   Future<void> _load() async {
@@ -143,6 +147,20 @@ class _LocationCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDeactivate;
 
+  Future<void> _openMap(BuildContext context) async {
+    final latitude = double.tryParse(stringValue(location['latitude']));
+    final longitude = double.tryParse(stringValue(location['longitude']));
+    if (latitude == null || longitude == null) return;
+    final uri = Uri.https('www.google.com', 'maps/search/', {
+      'api': '1',
+      'query': '$latitude,$longitude',
+    });
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open a maps app on this device.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final active = location['is_active'] == true || location['is_active'] == 1;
@@ -165,6 +183,12 @@ class _LocationCard extends StatelessWidget {
               const SizedBox(height: 9),
               _LocationDetail(icon: Icons.public_rounded, label: 'Timezone', value: stringValue(location['timezone'], fallback: 'UTC')),
             ]),
+          ),
+          const SizedBox(height: 11),
+          OutlinedButton.icon(
+            onPressed: () => _openMap(context),
+            icon: const Icon(Icons.map_outlined, size: 17),
+            label: const Text('View pin in Maps'),
           ),
           if (canUpdate || (canDelete && active)) ...[
             const SizedBox(height: 15),
@@ -208,6 +232,7 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
   late final TextEditingController _radius;
   late final TextEditingController _timezone;
   late bool _active;
+  bool _locating = false;
 
   @override
   void initState() {
@@ -228,6 +253,33 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _useCurrentLocation() async {
+    setState(() => _locating = true);
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        throw const ApiException('Turn on location services to use the current device position.');
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        throw const ApiException('Location permission is required to use this device position.');
+      }
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 15)),
+      );
+      if (!mounted) return;
+      _latitude.text = position.latitude.toStringAsFixed(6);
+      _longitude.text = position.longitude.toStringAsFixed(6);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Current GPS coordinates added. Confirm the pin is at the work-site center.')));
+    } on ApiException catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not read the current location. Check device permissions and try again.')));
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
   }
 
   void _save() {
@@ -258,6 +310,15 @@ class _LocationFormDialogState extends State<_LocationFormDialog> {
               _field('Location name', _name),
               _field('Street address', _address),
               Row(children: [Expanded(child: _field('Latitude', _latitude, numeric: true)), const SizedBox(width: 12), Expanded(child: _field('Longitude', _longitude, numeric: true))]),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _locating ? null : _useCurrentLocation,
+                  icon: _locating ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.my_location_rounded, size: 16),
+                  label: Text(_locating ? 'Reading GPS…' : 'Use this device’s current location'),
+                ),
+              ),
+              const Align(alignment: Alignment.centerLeft, child: Padding(padding: EdgeInsets.only(bottom: 10), child: Text('Position the device at the center of the work site before saving the geofence.', style: TextStyle(color: AppColors.muted, fontSize: 10, height: 1.4)))),
               Row(children: [Expanded(child: _field('Radius in metres', _radius, numeric: true, integer: true)), const SizedBox(width: 12), Expanded(child: _field('Timezone', _timezone))]),
               SwitchListTile.adaptive(contentPadding: EdgeInsets.zero, value: _active, activeColor: AppColors.success, title: const Text('Location active', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)), subtitle: const Text('Only active sites accept punches.', style: TextStyle(fontSize: 11, color: AppColors.muted)), onChanged: (value) => setState(() => _active = value)),
             ]),

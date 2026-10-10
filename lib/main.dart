@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'core/app_controller.dart';
 import 'core/app_scope.dart';
+import 'core/brand_config.dart';
+import 'core/session_inactivity_guard.dart';
 import 'core/theme.dart';
 import 'features/auth/login_screen.dart';
 import 'features/shell/home_shell.dart';
@@ -36,13 +38,29 @@ class _FlavorFlowAppState extends State<FlavorFlowApp> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScope(
-      controller: _controller,
-      child: MaterialApp(
-        title: 'FlavorFlow HRMS',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
-        home: const _SessionRouter(),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => AppScope(
+        controller: _controller,
+        child: SessionInactivityGuard(
+          controller: _controller,
+          child: MaterialApp(
+            title: BrandConfig.productName,
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(),
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              final systemScale = mediaQuery.textScaler.scale(1.0);
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(systemScale * _controller.textScaleFactor),
+                ),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+            home: const _SessionRouter(),
+          ),
+        ),
       ),
     );
   }
@@ -90,7 +108,7 @@ class _SplashScreen extends StatelessWidget {
               child: const Icon(Icons.bubble_chart_rounded, color: Colors.white, size: 31),
             ),
             const SizedBox(height: 18),
-            const Text('FlavorFlow', style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
+            const Text(BrandConfig.appName, style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
             const SizedBox(height: 5),
             const Text('People, connected.', style: TextStyle(color: Color(0xFFAFC0D2), fontSize: 13)),
             const SizedBox(height: 25),
