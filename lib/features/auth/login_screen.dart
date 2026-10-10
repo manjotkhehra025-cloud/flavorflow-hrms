@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _rememberMe = true;
   bool _isPunjabi = false;
+  bool _obscurePassword = true;
   bool _biometricsAvailable = false;
   bool _checkingBiometrics = true;
   String? _busyAction;
@@ -281,6 +282,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                         enabled: !_busy,
                                         keyboardType: TextInputType.emailAddress,
                                         textCapitalization: TextCapitalization.none,
+                                        autocorrect: false,
+                                        enableSuggestions: false,
                                         textInputAction: TextInputAction.next,
                                         autofillHints: const [
                                           AutofillHints.username,
@@ -344,7 +347,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                       TextFormField(
                                         controller: _password,
                                         enabled: !_busy,
-                                        obscureText: true,
+                                        obscureText: _obscurePassword,
+                                        keyboardType: TextInputType.visiblePassword,
+                                        textCapitalization: TextCapitalization.none,
+                                        autocorrect: false,
+                                        enableSuggestions: false,
                                         textInputAction: TextInputAction.done,
                                         autofillHints: const [AutofillHints.password],
                                         onFieldSubmitted: (_) => _signIn(),
@@ -360,6 +367,23 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                           icon: Icons.lock_outline_rounded,
                                           compact: compact,
+                                        ).copyWith(
+                                          suffixIcon: IconButton(
+                                            tooltip: copy.text(
+                                              _obscurePassword ? 'Show password' : 'Hide password',
+                                              _obscurePassword ? 'ਪਾਸਵਰਡ ਦਿਖਾਓ' : 'ਪਾਸਵਰਡ ਲੁਕਾਓ',
+                                            ),
+                                            onPressed: () => setState(() {
+                                              _obscurePassword = !_obscurePassword;
+                                            }),
+                                            icon: Icon(
+                                              _obscurePassword
+                                                  ? Icons.visibility_outlined
+                                                  : Icons.visibility_off_outlined,
+                                              color: AppColors.muted,
+                                              size: 20,
+                                            ),
+                                          ),
                                         ),
                                         validator: (value) =>
                                             (value?.isEmpty ?? true)
