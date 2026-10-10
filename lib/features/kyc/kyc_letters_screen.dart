@@ -399,7 +399,7 @@ Future<Uint8List> _buildEmploymentLetter(Map<String, dynamic> employee, String l
     build: (context) => pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Text('FLAVORFLOW', style: pw.TextStyle(color: PdfColor.fromInt(0xFF1E6FE0), fontSize: 14, fontWeight: pw.FontWeight.bold, letterSpacing: 1.4)),
+        pw.Text('FLAVORFLOW', style: const pw.TextStyle(color: PdfColor.fromInt(0xFF1E6FE0), fontSize: 14, fontWeight: pw.FontWeight.bold, letterSpacing: 1.4)),
         pw.SizedBox(height: 5),
         pw.Text('People Operations', style: const pw.TextStyle(color: PdfColor.fromInt(0xFF718198), fontSize: 10)),
         pw.SizedBox(height: 38),

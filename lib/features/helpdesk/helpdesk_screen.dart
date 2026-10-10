@@ -112,17 +112,17 @@ class _HelpdeskScreenState extends State<HelpdeskScreen> {
                     ),
                   ),
                   if (!canManage)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 16),
                       child: AppPanel(
-                        padding: const EdgeInsets.all(14),
+                        padding: EdgeInsets.all(14),
                         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          const Icon(Icons.lock_outline_rounded, color: AppColors.blue, size: 20),
-                          const SizedBox(width: 10),
+                          Icon(Icons.lock_outline_rounded, color: AppColors.blue, size: 20),
+                          SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Grievances are confidential. Only you and People Ops / HR Admin can view them; line managers are excluded.',
-                              style: const TextStyle(color: AppColors.ink, fontSize: 12, height: 1.45),
+                              style: TextStyle(color: AppColors.ink, fontSize: 12, height: 1.45),
                             ),
                           ),
                         ]),

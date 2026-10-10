@@ -182,7 +182,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final columns = constraints.maxWidth > 800 ? 4 : constraints.maxWidth > 510 ? 2 : 1;
-                      final gap = 12.0;
+                      const gap = 12.0;
                       final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
                       final metrics = <(String, String, String, IconData, Color)>[
                         ('Active employees', '$activeEmployees', 'Current headcount', Icons.groups_2_outlined, AppColors.blue),

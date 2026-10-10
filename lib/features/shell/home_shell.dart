@@ -634,7 +634,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
                 const Divider(height: 26),
                 _SettingLine(icon: Icons.fingerprint_rounded, title: 'Biometric sign-in', subtitle: biometricStatus),
                 const SizedBox(height: 12),
-                _SettingLine(icon: Icons.lock_outline_rounded, title: 'Session token', subtitle: 'Stored using native secure storage.'),
+                const _SettingLine(icon: Icons.lock_outline_rounded, title: 'Session token', subtitle: 'Stored using native secure storage.'),
                 const Divider(height: 23),
                 const _SettingLine(icon: Icons.admin_panel_settings_outlined, title: 'Access control', subtitle: 'Role grants are managed by your HRMS administrator and enforced by the API.'),
               ]),

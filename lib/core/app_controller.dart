@@ -62,7 +62,7 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> setTextScaleFactor(double factor) async {
-    if (!const {0.9, 1.0, 1.1, 1.2}.contains(factor)) {
+    if (!const <double>[0.9, 1.0, 1.1, 1.2].contains(factor)) {
       throw ArgumentError.value(factor, 'factor', 'Unsupported text size.');
     }
     await _secureStorage.write(key: _textScaleKey, value: factor.toStringAsFixed(1));
@@ -80,7 +80,7 @@ class AppController extends ChangeNotifier {
         inactivityTimeoutMinutes = storedTimeout!;
       }
       final storedTextScale = double.tryParse(await _secureStorage.read(key: _textScaleKey) ?? '');
-      if (const {0.9, 1.0, 1.1, 1.2}.contains(storedTextScale)) {
+      if (const <double>[0.9, 1.0, 1.1, 1.2].contains(storedTextScale)) {
         textScaleFactor = storedTextScale!;
       }
       final lastActivityValue = await _secureStorage.read(key: _lastActivityKey);
