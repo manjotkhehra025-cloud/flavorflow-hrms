@@ -113,7 +113,9 @@ void main() {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), email);
     await tester.enterText(fields.at(1), password);
-    await tester.tap(find.text('Sign In with Password'));
+    final signInButton = find.text('Sign In with Password');
+    await tester.ensureVisible(signInButton);
+    await tester.tap(signInButton);
     await tester.pumpAndSettle();
 
     expect(controller.submittedEmail, email);
