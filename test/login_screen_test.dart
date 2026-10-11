@@ -31,6 +31,22 @@ class _AutoBiometricController extends _LoginTestController {
   }
 }
 
+class _CaptureLoginController extends _LoginTestController {
+  String? submittedEmail;
+  String? submittedPassword;
+
+  @override
+  Future<void> signIn(
+    String email,
+    String password, {
+    required bool rememberMe,
+    required bool enableBiometricLogin,
+  }) async {
+    submittedEmail = email;
+    submittedPassword = password;
+  }
+}
+
 void main() {
   testWidgets('login screen shows the FlavorFlow sign-in options', (tester) async {
     final controller = _LoginTestController();
@@ -73,6 +89,35 @@ void main() {
       find.textContaining('Fingerprint or face unlock is not available.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('password sign-in submits the exact entered field contents', (
+    tester,
+  ) async {
+    final controller = _CaptureLoginController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      AppScope(
+        controller: controller,
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const LoginScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    const email = 'admin@flavorflow.co.in';
+    const password = '  Exact!Pass  ';
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), email);
+    await tester.enterText(fields.at(1), password);
+    await tester.tap(find.text('Sign In with Password'));
+    await tester.pumpAndSettle();
+
+    expect(controller.submittedEmail, email);
+    expect(controller.submittedPassword, password);
   });
 
   testWidgets('saved biometric sign-in prompts automatically on app open', (

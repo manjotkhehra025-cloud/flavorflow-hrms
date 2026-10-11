@@ -91,20 +91,31 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signIn() async {
-    if (_busy || !_formKey.currentState!.validate()) return;
+    if (_busy) return;
     setState(() {
       _busyAction = 'password';
       _error = null;
     });
 
     try {
+      // Ask Android's input method to commit any composing text before we read
+      // the controllers. Some keyboards can otherwise leave the last character
+      // pending when the user taps the submit button instead of pressing Done.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || !_formKey.currentState!.validate()) return;
+
+      // Snapshot the submitted values before any asynchronous capability checks.
+      final email = _email.text;
+      final password = _password.text;
+      final rememberMe = _rememberMe;
       final controller = AppScope.of(context);
       final enableBiometrics =
-          _rememberMe && await _refreshBiometrics();
+          rememberMe && await _refreshBiometrics();
       await controller.signIn(
-        _email.text,
-        _password.text,
-        rememberMe: _rememberMe,
+        email,
+        password,
+        rememberMe: rememberMe,
         enableBiometricLogin: enableBiometrics,
       );
     } on ApiException catch (error) {
