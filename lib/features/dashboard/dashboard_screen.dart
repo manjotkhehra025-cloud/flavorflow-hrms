@@ -5,6 +5,7 @@ import '../../core/app_scope.dart';
 import '../../core/json_helpers.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import 'mobile_dashboard_view.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
@@ -14,6 +15,7 @@ class DashboardScreen extends StatefulWidget {
     this.onOpenEmployees,
     this.onOpenCalendar,
     this.onOpenShifts,
+    this.onOpenModule,
   });
 
   final VoidCallback? onOpenAttendance;
@@ -21,6 +23,7 @@ class DashboardScreen extends StatefulWidget {
   final VoidCallback? onOpenEmployees;
   final VoidCallback? onOpenCalendar;
   final VoidCallback? onOpenShifts;
+  final ValueChanged<String>? onOpenModule;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -158,6 +161,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     final hour = DateTime.now().hour;
     final greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+    if (MediaQuery.sizeOf(context).width < 1000) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: MobileDashboardView(
+          user: user,
+          greeting: greeting,
+          stats: stats,
+          recentAttendance: attendance,
+          leaveBalances: leaveBalances,
+          activeAttendance: _myAttendance,
+          myShift: myShift,
+          upcomingHoliday: upcomingHoliday,
+          canSeeLeave: canSeeLeave,
+          canSeePulse: canSeePulse,
+          canSeeCalendar: canSeeCalendar,
+          canSeeMyAttendance: canSeeMyAttendance,
+          canSeeMyShift: canSeeMyShift,
+          loading: _loading && _data.isEmpty,
+          error: _data.isEmpty ? _error : null,
+          onRetry: _load,
+          onOpenAttendance: widget.onOpenAttendance,
+          onOpenLeave: widget.onOpenLeave,
+          onOpenModule: widget.onOpenModule,
+        ),
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: _load,

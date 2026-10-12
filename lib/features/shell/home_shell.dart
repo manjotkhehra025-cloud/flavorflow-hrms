@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_scope.dart';
@@ -76,6 +77,7 @@ class _HomeShellState extends State<HomeShell> {
             onOpenEmployees: () => _select('employees'),
             onOpenCalendar: () => _select('calendar'),
             onOpenShifts: () => _select('shifts'),
+            onOpenModule: _select,
           ),
         'employees' => const EmployeesScreen(),
         'team' => const TeamScreen(),
@@ -113,24 +115,33 @@ class _HomeShellState extends State<HomeShell> {
     final selected = items.firstWhere((item) => item.id == _selectedId);
     final wide = MediaQuery.sizeOf(context).width >= 1000;
 
-    return Scaffold(
-      backgroundColor: AppColors.canvas,
-      body: SafeArea(
-        child: Row(
-          children: [
-            if (wide) _Sidebar(items: items, selectedId: selected.id, user: user, onSelect: _select, onSignOut: controller.signOut),
-            Expanded(
-              child: Column(
-                children: [
-                  _TopBar(item: selected, user: user, wide: wide, onSignOut: controller.signOut),
-                  Expanded(child: AnimatedSwitcher(duration: const Duration(milliseconds: 180), child: KeyedSubtree(key: ValueKey(selected.id), child: _pageFor(selected.id)))),
-                ],
-              ),
-            ),
-          ],
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: AppColors.navy,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: AppColors.navy,
+        systemNavigationBarIconBrightness: Brightness.light,
       ),
-      bottomNavigationBar: wide ? null : _MobileNavigation(items: items, selectedId: selected.id, onSelect: _select),
+      child: Scaffold(
+        backgroundColor: AppColors.canvas,
+        body: SafeArea(
+          child: Row(
+            children: [
+              if (wide) _Sidebar(items: items, selectedId: selected.id, user: user, onSelect: _select, onSignOut: controller.signOut),
+              Expanded(
+                child: Column(
+                  children: [
+                    _TopBar(item: selected, user: user, wide: wide, onSignOut: controller.signOut),
+                    Expanded(child: AnimatedSwitcher(duration: const Duration(milliseconds: 180), child: KeyedSubtree(key: ValueKey(selected.id), child: _pageFor(selected.id)))),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: wide ? null : _MobileNavigation(items: items, selectedId: selected.id, onSelect: _select),
+      ),
     );
   }
 }
@@ -211,28 +222,96 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!wide) {
+      return Container(
+        height: 68,
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: AppColors.line)),
+        ),
+        child: Row(
+          children: [
+            Tooltip(
+              message: BrandConfig.appName,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: const LinearGradient(colors: [AppColors.blue, AppColors.teal]),
+                ),
+                child: const Icon(Icons.bubble_chart_rounded, color: Colors.white, size: 29),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                item.id == 'dashboard' ? 'Dashboard' : item.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: AppColors.ink, fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+            ),
+            if (user.can('notifications.read')) ...[
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.line),
+                ),
+                child: const NotificationBell(),
+              ),
+              const SizedBox(width: 9),
+            ],
+            PopupMenuButton<String>(
+              tooltip: 'Account menu',
+              onSelected: (value) {
+                if (value == 'signout') onSignOut();
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem<String>(
+                  value: 'profile',
+                  enabled: false,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 185),
+                    child: Text(user.email, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem<String>(
+                  value: 'signout',
+                  child: Row(children: [Icon(Icons.logout_rounded, size: 17), SizedBox(width: 9), Text('Sign out')]),
+                ),
+              ],
+              child: Container(
+                width: 45,
+                height: 45,
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.line, width: 1.5),
+                ),
+                child: ClipOval(child: PersonAvatar(name: user.fullName, size: 37)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       height: 74,
-      padding: EdgeInsets.symmetric(horizontal: wide ? 30 : 19),
+      padding: const EdgeInsets.symmetric(horizontal: 30),
       decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: AppColors.line))),
       child: Row(children: [
-        if (!wide) ...[
-          Container(width: 34, height: 34, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [AppColors.blue, AppColors.teal])), child: const Icon(Icons.bubble_chart_rounded, color: Colors.white, size: 20)),
-          const SizedBox(width: 10),
-          const Text(BrandConfig.appName, style: TextStyle(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.w800)),
-          const SizedBox(width: 12),
-          Container(width: 1, height: 24, color: AppColors.line),
-          const SizedBox(width: 12),
-        ],
-        if (wide) ...[
-          Text(item.title, style: const TextStyle(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.w800)),
-          const SizedBox(width: 9),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 17),
-        ],
-        Expanded(child: Text(wide ? 'People operations' : item.title, style: TextStyle(color: wide ? AppColors.muted : AppColors.ink, fontSize: wide ? 11 : 12, fontWeight: wide ? FontWeight.w500 : FontWeight.w700), overflow: TextOverflow.ellipsis)),
+        Text(item.title, style: const TextStyle(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.w800)),
+        const SizedBox(width: 9),
+        const Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 17),
+        const Expanded(child: Text('People operations', style: TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w500))),
         if (user.can('notifications.read')) const NotificationBell(),
-        if (wide)
-          Padding(padding: const EdgeInsets.only(right: 11), child: Text(user.primaryRole, style: const TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600))),
+        Padding(padding: const EdgeInsets.only(right: 11), child: Text(user.primaryRole, style: const TextStyle(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w600))),
         PersonAvatar(name: user.fullName, size: 37),
         PopupMenuButton<String>(
           tooltip: 'Account menu',
@@ -273,37 +352,51 @@ class _MobileNavigation extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 71,
-          child: Row(
+          height: 77,
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              _MobileNavButton(item: _find('dashboard'), selected: selectedId == 'dashboard', onSelect: onSelect),
-              _MobileNavButton(item: _find('leave'), selected: selectedId == 'leave', onSelect: onSelect),
-              _MobilePunchButton(
-                item: _find('attendance'),
-                selected: selectedId == 'attendance',
-                onPressed: _find('attendance') == null ? null : () => onSelect('attendance'),
-              ),
-              _MobileNavButton(item: _find('team'), selected: selectedId == 'team', onSelect: onSelect),
-              Expanded(
-                child: InkWell(
-                  onTap: () => _showMore(context, extra),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.apps_rounded, size: 21, color: moreSelected ? AppColors.blue : AppColors.muted),
-                      const SizedBox(height: 3),
-                      Text(
-                        'More',
-                        style: TextStyle(
-                          color: moreSelected ? AppColors.blue : AppColors.muted,
-                          fontSize: 9,
-                          fontWeight: moreSelected ? FontWeight.w700 : FontWeight.w500,
-                        ),
+              Row(
+                children: [
+                  _MobileNavButton(item: _find('dashboard'), selected: selectedId == 'dashboard', onSelect: onSelect),
+                  _MobileNavButton(item: _find('leave'), selected: selectedId == 'leave', onSelect: onSelect),
+                  const Expanded(child: SizedBox.shrink()),
+                  _MobileNavButton(item: _find('team'), selected: selectedId == 'team', onSelect: onSelect),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _showMore(context, extra),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.apps_rounded, size: 21, color: moreSelected ? AppColors.success : AppColors.muted),
+                          const SizedBox(height: 3),
+                          Text(
+                            'More',
+                            style: TextStyle(
+                              color: moreSelected ? AppColors.success : AppColors.muted,
+                              fontSize: 9,
+                              fontWeight: moreSelected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
+                  ),
+                ],
+              ),
+              if (_find('attendance') != null)
+                Positioned(
+                  top: -21,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: _MobilePunchButton(
+                      item: _find('attendance'),
+                      selected: selectedId == 'attendance',
+                      onPressed: () => onSelect('attendance'),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -396,17 +489,23 @@ class _MobileNavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (item == null) return const Expanded(child: SizedBox.shrink());
+    final color = selected ? AppColors.success : AppColors.muted;
+    final label = switch (item!.id) {
+      'dashboard' => 'Home',
+      'leave' => 'Leaves',
+      _ => 'Team',
+    };
     return Expanded(
       child: InkWell(
         onTap: () => onSelect(item!.id),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(item!.icon, size: 21, color: selected ? AppColors.blue : AppColors.muted),
+            Icon(item!.icon, size: 21, color: color),
             const SizedBox(height: 3),
             Text(
-              item!.id == 'dashboard' ? 'Home' : item!.id == 'leave' ? 'Leaves' : 'Team',
-              style: TextStyle(color: selected ? AppColors.blue : AppColors.muted, fontSize: 9, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
+              label,
+              style: TextStyle(color: color, fontSize: 9, fontWeight: selected ? FontWeight.w700 : FontWeight.w500),
             ),
           ],
         ),
@@ -424,27 +523,49 @@ class _MobilePunchButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (item == null) return const Expanded(child: SizedBox.shrink());
-    return Expanded(
-      child: InkWell(
-        onTap: onPressed,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 43,
-              height: 43,
-              decoration: BoxDecoration(
-                color: AppColors.blue,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: const [BoxShadow(color: Color(0x221E6FE0), blurRadius: 9, offset: Offset(0, 3))],
+    if (item == null) return const SizedBox.shrink();
+    return SizedBox(
+      width: 86,
+      height: 94,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(44),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Container(
+                width: 67,
+                height: 67,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x2210B98B), blurRadius: 16, spreadRadius: 2, offset: Offset(0, 4)),
+                  ],
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(colors: [Color(0xFF0B9B70), Color(0xFF10B98B)]),
+                  ),
+                  child: const Icon(Icons.fingerprint_rounded, color: Colors.white, size: 31),
+                ),
               ),
-              child: const Icon(Icons.fingerprint_rounded, color: Colors.white, size: 24),
-            ),
-            const SizedBox(height: 1),
-            Text('Punch', style: TextStyle(color: selected ? AppColors.blue : AppColors.ink, fontSize: 9, fontWeight: FontWeight.w700)),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                'Punch',
+                style: TextStyle(
+                  color: selected ? AppColors.success : AppColors.ink,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
