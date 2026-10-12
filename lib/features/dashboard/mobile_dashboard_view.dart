@@ -168,9 +168,9 @@ class _DashboardGreeting extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 7),
-          Text(
+          const Text(
             'Welcome to ${BrandConfig.productName}',
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.muted,
               fontSize: 13,
               fontWeight: FontWeight.w500,

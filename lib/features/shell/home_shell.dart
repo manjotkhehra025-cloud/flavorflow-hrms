@@ -547,12 +547,12 @@ class _MobilePunchButton extends StatelessWidget {
                   ],
                   border: Border.all(color: Colors.white, width: 2),
                 ),
-                child: DecoratedBox(
-                  decoration: const BoxDecoration(
+                child: const DecoratedBox(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(colors: [Color(0xFF0B9B70), Color(0xFF10B98B)]),
                   ),
-                  child: const Icon(Icons.fingerprint_rounded, color: Colors.white, size: 31),
+                  child: Icon(Icons.fingerprint_rounded, color: Colors.white, size: 31),
                 ),
               ),
               const SizedBox(height: 2),
