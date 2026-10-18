@@ -6,6 +6,8 @@
 
     <application
         android:label="FlavorFlow HRMS"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true">
         <activity

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../core/api_client.dart';
 import '../../core/app_scope.dart';
 import '../../core/brand_config.dart';
+import '../../core/brand_logo.dart';
 import '../../core/json_helpers.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
@@ -168,7 +169,7 @@ class _Sidebar extends StatelessWidget {
       width: 258,
       color: AppColors.navy,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(padding: const EdgeInsets.fromLTRB(22, 25, 18, 24), child: Row(children: [Container(width: 39, height: 39, decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), gradient: const LinearGradient(colors: [AppColors.blue, AppColors.teal])), child: const Icon(Icons.bubble_chart_rounded, color: Colors.white, size: 22)), const SizedBox(width: 11), const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(BrandConfig.appName, style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)), Text('PEOPLE PLATFORM', style: TextStyle(color: Color(0xFF91A7BB), fontSize: 8, fontWeight: FontWeight.w700, letterSpacing: 1.2))])])),
+        Padding(padding: const EdgeInsets.fromLTRB(22, 25, 18, 24), child: Row(children: [const BrandLogo(size: 39, borderRadius: 14), const SizedBox(width: 11), const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(BrandConfig.appName, style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)), Text('PEOPLE PLATFORM', style: TextStyle(color: Color(0xFF91A7BB), fontSize: 8, fontWeight: FontWeight.w700, letterSpacing: 1.2))])])),
         const Padding(padding: EdgeInsets.fromLTRB(23, 0, 18, 11), child: Text('WORKSPACE', style: TextStyle(color: Color(0xFF7F97AB), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.1))),
         Expanded(
           child: ListView.separated(
@@ -234,15 +235,7 @@ class _TopBar extends StatelessWidget {
           children: [
             Tooltip(
               message: BrandConfig.appName,
-              child: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: const LinearGradient(colors: [AppColors.blue, AppColors.teal]),
-                ),
-                child: const Icon(Icons.bubble_chart_rounded, color: Colors.white, size: 29),
-              ),
+              child: const BrandLogo(size: 48, borderRadius: 16),
             ),
             const SizedBox(width: 12),
             Expanded(

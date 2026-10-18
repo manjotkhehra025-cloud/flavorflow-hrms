@@ -711,21 +711,7 @@ class _FlavorFlowLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * 0.25),
-        gradient: const LinearGradient(
-          colors: [AppColors.blue, AppColors.teal],
-        ),
-      ),
-      child: Icon(
-        Icons.bubble_chart_rounded,
-        color: Colors.white,
-        size: size * 0.52,
-      ),
-    );
+    return BrandLogo(size: size, borderRadius: size * 0.25);
   }
 }
 

@@ -348,7 +348,7 @@ class _BadgeFront extends StatelessWidget {
       padding: const EdgeInsets.all(19),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Container(width: 31, height: 31, decoration: BoxDecoration(borderRadius: BorderRadius.circular(11), gradient: const LinearGradient(colors: [AppColors.blue, AppColors.teal])), child: const Icon(Icons.bubble_chart_rounded, color: Colors.white, size: 19)),
+          const BrandLogo(size: 31, borderRadius: 11),
           const SizedBox(width: 9),
           const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('FlavorFlow', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
@@ -805,6 +805,12 @@ String _formatDateAndTime(DateTime value) => '${_dateString(value)} · ${value.h
 String _dateString(DateTime value) => '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 String _titleCase(String value) => value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';
 String _passTypeLabel(String value) => switch (value) {
+      'personal_exit' => 'Personal exit pass',
+      'official_duty' => 'Official duty pass',
+      'visitor' => 'Visitor / guest pass',
+      _ => _titleCase(value.replaceAll('_', ' ')),
+    };
+g _passTypeLabel(String value) => switch (value) {
       'personal_exit' => 'Personal exit pass',
       'official_duty' => 'Official duty pass',
       'visitor' => 'Visitor / guest pass',
