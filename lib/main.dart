@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/app_controller.dart';
 import 'core/app_scope.dart';
 import 'core/brand_config.dart';
+import 'core/brand_logo.dart';
 import 'core/session_inactivity_guard.dart';
 import 'core/theme.dart';
 import 'features/auth/login_screen.dart';

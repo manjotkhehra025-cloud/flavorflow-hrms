@@ -169,7 +169,37 @@ class _Sidebar extends StatelessWidget {
       width: 258,
       color: AppColors.navy,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(padding: const EdgeInsets.fromLTRB(22, 25, 18, 24), child: Row(children: [const BrandLogo(size: 39, borderRadius: 14), const SizedBox(width: 11), const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(BrandConfig.appName, style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)), Text('PEOPLE PLATFORM', style: TextStyle(color: Color(0xFF91A7BB), fontSize: 8, fontWeight: FontWeight.w700, letterSpacing: 1.2))])])),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(22, 25, 18, 24),
+          child: Row(
+            children: [
+              BrandLogo(size: 39, borderRadius: 14),
+              SizedBox(width: 11),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    BrandConfig.appName,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    'PEOPLE PLATFORM',
+                    style: TextStyle(
+                      color: Color(0xFF91A7BB),
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
         const Padding(padding: EdgeInsets.fromLTRB(23, 0, 18, 11), child: Text('WORKSPACE', style: TextStyle(color: Color(0xFF7F97AB), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.1))),
         Expanded(
           child: ListView.separated(
@@ -233,9 +263,9 @@ class _TopBar extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Tooltip(
+            const Tooltip(
               message: BrandConfig.appName,
-              child: const BrandLogo(size: 48, borderRadius: 16),
+              child: BrandLogo(size: 48, borderRadius: 16),
             ),
             const SizedBox(width: 12),
             Expanded(

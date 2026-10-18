@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_scope.dart';
+import '../../core/brand_logo.dart';
 import '../../core/theme.dart';
 
 class LoginScreen extends StatefulWidget {

@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 
 import '../../core/api_client.dart';
 import '../../core/app_scope.dart';
+import '../../core/brand_logo.dart';
 import '../../core/json_helpers.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -805,12 +806,6 @@ String _formatDateAndTime(DateTime value) => '${_dateString(value)} · ${value.h
 String _dateString(DateTime value) => '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 String _titleCase(String value) => value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';
 String _passTypeLabel(String value) => switch (value) {
-      'personal_exit' => 'Personal exit pass',
-      'official_duty' => 'Official duty pass',
-      'visitor' => 'Visitor / guest pass',
-      _ => _titleCase(value.replaceAll('_', ' ')),
-    };
-g _passTypeLabel(String value) => switch (value) {
       'personal_exit' => 'Personal exit pass',
       'official_duty' => 'Official duty pass',
       'visitor' => 'Visitor / guest pass',
