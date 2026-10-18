@@ -96,16 +96,16 @@ class _SplashScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.navy,
       body: Center(
-        child: Column(
+        child: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const BrandLogo(size: 62, borderRadius: 21),
-            const SizedBox(height: 18),
-            const Text(BrandConfig.appName, style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 5),
-            const Text('People, connected.', style: TextStyle(color: Color(0xFFAFC0D2), fontSize: 13)),
-            const SizedBox(height: 25),
-            const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.teal)),
+            BrandLogo(size: 62, borderRadius: 21),
+            SizedBox(height: 18),
+            Text(BrandConfig.appName, style: TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800)),
+            SizedBox(height: 5),
+            Text('People, connected.', style: TextStyle(color: Color(0xFFAFC0D2), fontSize: 13)),
+            SizedBox(height: 25),
+            SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.teal)),
           ],
         ),
       ),
