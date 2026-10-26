@@ -1,0 +1,29 @@
+name: ihrms
+description: "iHRMS - employee self-service HR app (attendance, leave, payslips, holidays, announcements, admin)."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.5+1
+  intl: ^0.20.2
+
+  # Add later (see README "Next steps"):
+  # firebase_core, firebase_auth, cloud_firestore  -> real backend
+  # geolocator                                     -> GPS punch / geo-fence
+  # image_picker                                   -> selfie punch
+  # pdf, printing                                  -> payslip PDF
+  # firebase_messaging                             -> push notifications
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
