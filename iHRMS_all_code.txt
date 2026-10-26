@@ -1,0 +1,4853 @@
+iHRMS – complete Flutter source code (61 files)
+Each file below starts with a line "===== FILE: <path> =====". Recreate each file at that path.
+Then, in the project folder, run:  flutter create --org com.ihrms.app --project-name ihrms .   (adds android/ios/web folders)
+and then:  flutter pub get  &&  flutter run
+Demo logins: EMP001 / emp123 (employee), ADM001 / admin123 (admin)
+
+
+===== FILE: README.md =====
+# iHRMS – Employee Self-Service HR App (Flutter starter)
+
+iHRMS is a company HR app in the style of HROne. It is a **starter project**: every screen works,
+using sample (mock) data stored in memory. Next you connect a real backend (Firebase or your own API).
+
+* Flutter 3 / Dart 3 (null-safe), Material 3, blue theme, amounts in INR (₹)
+* State management: `provider`
+* Data layer: repository interfaces plus mock implementations, so a real backend plugs in later
+* Platforms: Android, iOS, Web
+
+Verified on Flutter 3.47.8 (Dart 3.13): `flutter analyze` reports no issues, `flutter test` passes
+(this includes a smoke test that opens every screen), and `flutter build web` succeeds.
+
+## Demo logins
+
+| Role     | Employee ID | Password |
+|----------|-------------|----------|
+| Employee | EMP001      | emp123   |
+| Admin/HR | ADM001      | admin123 |
+
+EMP002 to EMP005 also work, with the password `emp123`. The login screen has buttons that fill these in for you.
+The data resets every time the app restarts. That is expected for mock data.
+
+## Run it
+
+```bash
+flutter pub get
+flutter run              # pick a connected phone, emulator, or Chrome
+flutter run -d chrome    # run in the browser
+flutter analyze && flutter test
+```
+
+Build:
+
+```bash
+flutter build apk --release        # Android APK  -> build/app/outputs/flutter-apk/app-release.apk
+flutter build appbundle            # Android App Bundle (for Play Store)
+flutter build ios --release        # iOS (needs a Mac with Xcode + Apple developer account)
+flutter build web                  # Web
+```
+
+## Features
+
+| Area | What works now |
+|------|----------------|
+| Splash and login | Employee ID and password, mock authentication, employee or admin role |
+| Dashboard | Greeting, live clock, today's punch status, quick-action tiles, leave balance, last salary, next holiday, latest announcement |
+| Attendance | Punch in and punch out with time and hours worked, a monthly calendar coloured by status, monthly summary, day-by-day history |
+| Leave | Balance cards (CL, SL, EL), apply with type, date range and reason (Sundays are not counted), status list, cancel a pending request |
+| Payslips | List of months, detail view with earnings, deductions and net pay (PF, ESI, Professional Tax, TDS), a "Download PDF" stub |
+| Holidays | Yearly list with the next holiday highlighted |
+| Announcements | List with pinned items; admins can post and delete |
+| Profile | Work and personal details, change password, logout |
+| Admin | Employee list with search, add and edit an employee (role, salary, active), leave approvals (approve or reject with a comment), daily attendance report |
+
+## Project structure
+
+```
+lib/
+  main.dart                      app entry point
+  app.dart                       MaterialApp + theme
+  app_providers.dart             registers all providers
+  core/                          theme, INR/date formatters, errors, navigation helper
+  models/                        Employee, AttendanceRecord, LeaveRequest/LeaveBalance, Payslip, Holiday, Announcement
+  repositories/
+    *_repository.dart            ABSTRACT interfaces (the contract the app uses)
+    repository_factory.dart      <-- THE ONE PLACE TO SWITCH TO A REAL BACKEND
+    mock/                        in-memory mock implementations + sample data (mock_database.dart)
+  services/
+    punch_verification_service.dart   GPS / geo-fence / selfie hooks (TODO)
+  providers/                     ChangeNotifier state for auth, attendance, leave, payslips, employees, content
+  screens/                       one folder per feature (auth, dashboard, attendance, leave, payslip, holidays,
+                                 announcements, profile, more, admin)
+  widgets/                       reusable widgets (punch card, leave balance card, status chips...)
+test/                            unit test + smoke test that opens every screen
+```
+
+## Connecting a real backend
+
+The screens and providers only use the abstract repositories in `lib/repositories/`.
+To go live:
+
+1. Create implementations, for example `lib/repositories/firebase/firebase_auth_repository.dart`
+   containing `class FirebaseAuthRepository implements AuthRepository`. Do the same for
+   Employee, Attendance, Leave, Payslip and Content.
+2. Return them from `buildRepositories()` in `lib/repositories/repository_factory.dart`.
+3. No screen or provider has to change.
+
+Suggested Firebase layout:
+
+* **Auth:** Firebase Auth. Map the employee ID to an email such as `emp001@yourcompany.com`, or use a Cloud Function.
+* **Firestore collections:**
+  * `employees/{id}`: profile fields plus `role` (`employee` or `admin`)
+  * `attendance/{employeeId}_{yyyy-MM-dd}`: punchIn, punchOut, location, selfieUrl
+  * `leaves/{id}`: employeeId, type, fromDate, toDate, reason, status, approverComment
+  * `payslips/{id}`: employeeId, month, earnings[], deductions[]
+  * `holidays/{id}` and `announcements/{id}`
+* Add security rules so employees can read and write only their own data and admins can access everything.
+
+Do not put real API keys or passwords in the code. Use `flutterfire configure`, which generates `firebase_options.dart`.
+
+## Next steps (TODO hooks already in the code)
+
+Search the code for `TODO(` to find each one:
+
+* `TODO(geo)` / `TODO(geo-fence)`: real GPS punch with `geolocator`, plus an office-radius check, in `services/punch_verification_service.dart`
+* `TODO(selfie)`: selfie at punch-in with `image_picker`, uploaded to storage
+* `TODO(pdf)`: payslip PDF with the `pdf` and `printing` packages, in `mock_payslip_repository.dart` and `payslip_detail_screen.dart`
+* `TODO(push)`: push notifications (leave approved or rejected, new announcement) with `firebase_messaging`
+* `TODO(export)`: export the attendance report to Excel or CSV
+* Remove the demo-login box on the login screen
+* App icon and splash: `flutter_launcher_icons`, `flutter_native_splash`
+* Android and iOS permissions for location and camera (AndroidManifest.xml, Info.plist)
+
+===== FILE: pubspec.yaml =====
+name: ihrms
+description: "iHRMS - employee self-service HR app (attendance, leave, payslips, holidays, announcements, admin)."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.5+1
+  intl: ^0.20.2
+
+  # Add later (see README "Next steps"):
+  # firebase_core, firebase_auth, cloud_firestore  -> real backend
+  # geolocator                                     -> GPS punch / geo-fence
+  # image_picker                                   -> selfie punch
+  # pdf, printing                                  -> payslip PDF
+  # firebase_messaging                             -> push notifications
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+===== FILE: analysis_options.yaml =====
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+#
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+# invoked from the command line by running `flutter analyze`.
+
+# The following line activates a set of recommended lints for Flutter apps,
+# packages, and plugins designed to encourage good coding practices.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+
+linter:
+  # The lint rules applied to this project can be customized in the
+  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
+  # included above or to enable additional rules. A list of all available lints
+  # and their documentation is published at https://dart.dev/lints.
+  #
+  # Instead of disabling a lint rule for the entire project in the
+  # section below, it can also be suppressed for a single line of code
+  # or a specific dart file by using the `// ignore: name_of_lint` and
+  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
+  # producing the lint.
+  rules:
+    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
+    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+
+# Additional information about this file can be found at
+# https://dart.dev/guides/language/analysis-options
+
+===== FILE: lib/app.dart =====
+import 'package:flutter/material.dart';
+
+import 'core/theme.dart';
+import 'screens/splash/splash_screen.dart';
+
+class IhrmsApp extends StatelessWidget {
+  const IhrmsApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'iHRMS',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      home: const SplashScreen(),
+    );
+  }
+}
+
+===== FILE: lib/app_providers.dart =====
+import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
+
+import 'providers/attendance_provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/content_provider.dart';
+import 'providers/employee_provider.dart';
+import 'providers/leave_provider.dart';
+import 'providers/payslip_provider.dart';
+import 'repositories/repository_factory.dart';
+
+/// Wires every repository and provider into the widget tree.
+class AppProviders extends StatelessWidget {
+  const AppProviders({super.key, required this.repositories, required this.child});
+  final Repositories repositories;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final repos = repositories;
+    return MultiProvider(
+      providers: [
+        Provider<Repositories>.value(value: repos),
+        ChangeNotifierProvider(create: (_) => AuthProvider(repos.auth)),
+        ChangeNotifierProvider(create: (_) => AttendanceProvider(repos.attendance)),
+        ChangeNotifierProvider(create: (_) => LeaveProvider(repos.leave)),
+        ChangeNotifierProvider(create: (_) => PayslipProvider(repos.payslips)),
+        ChangeNotifierProvider(create: (_) => EmployeeProvider(repos.employees)),
+        ChangeNotifierProvider(create: (_) => ContentProvider(repos.content)),
+      ],
+      child: child,
+    );
+  }
+}
+
+===== FILE: lib/core/app_exception.dart =====
+/// A simple, user-friendly error used across the app.
+class AppException implements Exception {
+  const AppException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+===== FILE: lib/core/formatters.dart =====
+import 'package:intl/intl.dart';
+
+/// Formatting helpers (INR currency, dates, times).
+class Fmt {
+  Fmt._();
+
+  static final NumberFormat _inr =
+      NumberFormat.currency(locale: 'en_IN', symbol: '\u20B9', decimalDigits: 0);
+  static final NumberFormat _inr2 =
+      NumberFormat.currency(locale: 'en_IN', symbol: '\u20B9', decimalDigits: 2);
+
+  /// e.g. 1,25,000 -> "\u20B91,25,000"
+  static String inr(num value) => _inr.format(value);
+  static String inrPrecise(num value) => _inr2.format(value);
+
+  static String date(DateTime d) => DateFormat('dd MMM yyyy').format(d);
+  static String shortDate(DateTime d) => DateFormat('dd MMM').format(d);
+  static String weekday(DateTime d) => DateFormat('EEE').format(d);
+  static String fullDay(DateTime d) => DateFormat('EEEE, dd MMM yyyy').format(d);
+  static String month(DateTime d) => DateFormat('MMMM yyyy').format(d);
+  static String time(DateTime? d) =>
+      d == null ? '--:--' : DateFormat('hh:mm a').format(d);
+
+  static String duration(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    return '${h}h ${m}m';
+  }
+}
+
+/// Strips the time part of a [DateTime].
+DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+bool isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+String dateKey(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+===== FILE: lib/core/nav.dart =====
+import 'package:flutter/material.dart';
+
+Future<T?> pushScreen<T>(BuildContext context, Widget screen) {
+  return Navigator.of(context).push<T>(MaterialPageRoute(builder: (_) => screen));
+}
+
+===== FILE: lib/core/theme.dart =====
+import 'package:flutter/material.dart';
+
+/// Clean, professional blue theme (Material 3).
+class AppTheme {
+  AppTheme._();
+
+  static const Color primary = Color(0xFF1565C0);
+  static const Color primaryDark = Color(0xFF0D47A1);
+  static const Color background = Color(0xFFF4F6FA);
+
+  static const Color success = Color(0xFF2E7D32);
+  static const Color warning = Color(0xFFEF6C00);
+  static const Color danger = Color(0xFFC62828);
+  static const Color info = Color(0xFF0277BD);
+  static const Color muted = Color(0xFF78909C);
+
+  static ThemeData light() {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: primary,
+      primary: primary,
+      brightness: Brightness.light,
+    );
+    final rounded = RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: background,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(minimumSize: const Size(64, 48), shape: rounded),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 48), shape: rounded),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.white,
+        indicatorColor: scheme.primaryContainer,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      ),
+    );
+  }
+}
+
+===== FILE: lib/main.dart =====
+import 'package:flutter/material.dart';
+
+import 'app.dart';
+import 'app_providers.dart';
+import 'repositories/repository_factory.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Swap mock data for a real backend inside buildRepositories().
+  final repos = buildRepositories();
+
+  runApp(AppProviders(repositories: repos, child: const IhrmsApp()));
+}
+
+===== FILE: lib/models/announcement.dart =====
+class Announcement {
+  const Announcement({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.date,
+    required this.author,
+    this.pinned = false,
+  });
+
+  final String id;
+  final String title;
+  final String body;
+  final DateTime date;
+  final String author;
+  final bool pinned;
+}
+
+===== FILE: lib/models/attendance.dart =====
+enum AttendanceStatus { present, absent, leave, holiday, weekend, notMarked }
+
+extension AttendanceStatusX on AttendanceStatus {
+  String get label {
+    switch (this) {
+      case AttendanceStatus.present:
+        return 'Present';
+      case AttendanceStatus.absent:
+        return 'Absent';
+      case AttendanceStatus.leave:
+        return 'On Leave';
+      case AttendanceStatus.holiday:
+        return 'Holiday';
+      case AttendanceStatus.weekend:
+        return 'Week Off';
+      case AttendanceStatus.notMarked:
+        return 'Not Marked';
+    }
+  }
+}
+
+/// GPS position captured at punch time.
+/// TODO(geo): fill this from the device GPS (e.g. the `geolocator` package).
+class PunchLocation {
+  const PunchLocation({required this.latitude, required this.longitude, this.accuracyMeters});
+  final double latitude;
+  final double longitude;
+  final double? accuracyMeters;
+}
+
+class AttendanceRecord {
+  const AttendanceRecord({
+    required this.employeeId,
+    required this.date,
+    required this.status,
+    this.punchIn,
+    this.punchOut,
+    this.punchInLocation,
+    this.punchOutLocation,
+    this.selfieUrl,
+    this.note,
+  });
+
+  final String employeeId;
+
+  /// The calendar day (time part is ignored).
+  final DateTime date;
+  final AttendanceStatus status;
+  final DateTime? punchIn;
+  final DateTime? punchOut;
+  final PunchLocation? punchInLocation;
+  final PunchLocation? punchOutLocation;
+
+  /// TODO(selfie): URL/path of the selfie captured at punch-in.
+  final String? selfieUrl;
+  final String? note;
+
+  bool get hasPunchedIn => punchIn != null;
+  bool get hasPunchedOut => punchOut != null;
+  bool get isWorking => punchIn != null && punchOut == null;
+
+  Duration get workedDuration {
+    if (punchIn == null) return Duration.zero;
+    final end = punchOut ?? DateTime.now();
+    final d = end.difference(punchIn!);
+    return d.isNegative ? Duration.zero : d;
+  }
+
+  AttendanceRecord copyWith({
+    AttendanceStatus? status,
+    DateTime? punchIn,
+    DateTime? punchOut,
+    PunchLocation? punchInLocation,
+    PunchLocation? punchOutLocation,
+    String? selfieUrl,
+    String? note,
+  }) {
+    return AttendanceRecord(
+      employeeId: employeeId,
+      date: date,
+      status: status ?? this.status,
+      punchIn: punchIn ?? this.punchIn,
+      punchOut: punchOut ?? this.punchOut,
+      punchInLocation: punchInLocation ?? this.punchInLocation,
+      punchOutLocation: punchOutLocation ?? this.punchOutLocation,
+      selfieUrl: selfieUrl ?? this.selfieUrl,
+      note: note ?? this.note,
+    );
+  }
+}
+
+===== FILE: lib/models/employee.dart =====
+enum UserRole { employee, admin }
+
+extension UserRoleX on UserRole {
+  String get label => this == UserRole.admin ? 'Admin / HR' : 'Employee';
+}
+
+class Employee {
+  const Employee({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.department,
+    required this.designation,
+    required this.joiningDate,
+    required this.monthlyCtc,
+    this.role = UserRole.employee,
+    this.managerName,
+    this.address,
+    this.bloodGroup,
+    this.isActive = true,
+  });
+
+  /// Employee code used to log in, e.g. EMP001.
+  final String id;
+  final String name;
+  final String email;
+  final String phone;
+  final String department;
+  final String designation;
+  final DateTime joiningDate;
+
+  /// Monthly gross salary in INR (used by the mock payslip generator).
+  final double monthlyCtc;
+  final UserRole role;
+  final String? managerName;
+  final String? address;
+  final String? bloodGroup;
+  final bool isActive;
+
+  bool get isAdmin => role == UserRole.admin;
+
+  String get firstName => name.split(' ').first;
+
+  String get initials {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts.first[0] + parts.last[0]).toUpperCase();
+  }
+
+  Employee copyWith({
+    String? name,
+    String? email,
+    String? phone,
+    String? department,
+    String? designation,
+    DateTime? joiningDate,
+    double? monthlyCtc,
+    UserRole? role,
+    String? managerName,
+    String? address,
+    String? bloodGroup,
+    bool? isActive,
+  }) {
+    return Employee(
+      id: id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      department: department ?? this.department,
+      designation: designation ?? this.designation,
+      joiningDate: joiningDate ?? this.joiningDate,
+      monthlyCtc: monthlyCtc ?? this.monthlyCtc,
+      role: role ?? this.role,
+      managerName: managerName ?? this.managerName,
+      address: address ?? this.address,
+      bloodGroup: bloodGroup ?? this.bloodGroup,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'department': department,
+        'designation': designation,
+        'joiningDate': joiningDate.toIso8601String(),
+        'monthlyCtc': monthlyCtc,
+        'role': role.name,
+        'managerName': managerName,
+        'address': address,
+        'bloodGroup': bloodGroup,
+        'isActive': isActive,
+      };
+
+  factory Employee.fromJson(Map<String, dynamic> json) => Employee(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        email: json['email'] as String? ?? '',
+        phone: json['phone'] as String? ?? '',
+        department: json['department'] as String? ?? '',
+        designation: json['designation'] as String? ?? '',
+        joiningDate: DateTime.parse(json['joiningDate'] as String),
+        monthlyCtc: (json['monthlyCtc'] as num?)?.toDouble() ?? 0,
+        role: UserRole.values.byName(json['role'] as String? ?? 'employee'),
+        managerName: json['managerName'] as String?,
+        address: json['address'] as String?,
+        bloodGroup: json['bloodGroup'] as String?,
+        isActive: json['isActive'] as bool? ?? true,
+      );
+}
+
+===== FILE: lib/models/holiday.dart =====
+enum HolidayType { national, festival, optional }
+
+extension HolidayTypeX on HolidayType {
+  String get label {
+    switch (this) {
+      case HolidayType.national:
+        return 'National';
+      case HolidayType.festival:
+        return 'Festival';
+      case HolidayType.optional:
+        return 'Optional';
+    }
+  }
+}
+
+class Holiday {
+  const Holiday({required this.name, required this.date, this.type = HolidayType.festival});
+  final String name;
+  final DateTime date;
+  final HolidayType type;
+}
+
+===== FILE: lib/models/leave.dart =====
+enum LeaveType { casual, sick, earned, unpaid }
+
+extension LeaveTypeX on LeaveType {
+  String get label {
+    switch (this) {
+      case LeaveType.casual:
+        return 'Casual Leave';
+      case LeaveType.sick:
+        return 'Sick Leave';
+      case LeaveType.earned:
+        return 'Earned Leave';
+      case LeaveType.unpaid:
+        return 'Leave Without Pay';
+    }
+  }
+
+  String get short {
+    switch (this) {
+      case LeaveType.casual:
+        return 'CL';
+      case LeaveType.sick:
+        return 'SL';
+      case LeaveType.earned:
+        return 'EL';
+      case LeaveType.unpaid:
+        return 'LWP';
+    }
+  }
+
+  /// Paid leave types have a yearly quota.
+  bool get hasQuota => this != LeaveType.unpaid;
+}
+
+enum LeaveStatus { pending, approved, rejected, cancelled }
+
+extension LeaveStatusX on LeaveStatus {
+  String get label {
+    switch (this) {
+      case LeaveStatus.pending:
+        return 'Pending';
+      case LeaveStatus.approved:
+        return 'Approved';
+      case LeaveStatus.rejected:
+        return 'Rejected';
+      case LeaveStatus.cancelled:
+        return 'Cancelled';
+    }
+  }
+}
+
+class LeaveRequest {
+  const LeaveRequest({
+    required this.id,
+    required this.employeeId,
+    required this.employeeName,
+    required this.type,
+    required this.fromDate,
+    required this.toDate,
+    required this.reason,
+    required this.appliedOn,
+    this.status = LeaveStatus.pending,
+    this.approverComment,
+  });
+
+  final String id;
+  final String employeeId;
+  final String employeeName;
+  final LeaveType type;
+  final DateTime fromDate;
+  final DateTime toDate;
+  final String reason;
+  final DateTime appliedOn;
+  final LeaveStatus status;
+  final String? approverComment;
+
+  /// Number of leave days (Sundays are not counted).
+  int get days => countLeaveDays(fromDate, toDate);
+
+  bool covers(DateTime day) {
+    final d = DateTime(day.year, day.month, day.day);
+    final from = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    final to = DateTime(toDate.year, toDate.month, toDate.day);
+    return !d.isBefore(from) && !d.isAfter(to);
+  }
+
+  LeaveRequest copyWith({LeaveStatus? status, String? approverComment}) {
+    return LeaveRequest(
+      id: id,
+      employeeId: employeeId,
+      employeeName: employeeName,
+      type: type,
+      fromDate: fromDate,
+      toDate: toDate,
+      reason: reason,
+      appliedOn: appliedOn,
+      status: status ?? this.status,
+      approverComment: approverComment ?? this.approverComment,
+    );
+  }
+}
+
+int countLeaveDays(DateTime from, DateTime to) {
+  var d = DateTime(from.year, from.month, from.day);
+  final end = DateTime(to.year, to.month, to.day);
+  var count = 0;
+  while (!d.isAfter(end)) {
+    if (d.weekday != DateTime.sunday) count++;
+    d = DateTime(d.year, d.month, d.day + 1);
+  }
+  return count;
+}
+
+class LeaveBalance {
+  const LeaveBalance({required this.type, required this.total, required this.used, this.pending = 0});
+  final LeaveType type;
+  final double total;
+  final double used;
+  final double pending;
+
+  double get available => (total - used).clamp(0, total).toDouble();
+}
+
+===== FILE: lib/models/models.dart =====
+export 'announcement.dart';
+export 'attendance.dart';
+export 'employee.dart';
+export 'holiday.dart';
+export 'leave.dart';
+export 'payslip.dart';
+
+===== FILE: lib/models/payslip.dart =====
+class PayItem {
+  const PayItem(this.label, this.amount);
+  final String label;
+  final double amount;
+}
+
+class Payslip {
+  const Payslip({
+    required this.id,
+    required this.employeeId,
+    required this.month,
+    required this.earnings,
+    required this.deductions,
+    required this.workingDays,
+    required this.paidDays,
+    this.bankAccountMasked,
+  });
+
+  final String id;
+  final String employeeId;
+
+  /// First day of the pay month.
+  final DateTime month;
+  final List<PayItem> earnings;
+  final List<PayItem> deductions;
+  final int workingDays;
+  final double paidDays;
+  final String? bankAccountMasked;
+
+  double get grossEarnings => earnings.fold(0, (sum, e) => sum + e.amount);
+  double get totalDeductions => deductions.fold(0, (sum, e) => sum + e.amount);
+  double get netPay => grossEarnings - totalDeductions;
+}
+
+===== FILE: lib/providers/attendance_provider.dart =====
+import 'package:flutter/foundation.dart';
+
+import '../core/app_exception.dart';
+import '../models/attendance.dart';
+import '../repositories/attendance_repository.dart';
+import '../services/punch_verification_service.dart';
+
+class AttendanceProvider extends ChangeNotifier {
+  AttendanceProvider(this._repo, {PunchVerificationService? verification})
+      : _verification = verification ?? const PunchVerificationService();
+
+  final AttendanceRepository _repo;
+  final PunchVerificationService _verification;
+
+  String? _employeeId;
+  AttendanceRecord? _today;
+  List<AttendanceRecord> _month = [];
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  bool _loading = false;
+  bool _punching = false;
+
+  AttendanceRecord? get today => _today;
+  List<AttendanceRecord> get monthRecords => _month;
+  DateTime get selectedMonth => _selectedMonth;
+  bool get loading => _loading;
+  bool get punching => _punching;
+
+  bool get isCurrentMonth {
+    final now = DateTime.now();
+    return _selectedMonth.year == now.year && _selectedMonth.month == now.month;
+  }
+
+  Map<AttendanceStatus, int> get monthSummary {
+    final map = <AttendanceStatus, int>{};
+    for (final r in _month) {
+      map[r.status] = (map[r.status] ?? 0) + 1;
+    }
+    return map;
+  }
+
+  Duration get monthWorked =>
+      _month.fold(Duration.zero, (sum, r) => sum + r.workedDuration);
+
+  Future<void> load(String employeeId) async {
+    _employeeId = employeeId;
+    _loading = true;
+    notifyListeners();
+    try {
+      _today = await _repo.getToday(employeeId);
+      _month = await _repo.getMonth(employeeId, _selectedMonth.year, _selectedMonth.month);
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> changeMonth(int delta) async {
+    final next = DateTime(_selectedMonth.year, _selectedMonth.month + delta);
+    final now = DateTime.now();
+    if (next.isAfter(DateTime(now.year, now.month))) return;
+    _selectedMonth = next;
+    final id = _employeeId;
+    if (id != null) await load(id);
+  }
+
+  /// Punches in, or out if already punched in. Returns an error message or null.
+  Future<String?> punch() async {
+    final id = _employeeId;
+    if (id == null) return 'Not logged in';
+    _punching = true;
+    notifyListeners();
+    try {
+      // --- Location / geo-fence hook -------------------------------------
+      final location = await _verification.getCurrentLocation();
+      if (!_verification.isInsideOffice(location)) {
+        return 'You are outside the office area. Punch not allowed.';
+      }
+      if (_today == null || !_today!.hasPunchedIn) {
+        // --- Selfie hook ---------------------------------------------------
+        final selfie = await _verification.captureSelfie();
+        _today = await _repo.punchIn(id, location: location, selfieUrl: selfie);
+      } else if (!_today!.hasPunchedOut) {
+        _today = await _repo.punchOut(id, location: location);
+      } else {
+        return 'You have already completed today\'s attendance';
+      }
+      if (isCurrentMonth) {
+        _month = await _repo.getMonth(id, _selectedMonth.year, _selectedMonth.month);
+      }
+      return null;
+    } on AppException catch (e) {
+      return e.message;
+    } finally {
+      _punching = false;
+      notifyListeners();
+    }
+  }
+
+  void clear() {
+    _employeeId = null;
+    _today = null;
+    _month = [];
+    _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  }
+}
+
+===== FILE: lib/providers/auth_provider.dart =====
+import 'package:flutter/foundation.dart';
+
+import '../core/app_exception.dart';
+import '../models/employee.dart';
+import '../repositories/auth_repository.dart';
+
+class AuthProvider extends ChangeNotifier {
+  AuthProvider(this._repo);
+  final AuthRepository _repo;
+
+  Employee? _user;
+  bool _loading = false;
+  String? _error;
+
+  Employee? get user => _user;
+  bool get isLoggedIn => _user != null;
+  bool get isAdmin => _user?.isAdmin ?? false;
+  bool get loading => _loading;
+  String? get error => _error;
+
+  Future<void> restoreSession() async {
+    _user = await _repo.currentUser();
+    notifyListeners();
+  }
+
+  Future<bool> login(String employeeId, String password) async {
+    _loading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _user = await _repo.login(employeeId: employeeId, password: password);
+      return true;
+    } on AppException catch (e) {
+      _error = e.message;
+      return false;
+    } catch (_) {
+      _error = 'Something went wrong. Please try again.';
+      return false;
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> logout() async {
+    await _repo.logout();
+    _user = null;
+    notifyListeners();
+  }
+
+  /// Keep the session user in sync after an admin edits their own profile.
+  void refreshUser(Employee updated) {
+    if (_user?.id == updated.id) {
+      _user = updated;
+      notifyListeners();
+    }
+  }
+
+  Future<String?> changePassword(String oldPassword, String newPassword) async {
+    final u = _user;
+    if (u == null) return 'Not logged in';
+    try {
+      await _repo.changePassword(employeeId: u.id, oldPassword: oldPassword, newPassword: newPassword);
+      return null;
+    } on AppException catch (e) {
+      return e.message;
+    }
+  }
+}
+
+===== FILE: lib/providers/content_provider.dart =====
+import 'package:flutter/foundation.dart';
+
+import '../models/announcement.dart';
+import '../models/holiday.dart';
+import '../repositories/content_repository.dart';
+
+class ContentProvider extends ChangeNotifier {
+  ContentProvider(this._repo);
+  final ContentRepository _repo;
+
+  List<Holiday> _holidays = [];
+  List<Announcement> _announcements = [];
+  bool _loading = false;
+  int _year = DateTime.now().year;
+
+  List<Holiday> get holidays => _holidays;
+  List<Announcement> get announcements => _announcements;
+  bool get loading => _loading;
+  int get year => _year;
+
+  Holiday? get nextHoliday {
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
+    for (final h in _holidays) {
+      if (!h.date.isBefore(start)) return h;
+    }
+    return null;
+  }
+
+  Future<void> load({int? year}) async {
+    _year = year ?? _year;
+    _loading = true;
+    notifyListeners();
+    try {
+      _holidays = await _repo.getHolidays(_year);
+      _announcements = await _repo.getAnnouncements();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> addAnnouncement({required String title, required String body, required String author, bool pinned = false}) async {
+    await _repo.addAnnouncement(title: title, body: body, author: author, pinned: pinned);
+    _announcements = await _repo.getAnnouncements();
+    notifyListeners();
+  }
+
+  Future<void> deleteAnnouncement(String id) async {
+    await _repo.deleteAnnouncement(id);
+    _announcements = await _repo.getAnnouncements();
+    notifyListeners();
+  }
+}
+
+===== FILE: lib/providers/employee_provider.dart =====
+import 'package:flutter/foundation.dart';
+
+import '../core/app_exception.dart';
+import '../models/employee.dart';
+import '../repositories/employee_repository.dart';
+
+/// Admin: employee directory.
+class EmployeeProvider extends ChangeNotifier {
+  EmployeeProvider(this._repo);
+  final EmployeeRepository _repo;
+
+  List<Employee> _employees = [];
+  bool _loading = false;
+  String _query = '';
+
+  bool get loading => _loading;
+  List<Employee> get all => _employees;
+
+  List<Employee> get filtered {
+    if (_query.isEmpty) return _employees;
+    final q = _query.toLowerCase();
+    return _employees
+        .where((e) =>
+            e.name.toLowerCase().contains(q) ||
+            e.id.toLowerCase().contains(q) ||
+            e.department.toLowerCase().contains(q) ||
+            e.designation.toLowerCase().contains(q))
+        .toList();
+  }
+
+  String nameOf(String id) {
+    for (final e in _employees) {
+      if (e.id == id) return e.name;
+    }
+    return id;
+  }
+
+  Employee? byId(String id) {
+    for (final e in _employees) {
+      if (e.id == id) return e;
+    }
+    return null;
+  }
+
+  void search(String query) {
+    _query = query.trim();
+    notifyListeners();
+  }
+
+  Future<void> load() async {
+    _loading = true;
+    notifyListeners();
+    try {
+      _employees = await _repo.getAll();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String> nextId() => _repo.nextEmployeeId();
+
+  Future<String?> add(Employee e, String password) async {
+    try {
+      await _repo.add(e, initialPassword: password);
+      await load();
+      return null;
+    } on AppException catch (ex) {
+      return ex.message;
+    }
+  }
+
+  Future<String?> update(Employee e) async {
+    try {
+      await _repo.update(e);
+      await load();
+      return null;
+    } on AppException catch (ex) {
+      return ex.message;
+    }
+  }
+}
+
+===== FILE: lib/providers/leave_provider.dart =====
+import 'package:flutter/foundation.dart';
+
+import '../core/app_exception.dart';
+import '../models/leave.dart';
+import '../repositories/leave_repository.dart';
+
+class LeaveProvider extends ChangeNotifier {
+  LeaveProvider(this._repo);
+  final LeaveRepository _repo;
+
+  List<LeaveBalance> _balances = [];
+  List<LeaveRequest> _myRequests = [];
+  List<LeaveRequest> _allRequests = [];
+  bool _loading = false;
+  bool _submitting = false;
+
+  List<LeaveBalance> get balances => _balances;
+  List<LeaveRequest> get myRequests => _myRequests;
+  List<LeaveRequest> get allRequests => _allRequests;
+  List<LeaveRequest> get pendingApprovals =>
+      _allRequests.where((r) => r.status == LeaveStatus.pending).toList();
+  bool get loading => _loading;
+  bool get submitting => _submitting;
+
+  Future<void> loadMine(String employeeId) async {
+    _loading = true;
+    notifyListeners();
+    try {
+      _balances = await _repo.getBalances(employeeId);
+      _myRequests = await _repo.getMyRequests(employeeId);
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadAll() async {
+    _loading = true;
+    notifyListeners();
+    try {
+      _allRequests = await _repo.getAllRequests();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Returns an error message, or null on success.
+  Future<String?> apply({
+    required String employeeId,
+    required String employeeName,
+    required LeaveType type,
+    required DateTime from,
+    required DateTime to,
+    required String reason,
+  }) async {
+    _submitting = true;
+    notifyListeners();
+    try {
+      await _repo.apply(
+        employeeId: employeeId,
+        employeeName: employeeName,
+        type: type,
+        fromDate: from,
+        toDate: to,
+        reason: reason,
+      );
+      await loadMine(employeeId);
+      return null;
+    } on AppException catch (e) {
+      return e.message;
+    } finally {
+      _submitting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String?> cancel(LeaveRequest request) async {
+    try {
+      await _repo.cancel(request.id);
+      await loadMine(request.employeeId);
+      return null;
+    } on AppException catch (e) {
+      return e.message;
+    }
+  }
+
+  Future<String?> decide(LeaveRequest request, bool approve, {String? comment}) async {
+    try {
+      await _repo.updateStatus(
+        request.id,
+        approve ? LeaveStatus.approved : LeaveStatus.rejected,
+        comment: (comment == null || comment.trim().isEmpty) ? null : comment.trim(),
+      );
+      await loadAll();
+      return null;
+    } on AppException catch (e) {
+      return e.message;
+    }
+  }
+}
+
+===== FILE: lib/providers/payslip_provider.dart =====
+import 'package:flutter/foundation.dart';
+
+import '../models/payslip.dart';
+import '../repositories/payslip_repository.dart';
+
+class PayslipProvider extends ChangeNotifier {
+  PayslipProvider(this._repo);
+  final PayslipRepository _repo;
+
+  List<Payslip> _payslips = [];
+  bool _loading = false;
+
+  List<Payslip> get payslips => _payslips;
+  bool get loading => _loading;
+  Payslip? get latest => _payslips.isEmpty ? null : _payslips.first;
+
+  Future<void> load(String employeeId) async {
+    _loading = true;
+    notifyListeners();
+    try {
+      _payslips = await _repo.getPayslips(employeeId);
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String?> downloadPdf(Payslip payslip) => _repo.downloadPdf(payslip);
+}
+
+===== FILE: lib/repositories/attendance_repository.dart =====
+import '../models/attendance.dart';
+
+abstract class AttendanceRepository {
+  /// Today's record for the employee (status notMarked if no punch yet).
+  Future<AttendanceRecord> getToday(String employeeId);
+
+  Future<AttendanceRecord> punchIn(String employeeId, {PunchLocation? location, String? selfieUrl});
+  Future<AttendanceRecord> punchOut(String employeeId, {PunchLocation? location});
+
+  /// One record per day of the month up to today.
+  Future<List<AttendanceRecord>> getMonth(String employeeId, int year, int month);
+
+  /// Admin: everyone's attendance for one day.
+  Future<List<AttendanceRecord>> getDailyReport(DateTime date);
+}
+
+===== FILE: lib/repositories/auth_repository.dart =====
+import '../models/employee.dart';
+
+/// Authentication contract.
+///
+/// The app only talks to this interface. Today it is backed by
+/// [MockAuthRepository]; to go live, create e.g. `FirebaseAuthRepository`
+/// that implements this class and register it in `repository_factory.dart`.
+abstract class AuthRepository {
+  /// Logs in with employee ID + password. Throws AppException on failure.
+  Future<Employee> login({required String employeeId, required String password});
+
+  /// Returns the logged-in employee, or null if nobody is logged in.
+  Future<Employee?> currentUser();
+
+  Future<void> logout();
+
+  Future<void> changePassword({required String employeeId, required String oldPassword, required String newPassword});
+}
+
+===== FILE: lib/repositories/content_repository.dart =====
+import '../models/announcement.dart';
+import '../models/holiday.dart';
+
+/// Company content: holidays and announcements.
+abstract class ContentRepository {
+  Future<List<Holiday>> getHolidays(int year);
+  Future<List<Announcement>> getAnnouncements();
+  Future<Announcement> addAnnouncement({required String title, required String body, required String author, bool pinned = false});
+  Future<void> deleteAnnouncement(String id);
+}
+
+===== FILE: lib/repositories/employee_repository.dart =====
+import '../models/employee.dart';
+
+abstract class EmployeeRepository {
+  Future<List<Employee>> getAll();
+  Future<Employee?> getById(String id);
+
+  /// Creates an employee. [initialPassword] is used for their first login.
+  Future<Employee> add(Employee employee, {required String initialPassword});
+  Future<Employee> update(Employee employee);
+  Future<String> nextEmployeeId();
+}
+
+===== FILE: lib/repositories/leave_repository.dart =====
+import '../models/leave.dart';
+
+abstract class LeaveRepository {
+  Future<List<LeaveBalance>> getBalances(String employeeId);
+  Future<List<LeaveRequest>> getMyRequests(String employeeId);
+
+  /// Admin: all requests (optionally only pending).
+  Future<List<LeaveRequest>> getAllRequests({bool pendingOnly = false});
+
+  Future<LeaveRequest> apply({
+    required String employeeId,
+    required String employeeName,
+    required LeaveType type,
+    required DateTime fromDate,
+    required DateTime toDate,
+    required String reason,
+  });
+
+  Future<LeaveRequest> cancel(String requestId);
+  Future<LeaveRequest> updateStatus(String requestId, LeaveStatus status, {String? comment});
+}
+
+===== FILE: lib/repositories/mock/mock_attendance_repository.dart =====
+import '../../core/app_exception.dart';
+import '../../core/formatters.dart';
+import '../../models/attendance.dart';
+import '../attendance_repository.dart';
+import 'mock_database.dart';
+
+class MockAttendanceRepository implements AttendanceRepository {
+  MockAttendanceRepository(this._db);
+  final MockDatabase _db;
+
+  @override
+  Future<AttendanceRecord> getToday(String employeeId) async {
+    await MockDatabase.latency(150);
+    return _db.resolve(employeeId, DateTime.now());
+  }
+
+  @override
+  Future<AttendanceRecord> punchIn(String employeeId, {PunchLocation? location, String? selfieUrl}) async {
+    await MockDatabase.latency(400);
+    final now = DateTime.now();
+    final k = MockDatabase.key(employeeId, now);
+    final existing = _db.attendance[k];
+    if (existing != null && existing.hasPunchedIn) {
+      throw const AppException('You have already punched in today');
+    }
+    final record = AttendanceRecord(
+      employeeId: employeeId,
+      date: dateOnly(now),
+      status: AttendanceStatus.present,
+      punchIn: now,
+      punchInLocation: location,
+      selfieUrl: selfieUrl,
+    );
+    _db.attendance[k] = record;
+    return record;
+  }
+
+  @override
+  Future<AttendanceRecord> punchOut(String employeeId, {PunchLocation? location}) async {
+    await MockDatabase.latency(400);
+    final now = DateTime.now();
+    final k = MockDatabase.key(employeeId, now);
+    final existing = _db.attendance[k];
+    if (existing == null || !existing.hasPunchedIn) {
+      throw const AppException('Please punch in first');
+    }
+    if (existing.hasPunchedOut) {
+      throw const AppException('You have already punched out today');
+    }
+    final record = existing.copyWith(punchOut: now, punchOutLocation: location);
+    _db.attendance[k] = record;
+    return record;
+  }
+
+  @override
+  Future<List<AttendanceRecord>> getMonth(String employeeId, int year, int month) async {
+    await MockDatabase.latency();
+    final today = dateOnly(DateTime.now());
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    final result = <AttendanceRecord>[];
+    for (var day = 1; day <= daysInMonth; day++) {
+      final date = DateTime(year, month, day);
+      if (date.isAfter(today)) break;
+      result.add(_db.resolve(employeeId, date));
+    }
+    return result;
+  }
+
+  @override
+  Future<List<AttendanceRecord>> getDailyReport(DateTime date) async {
+    await MockDatabase.latency();
+    return _db.employees.where((e) => e.isActive).map((e) => _db.resolve(e.id, date)).toList();
+  }
+}
+
+===== FILE: lib/repositories/mock/mock_auth_repository.dart =====
+import '../../core/app_exception.dart';
+import '../../models/employee.dart';
+import '../auth_repository.dart';
+import 'mock_database.dart';
+
+class MockAuthRepository implements AuthRepository {
+  MockAuthRepository(this._db);
+  final MockDatabase _db;
+
+  @override
+  Future<Employee> login({required String employeeId, required String password}) async {
+    await MockDatabase.latency(600);
+    final id = employeeId.trim().toUpperCase();
+    final employee = _db.employee(id);
+    if (employee == null || _db.passwords[id] != password) {
+      throw const AppException('Invalid employee ID or password');
+    }
+    if (!employee.isActive) {
+      throw const AppException('Your account is inactive. Please contact HR.');
+    }
+    _db.currentUserId = id;
+    return employee;
+  }
+
+  @override
+  Future<Employee?> currentUser() async {
+    await MockDatabase.latency(100);
+    final id = _db.currentUserId;
+    return id == null ? null : _db.employee(id);
+  }
+
+  @override
+  Future<void> logout() async {
+    await MockDatabase.latency(100);
+    _db.currentUserId = null;
+  }
+
+  @override
+  Future<void> changePassword({required String employeeId, required String oldPassword, required String newPassword}) async {
+    await MockDatabase.latency();
+    if (_db.passwords[employeeId] != oldPassword) {
+      throw const AppException('Current password is incorrect');
+    }
+    if (newPassword.length < 6) {
+      throw const AppException('New password must be at least 6 characters');
+    }
+    _db.passwords[employeeId] = newPassword;
+  }
+}
+
+===== FILE: lib/repositories/mock/mock_content_repository.dart =====
+import '../../models/announcement.dart';
+import '../../models/holiday.dart';
+import '../content_repository.dart';
+import 'mock_database.dart';
+
+class MockContentRepository implements ContentRepository {
+  MockContentRepository(this._db);
+  final MockDatabase _db;
+  int _seq = 100;
+
+  @override
+  Future<List<Holiday>> getHolidays(int year) async {
+    await MockDatabase.latency();
+    final list = _db.holidays.where((h) => h.date.year == year).toList();
+    list.sort((a, b) => a.date.compareTo(b.date));
+    return list;
+  }
+
+  @override
+  Future<List<Announcement>> getAnnouncements() async {
+    await MockDatabase.latency();
+    final list = List<Announcement>.from(_db.announcements);
+    list.sort((a, b) {
+      if (a.pinned != b.pinned) return a.pinned ? -1 : 1;
+      return b.date.compareTo(a.date);
+    });
+    return list;
+  }
+
+  @override
+  Future<Announcement> addAnnouncement({required String title, required String body, required String author, bool pinned = false}) async {
+    await MockDatabase.latency();
+    final a = Announcement(
+      id: 'A${_seq++}',
+      title: title.trim(),
+      body: body.trim(),
+      date: DateTime.now(),
+      author: author,
+      pinned: pinned,
+    );
+    _db.announcements.add(a);
+    // TODO(push): send a push notification to all employees.
+    return a;
+  }
+
+  @override
+  Future<void> deleteAnnouncement(String id) async {
+    await MockDatabase.latency();
+    _db.announcements.removeWhere((a) => a.id == id);
+  }
+}
+
+===== FILE: lib/repositories/mock/mock_database.dart =====
+import 'dart:math';
+
+import '../../core/formatters.dart';
+import '../../models/models.dart';
+
+/// Demo login credentials (mock only - never ship real passwords in code).
+const demoCredentials = {
+  'ADM001': 'admin123',
+  'EMP001': 'emp123',
+};
+
+/// In-memory "database" shared by all mock repositories.
+/// Data resets every time the app restarts.
+class MockDatabase {
+  MockDatabase._();
+
+  final List<Employee> employees = [];
+  final Map<String, String> passwords = {};
+
+  /// key: "EMP001|2026-10-26"
+  final Map<String, AttendanceRecord> attendance = {};
+  final List<LeaveRequest> leaves = [];
+  final List<Holiday> holidays = [];
+  final List<Announcement> announcements = [];
+  String? currentUserId;
+
+  static const leaveQuota = {
+    LeaveType.casual: 12.0,
+    LeaveType.sick: 8.0,
+    LeaveType.earned: 15.0,
+  };
+
+  /// Simulated network latency.
+  static Future<void> latency([int ms = 250]) => Future<void>.delayed(Duration(milliseconds: ms));
+
+  static String key(String employeeId, DateTime day) => '$employeeId|${dateKey(day)}';
+
+  Employee? employee(String id) {
+    for (final e in employees) {
+      if (e.id == id) return e;
+    }
+    return null;
+  }
+
+  Holiday? holidayOn(DateTime day) {
+    for (final h in holidays) {
+      if (isSameDay(h.date, day)) return h;
+    }
+    return null;
+  }
+
+  LeaveRequest? approvedLeaveOn(String employeeId, DateTime day) {
+    for (final l in leaves) {
+      if (l.employeeId == employeeId && l.status == LeaveStatus.approved && l.covers(day)) return l;
+    }
+    return null;
+  }
+
+  /// Works out the attendance status of one employee on one day.
+  AttendanceRecord resolve(String employeeId, DateTime day) {
+    final d = dateOnly(day);
+    final stored = attendance[key(employeeId, d)];
+    if (stored != null) return stored;
+    final today = dateOnly(DateTime.now());
+    AttendanceStatus status;
+    String? note;
+    final holiday = holidayOn(d);
+    if (holiday != null) {
+      status = AttendanceStatus.holiday;
+      note = holiday.name;
+    } else if (d.weekday == DateTime.sunday) {
+      status = AttendanceStatus.weekend;
+    } else if (approvedLeaveOn(employeeId, d) != null) {
+      status = AttendanceStatus.leave;
+      note = approvedLeaveOn(employeeId, d)!.type.label;
+    } else if (d.isBefore(today)) {
+      status = AttendanceStatus.absent;
+    } else {
+      status = AttendanceStatus.notMarked;
+    }
+    return AttendanceRecord(employeeId: employeeId, date: d, status: status, note: note);
+  }
+
+  factory MockDatabase.seeded() {
+    final db = MockDatabase._();
+    final now = DateTime.now();
+    final year = now.year;
+
+    db.employees.addAll([
+      Employee(
+        id: 'ADM001',
+        name: 'Harpreet Kaur',
+        email: 'harpreet.kaur@company.com',
+        phone: '+91 98140 00001',
+        department: 'Human Resources',
+        designation: 'HR Manager',
+        joiningDate: DateTime(2019, 4, 1),
+        monthlyCtc: 65000,
+        role: UserRole.admin,
+        address: 'Mohali, Punjab',
+        bloodGroup: 'B+',
+      ),
+      Employee(
+        id: 'EMP001',
+        name: 'Manjot Singh',
+        email: 'manjot.singh@company.com',
+        phone: '+91 95010 00002',
+        department: 'Operations',
+        designation: 'Operations Executive',
+        joiningDate: DateTime(2024, 6, 3),
+        monthlyCtc: 22000,
+        managerName: 'Harpreet Kaur',
+        address: 'Tarn Taran, Punjab',
+        bloodGroup: 'O+',
+      ),
+      Employee(
+        id: 'EMP002',
+        name: 'Gurpreet Singh',
+        email: 'gurpreet.singh@company.com',
+        phone: '+91 98880 00003',
+        department: 'Accounts',
+        designation: 'Accountant',
+        joiningDate: DateTime(2021, 8, 16),
+        monthlyCtc: 35000,
+        managerName: 'Harpreet Kaur',
+        address: 'Amritsar, Punjab',
+      ),
+      Employee(
+        id: 'EMP003',
+        name: 'Simran Kaur',
+        email: 'simran.kaur@company.com',
+        phone: '+91 97790 00004',
+        department: 'Sales',
+        designation: 'Sales Executive',
+        joiningDate: DateTime(2023, 1, 9),
+        monthlyCtc: 28000,
+        managerName: 'Harpreet Kaur',
+        address: 'Jalandhar, Punjab',
+      ),
+      Employee(
+        id: 'EMP004',
+        name: 'Rajesh Kumar',
+        email: 'rajesh.kumar@company.com',
+        phone: '+91 98720 00005',
+        department: 'IT',
+        designation: 'Software Developer',
+        joiningDate: DateTime(2022, 11, 1),
+        monthlyCtc: 55000,
+        managerName: 'Harpreet Kaur',
+        address: 'Chandigarh',
+      ),
+      Employee(
+        id: 'EMP005',
+        name: 'Amandeep Kaur',
+        email: 'amandeep.kaur@company.com',
+        phone: '+91 99150 00006',
+        department: 'Customer Support',
+        designation: 'Support Executive',
+        joiningDate: DateTime(2025, 2, 17),
+        monthlyCtc: 20000,
+        managerName: 'Harpreet Kaur',
+        address: 'Ludhiana, Punjab',
+      ),
+    ]);
+    for (final e in db.employees) {
+      db.passwords[e.id] = demoCredentials[e.id] ?? 'emp123';
+    }
+
+    // Sample holiday list - edit to match your company's official list.
+    db.holidays.addAll([
+      Holiday(name: 'New Year', date: DateTime(year, 1, 1), type: HolidayType.optional),
+      Holiday(name: 'Lohri', date: DateTime(year, 1, 13)),
+      Holiday(name: 'Republic Day', date: DateTime(year, 1, 26), type: HolidayType.national),
+      Holiday(name: 'Holi', date: DateTime(year, 3, 4)),
+      Holiday(name: 'Baisakhi', date: DateTime(year, 4, 14)),
+      Holiday(name: 'Independence Day', date: DateTime(year, 8, 15), type: HolidayType.national),
+      Holiday(name: 'Gandhi Jayanti', date: DateTime(year, 10, 2), type: HolidayType.national),
+      Holiday(name: 'Dussehra', date: DateTime(year, 10, 20)),
+      Holiday(name: 'Diwali', date: DateTime(year, 11, 8)),
+      Holiday(name: 'Guru Nanak Jayanti', date: DateTime(year, 11, 24)),
+      Holiday(name: 'Christmas', date: DateTime(year, 12, 25), type: HolidayType.optional),
+    ]);
+
+    db.announcements.addAll([
+      Announcement(
+        id: 'A1',
+        title: 'Welcome to iHRMS',
+        body: 'Mark your attendance, apply for leave and download payslips - all from this app.',
+        date: now.subtract(const Duration(days: 1)),
+        author: 'HR Team',
+        pinned: true,
+      ),
+      Announcement(
+        id: 'A2',
+        title: 'Diwali celebration',
+        body: 'Join us for the Diwali celebration in the main hall on the last working day before Diwali at 4 PM. Sweets and gifts for everyone!',
+        date: now.subtract(const Duration(days: 3)),
+        author: 'Harpreet Kaur',
+      ),
+      Announcement(
+        id: 'A3',
+        title: 'Salary credited',
+        body: 'Salary for last month has been credited. Payslips are available in the Payslip section.',
+        date: now.subtract(const Duration(days: 10)),
+        author: 'Accounts',
+      ),
+    ]);
+
+    DateTime d(int daysAgo) => dateOnly(now.subtract(Duration(days: daysAgo)));
+    db.leaves.addAll([
+      LeaveRequest(
+        id: 'L1',
+        employeeId: 'EMP001',
+        employeeName: 'Manjot Singh',
+        type: LeaveType.casual,
+        fromDate: d(24),
+        toDate: d(23),
+        reason: 'Family function',
+        appliedOn: d(30),
+        status: LeaveStatus.approved,
+        approverComment: 'Approved',
+      ),
+      LeaveRequest(
+        id: 'L2',
+        employeeId: 'EMP001',
+        employeeName: 'Manjot Singh',
+        type: LeaveType.sick,
+        fromDate: d(-3),
+        toDate: d(-3),
+        reason: 'Doctor appointment',
+        appliedOn: d(1),
+      ),
+      LeaveRequest(
+        id: 'L3',
+        employeeId: 'EMP003',
+        employeeName: 'Simran Kaur',
+        type: LeaveType.earned,
+        fromDate: d(-10),
+        toDate: d(-7),
+        reason: 'Travelling to native place',
+        appliedOn: d(2),
+      ),
+      LeaveRequest(
+        id: 'L4',
+        employeeId: 'EMP002',
+        employeeName: 'Gurpreet Singh',
+        type: LeaveType.casual,
+        fromDate: d(12),
+        toDate: d(12),
+        reason: 'Personal work',
+        appliedOn: d(14),
+        status: LeaveStatus.rejected,
+        approverComment: 'Month-end closing, please plan another day',
+      ),
+      LeaveRequest(
+        id: 'L5',
+        employeeId: 'EMP004',
+        employeeName: 'Rajesh Kumar',
+        type: LeaveType.sick,
+        fromDate: d(0),
+        toDate: d(0),
+        reason: 'Fever',
+        appliedOn: d(0),
+        status: LeaveStatus.approved,
+      ),
+    ]);
+    // Past attendance: from the 1st of the month two months ago until yesterday.
+    final rnd = Random(42);
+    final start = DateTime(now.year, now.month - 2, 1);
+    final today = dateOnly(now);
+    for (final e in db.employees) {
+      var day = start;
+      while (day.isBefore(today)) {
+        final isOff = day.weekday == DateTime.sunday || db.holidayOn(day) != null;
+        final onLeave = db.approvedLeaveOn(e.id, day) != null;
+        if (!isOff && !onLeave && rnd.nextInt(100) >= 6) {
+          final inTime = DateTime(day.year, day.month, day.day, 9, rnd.nextInt(45));
+          final outTime = DateTime(day.year, day.month, day.day, 18, rnd.nextInt(50));
+          db.attendance[key(e.id, day)] = AttendanceRecord(
+            employeeId: e.id,
+            date: day,
+            status: AttendanceStatus.present,
+            punchIn: inTime,
+            punchOut: outTime,
+          );
+        }
+        day = DateTime(day.year, day.month, day.day + 1);
+      }
+    }
+    // A couple of colleagues have already punched in today (for the admin report).
+    for (final id in ['ADM001', 'EMP002', 'EMP003']) {
+      if (today.weekday == DateTime.sunday || db.holidayOn(today) != null) break;
+      final t = DateTime(today.year, today.month, today.day, 9, 5 + rnd.nextInt(30));
+      if (t.isBefore(now)) {
+        db.attendance[key(id, today)] = AttendanceRecord(
+          employeeId: id,
+          date: today,
+          status: AttendanceStatus.present,
+          punchIn: t,
+        );
+      }
+    }
+    return db;
+  }
+}
+
+===== FILE: lib/repositories/mock/mock_employee_repository.dart =====
+import '../../core/app_exception.dart';
+import '../../models/employee.dart';
+import '../employee_repository.dart';
+import 'mock_database.dart';
+
+class MockEmployeeRepository implements EmployeeRepository {
+  MockEmployeeRepository(this._db);
+  final MockDatabase _db;
+
+  @override
+  Future<List<Employee>> getAll() async {
+    await MockDatabase.latency();
+    final list = List<Employee>.from(_db.employees);
+    list.sort((a, b) => a.id.compareTo(b.id));
+    return list;
+  }
+
+  @override
+  Future<Employee?> getById(String id) async {
+    await MockDatabase.latency(100);
+    return _db.employee(id);
+  }
+
+  @override
+  Future<Employee> add(Employee employee, {required String initialPassword}) async {
+    await MockDatabase.latency();
+    if (_db.employee(employee.id) != null) {
+      throw AppException('Employee ID ${employee.id} already exists');
+    }
+    _db.employees.add(employee);
+    _db.passwords[employee.id] = initialPassword;
+    return employee;
+  }
+
+  @override
+  Future<Employee> update(Employee employee) async {
+    await MockDatabase.latency();
+    final i = _db.employees.indexWhere((e) => e.id == employee.id);
+    if (i < 0) throw const AppException('Employee not found');
+    _db.employees[i] = employee;
+    return employee;
+  }
+
+  @override
+  Future<String> nextEmployeeId() async {
+    var max = 0;
+    for (final e in _db.employees) {
+      if (e.id.startsWith('EMP')) {
+        final n = int.tryParse(e.id.substring(3)) ?? 0;
+        if (n > max) max = n;
+      }
+    }
+    return 'EMP${(max + 1).toString().padLeft(3, '0')}';
+  }
+}
+
+===== FILE: lib/repositories/mock/mock_leave_repository.dart =====
+import '../../core/app_exception.dart';
+import '../../core/formatters.dart';
+import '../../models/leave.dart';
+import '../leave_repository.dart';
+import 'mock_database.dart';
+
+class MockLeaveRepository implements LeaveRepository {
+  MockLeaveRepository(this._db);
+  final MockDatabase _db;
+  int _seq = 100;
+
+  @override
+  Future<List<LeaveBalance>> getBalances(String employeeId) async {
+    await MockDatabase.latency(150);
+    final year = DateTime.now().year;
+    return MockDatabase.leaveQuota.entries.map((q) {
+      double used = 0, pending = 0;
+      for (final l in _db.leaves) {
+        if (l.employeeId != employeeId || l.type != q.key || l.fromDate.year != year) continue;
+        if (l.status == LeaveStatus.approved) used += l.days;
+        if (l.status == LeaveStatus.pending) pending += l.days;
+      }
+      return LeaveBalance(type: q.key, total: q.value, used: used, pending: pending);
+    }).toList();
+  }
+
+  @override
+  Future<List<LeaveRequest>> getMyRequests(String employeeId) async {
+    await MockDatabase.latency();
+    final list = _db.leaves.where((l) => l.employeeId == employeeId).toList();
+    list.sort((a, b) => b.appliedOn.compareTo(a.appliedOn));
+    return list;
+  }
+
+  @override
+  Future<List<LeaveRequest>> getAllRequests({bool pendingOnly = false}) async {
+    await MockDatabase.latency();
+    final list = _db.leaves.where((l) => !pendingOnly || l.status == LeaveStatus.pending).toList();
+    list.sort((a, b) => b.appliedOn.compareTo(a.appliedOn));
+    return list;
+  }
+
+  @override
+  Future<LeaveRequest> apply({
+    required String employeeId,
+    required String employeeName,
+    required LeaveType type,
+    required DateTime fromDate,
+    required DateTime toDate,
+    required String reason,
+  }) async {
+    await MockDatabase.latency(400);
+    final from = dateOnly(fromDate);
+    final to = dateOnly(toDate);
+    if (to.isBefore(from)) throw const AppException('End date cannot be before start date');
+    final days = countLeaveDays(from, to);
+    if (days == 0) throw const AppException('Selected dates fall on week-offs only');
+    if (reason.trim().isEmpty) throw const AppException('Please enter a reason');
+
+    for (final l in _db.leaves) {
+      if (l.employeeId != employeeId) continue;
+      if (l.status != LeaveStatus.pending && l.status != LeaveStatus.approved) continue;
+      final overlaps = !(to.isBefore(dateOnly(l.fromDate)) || from.isAfter(dateOnly(l.toDate)));
+      if (overlaps) throw const AppException('You already have a leave request for these dates');
+    }
+
+    if (type.hasQuota) {
+      final balances = await getBalances(employeeId);
+      final b = balances.firstWhere((x) => x.type == type);
+      final free = b.available - b.pending;
+      if (days > free) {
+        throw AppException('Not enough ${type.label} balance (available: ${free.toStringAsFixed(0)} days)');
+      }
+    }
+
+    final request = LeaveRequest(
+      id: 'L${_seq++}',
+      employeeId: employeeId,
+      employeeName: employeeName,
+      type: type,
+      fromDate: from,
+      toDate: to,
+      reason: reason.trim(),
+      appliedOn: DateTime.now(),
+    );
+    _db.leaves.add(request);
+    return request;
+  }
+
+  @override
+  Future<LeaveRequest> cancel(String requestId) async {
+    await MockDatabase.latency();
+    final i = _db.leaves.indexWhere((l) => l.id == requestId);
+    if (i < 0) throw const AppException('Leave request not found');
+    if (_db.leaves[i].status != LeaveStatus.pending) {
+      throw const AppException('Only pending requests can be cancelled');
+    }
+    _db.leaves[i] = _db.leaves[i].copyWith(status: LeaveStatus.cancelled);
+    return _db.leaves[i];
+  }
+
+  @override
+  Future<LeaveRequest> updateStatus(String requestId, LeaveStatus status, {String? comment}) async {
+    await MockDatabase.latency();
+    final i = _db.leaves.indexWhere((l) => l.id == requestId);
+    if (i < 0) throw const AppException('Leave request not found');
+    _db.leaves[i] = _db.leaves[i].copyWith(status: status, approverComment: comment);
+    // TODO(push): notify the employee (e.g. Firebase Cloud Messaging).
+    return _db.leaves[i];
+  }
+}
+
+===== FILE: lib/repositories/mock/mock_payslip_repository.dart =====
+import '../../models/payslip.dart';
+import '../payslip_repository.dart';
+import 'mock_database.dart';
+
+/// Generates realistic sample payslips from each employee's monthly CTC.
+/// Indian structure: Basic, HRA, Conveyance, Special Allowance;
+/// deductions: PF (12% of basic, capped), ESI (0.75% if gross <= 21,000),
+/// Professional Tax and TDS.
+class MockPayslipRepository implements PayslipRepository {
+  MockPayslipRepository(this._db);
+  final MockDatabase _db;
+
+  @override
+  Future<List<Payslip>> getPayslips(String employeeId) async {
+    await MockDatabase.latency();
+    final employee = _db.employee(employeeId);
+    if (employee == null) return [];
+    final now = DateTime.now();
+    final slips = <Payslip>[];
+    for (var i = 1; i <= 6; i++) {
+      final month = DateTime(now.year, now.month - i, 1);
+      if (month.isBefore(DateTime(employee.joiningDate.year, employee.joiningDate.month, 1))) break;
+      slips.add(_build(employeeId, employee.monthlyCtc, month));
+    }
+    return slips;
+  }
+
+  Payslip _build(String employeeId, double gross, DateTime month) {
+    final basic = (gross * 0.5).roundToDouble();
+    final hra = (gross * 0.2).roundToDouble();
+    const conveyance = 1600.0;
+    final special = (gross - basic - hra - conveyance).clamp(0, gross).toDouble();
+
+    final pf = (basic * 0.12).clamp(0, 1800).roundToDouble();
+    final esi = gross <= 21000 ? (gross * 0.0075).ceilToDouble() : 0.0;
+    const pt = 200.0;
+    final tds = gross > 60000 ? ((gross - 60000) * 0.1).roundToDouble() : 0.0;
+
+    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+    return Payslip(
+      id: '$employeeId-${month.year}-${month.month}',
+      employeeId: employeeId,
+      month: month,
+      workingDays: daysInMonth,
+      paidDays: daysInMonth.toDouble(),
+      bankAccountMasked: 'XXXX XXXX 4321',
+      earnings: [
+        PayItem('Basic Salary', basic),
+        PayItem('House Rent Allowance', hra),
+        const PayItem('Conveyance Allowance', conveyance),
+        PayItem('Special Allowance', special),
+      ],
+      deductions: [
+        PayItem('Provident Fund (PF)', pf),
+        if (esi > 0) PayItem('ESI', esi),
+        const PayItem('Professional Tax', pt),
+        if (tds > 0) PayItem('Income Tax (TDS)', tds),
+      ],
+    );
+  }
+
+  @override
+  Future<String?> downloadPdf(Payslip payslip) async {
+    // TODO(pdf): build the PDF with the `pdf` package and share/save it with
+    // `printing` or `share_plus`, or download it from your backend.
+    await MockDatabase.latency(300);
+    return null;
+  }
+}
+
+===== FILE: lib/repositories/payslip_repository.dart =====
+import '../models/payslip.dart';
+
+abstract class PayslipRepository {
+  /// Latest first.
+  Future<List<Payslip>> getPayslips(String employeeId);
+
+  /// Returns a local file path / URL of the PDF.
+  /// TODO(pdf): generate with the `pdf` + `printing` packages or download from backend.
+  Future<String?> downloadPdf(Payslip payslip);
+}
+
+===== FILE: lib/repositories/repository_factory.dart =====
+import 'attendance_repository.dart';
+import 'auth_repository.dart';
+import 'content_repository.dart';
+import 'employee_repository.dart';
+import 'leave_repository.dart';
+import 'mock/mock_attendance_repository.dart';
+import 'mock/mock_auth_repository.dart';
+import 'mock/mock_content_repository.dart';
+import 'mock/mock_database.dart';
+import 'mock/mock_employee_repository.dart';
+import 'mock/mock_leave_repository.dart';
+import 'mock/mock_payslip_repository.dart';
+import 'payslip_repository.dart';
+
+/// All data sources used by the app, in one place.
+class Repositories {
+  const Repositories({
+    required this.auth,
+    required this.employees,
+    required this.attendance,
+    required this.leave,
+    required this.payslips,
+    required this.content,
+  });
+
+  final AuthRepository auth;
+  final EmployeeRepository employees;
+  final AttendanceRepository attendance;
+  final LeaveRepository leave;
+  final PayslipRepository payslips;
+  final ContentRepository content;
+}
+
+/// THE ONE PLACE TO SWITCH BACKENDS.
+///
+/// Right now every repository is a mock that keeps data in memory
+/// (data resets when the app restarts). To connect a real backend:
+///   1. Create classes such as `FirebaseAuthRepository implements AuthRepository`
+///      (or `RestAuthRepository` for your own API) in `lib/repositories/firebase/`.
+///   2. Return them here instead of the mock ones.
+/// No screen or provider needs to change.
+Repositories buildRepositories() {
+  final db = MockDatabase.seeded();
+  return Repositories(
+    auth: MockAuthRepository(db),
+    employees: MockEmployeeRepository(db),
+    attendance: MockAttendanceRepository(db),
+    leave: MockLeaveRepository(db),
+    payslips: MockPayslipRepository(db),
+    content: MockContentRepository(db),
+  );
+}
+
+===== FILE: lib/screens/admin/attendance_report_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../models/attendance.dart';
+import '../../providers/employee_provider.dart';
+import '../../repositories/repository_factory.dart';
+import '../../widgets/common.dart';
+import '../../widgets/status_colors.dart';
+
+/// Admin: everyone's attendance for a chosen day.
+class AttendanceReportScreen extends StatefulWidget {
+  const AttendanceReportScreen({super.key});
+
+  @override
+  State<AttendanceReportScreen> createState() => _AttendanceReportScreenState();
+}
+
+class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
+  DateTime _date = dateOnly(DateTime.now());
+  List<AttendanceRecord> _records = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final employees = context.read<EmployeeProvider>();
+      if (employees.all.isEmpty) employees.load();
+      _load();
+    });
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final repo = context.read<Repositories>().attendance;
+    final records = await repo.getDailyReport(_date);
+    if (!mounted) return;
+    setState(() {
+      _records = records;
+      _loading = false;
+    });
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(DateTime.now().year - 1),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      _date = picked;
+      await _load();
+    }
+  }
+
+  void _shift(int days) {
+    final next = _date.add(Duration(days: days));
+    if (next.isAfter(DateTime.now())) return;
+    _date = dateOnly(next);
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final employees = context.watch<EmployeeProvider>();
+    final counts = <AttendanceStatus, int>{};
+    for (final r in _records) {
+      counts[r.status] = (counts[r.status] ?? 0) + 1;
+    }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Attendance Report'),
+        actions: [
+          IconButton(
+            tooltip: 'Export',
+            icon: const Icon(Icons.download),
+            // TODO(export): generate CSV/Excel (e.g. `csv` or `excel` package).
+            onPressed: () => showSnack(context, 'Export to Excel coming soon'),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+            child: Row(
+              children: [
+                IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => _shift(-1)),
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: _pickDate,
+                    icon: const Icon(Icons.calendar_today, size: 18),
+                    label: Text(Fmt.fullDay(_date), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: isSameDay(_date, DateTime.now()) ? null : () => _shift(1),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                _count('Present', counts[AttendanceStatus.present] ?? 0, AttendanceStatus.present),
+                _count('Absent', (counts[AttendanceStatus.absent] ?? 0) + (counts[AttendanceStatus.notMarked] ?? 0), AttendanceStatus.absent),
+                _count('Leave', counts[AttendanceStatus.leave] ?? 0, AttendanceStatus.leave),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _records.isEmpty
+                    ? const EmptyState(icon: Icons.analytics_outlined, message: 'No data')
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                        itemCount: _records.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) {
+                          final r = _records[i];
+                          final emp = employees.byId(r.employeeId);
+                          final color = attendanceColor(r.status);
+                          return Card(
+                            child: ListTile(
+                              leading: EmployeeAvatar(initials: emp?.initials ?? '?'),
+                              title: Text(emp?.name ?? r.employeeId, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              subtitle: Text(r.hasPunchedIn
+                                  ? 'In ${Fmt.time(r.punchIn)}  \u2022  Out ${Fmt.time(r.punchOut)}'
+                                  : (r.note ?? emp?.department ?? '')),
+                              trailing: StatusChip(r.status.label, color),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _count(String label, int value, AttendanceStatus status) {
+    final color = attendanceColor(status);
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          children: [
+            Text('$value', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+            Text(label, style: TextStyle(color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/admin/employee_form_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../models/employee.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/employee_provider.dart';
+import '../../widgets/common.dart';
+
+/// Add a new employee, or edit an existing one when [employee] is given.
+class EmployeeFormScreen extends StatefulWidget {
+  const EmployeeFormScreen({super.key, this.employee});
+  final Employee? employee;
+
+  @override
+  State<EmployeeFormScreen> createState() => _EmployeeFormScreenState();
+}
+
+class _EmployeeFormScreenState extends State<EmployeeFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _id;
+  late final TextEditingController _name;
+  late final TextEditingController _email;
+  late final TextEditingController _phone;
+  late final TextEditingController _department;
+  late final TextEditingController _designation;
+  late final TextEditingController _salary;
+  late final TextEditingController _manager;
+  late final TextEditingController _address;
+  final _password = TextEditingController(text: 'emp123');
+  late DateTime _joining;
+  late UserRole _role;
+  late bool _active;
+  bool _saving = false;
+
+  bool get _isEdit => widget.employee != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.employee;
+    _id = TextEditingController(text: e?.id ?? '');
+    _name = TextEditingController(text: e?.name ?? '');
+    _email = TextEditingController(text: e?.email ?? '');
+    _phone = TextEditingController(text: e?.phone ?? '');
+    _department = TextEditingController(text: e?.department ?? '');
+    _designation = TextEditingController(text: e?.designation ?? '');
+    _salary = TextEditingController(text: e == null ? '' : e.monthlyCtc.toStringAsFixed(0));
+    _manager = TextEditingController(text: e?.managerName ?? '');
+    _address = TextEditingController(text: e?.address ?? '');
+    _joining = e?.joiningDate ?? dateOnly(DateTime.now());
+    _role = e?.role ?? UserRole.employee;
+    _active = e?.isActive ?? true;
+    if (!_isEdit) {
+      context.read<EmployeeProvider>().nextId().then((id) {
+        if (mounted && _id.text.isEmpty) _id.text = id;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in [_id, _name, _email, _phone, _department, _designation, _salary, _manager, _address, _password]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  String? _required(String? v) => (v == null || v.trim().isEmpty) ? 'Required' : null;
+
+  Future<void> _pickJoining() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _joining,
+      firstDate: DateTime(1990),
+      lastDate: DateTime(DateTime.now().year + 1, 12, 31),
+    );
+    if (picked != null) setState(() => _joining = picked);
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    final employee = Employee(
+      id: _id.text.trim().toUpperCase(),
+      name: _name.text.trim(),
+      email: _email.text.trim(),
+      phone: _phone.text.trim(),
+      department: _department.text.trim(),
+      designation: _designation.text.trim(),
+      joiningDate: _joining,
+      monthlyCtc: double.tryParse(_salary.text.trim()) ?? 0,
+      role: _role,
+      managerName: _manager.text.trim().isEmpty ? null : _manager.text.trim(),
+      address: _address.text.trim().isEmpty ? null : _address.text.trim(),
+      bloodGroup: widget.employee?.bloodGroup,
+      isActive: _active,
+    );
+    final provider = context.read<EmployeeProvider>();
+    final auth = context.read<AuthProvider>();
+    final error = _isEdit ? await provider.update(employee) : await provider.add(employee, _password.text);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (error != null) {
+      showSnack(context, error, error: true);
+      return;
+    }
+    auth.refreshUser(employee);
+    showSnack(context, _isEdit ? 'Employee updated' : 'Employee added');
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(_isEdit ? 'Edit Employee' : 'Add Employee')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            TextFormField(
+              controller: _id,
+              enabled: !_isEdit,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(labelText: 'Employee ID'),
+              validator: _required,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(controller: _name, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Full name'), validator: _required),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+              validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone')),
+            const SizedBox(height: 12),
+            TextFormField(controller: _department, decoration: const InputDecoration(labelText: 'Department'), validator: _required),
+            const SizedBox(height: 12),
+            TextFormField(controller: _designation, decoration: const InputDecoration(labelText: 'Designation'), validator: _required),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _salary,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Monthly salary (CTC)', prefixText: '\u20B9 '),
+              validator: (v) => double.tryParse(v?.trim() ?? '') == null ? 'Enter amount in rupees' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(controller: _manager, decoration: const InputDecoration(labelText: 'Reporting manager')),
+            const SizedBox(height: 12),
+            TextFormField(controller: _address, decoration: const InputDecoration(labelText: 'Address')),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: _pickJoining,
+              child: InputDecorator(
+                decoration: const InputDecoration(labelText: 'Date of joining', prefixIcon: Icon(Icons.event)),
+                child: Text(Fmt.date(_joining)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Role', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            SegmentedButton<UserRole>(
+              segments: const [
+                ButtonSegment(value: UserRole.employee, label: Text('Employee'), icon: Icon(Icons.person)),
+                ButtonSegment(value: UserRole.admin, label: Text('Admin / HR'), icon: Icon(Icons.admin_panel_settings)),
+              ],
+              selected: {_role},
+              onSelectionChanged: (s) => setState(() => _role = s.first),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Active'),
+              subtitle: const Text('Inactive employees cannot log in'),
+              value: _active,
+              onChanged: (v) => setState(() => _active = v),
+            ),
+            if (!_isEdit) ...[
+              const SizedBox(height: 4),
+              TextFormField(
+                controller: _password,
+                decoration: const InputDecoration(labelText: 'Initial password'),
+                validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
+              ),
+            ],
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.save),
+              label: Text(_isEdit ? 'Save changes' : 'Add employee'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/admin/employee_list_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/nav.dart';
+import '../../core/theme.dart';
+import '../../providers/employee_provider.dart';
+import '../../widgets/common.dart';
+import 'employee_form_screen.dart';
+
+class EmployeeListScreen extends StatefulWidget {
+  const EmployeeListScreen({super.key});
+
+  @override
+  State<EmployeeListScreen> createState() => _EmployeeListScreenState();
+}
+
+class _EmployeeListScreenState extends State<EmployeeListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final p = context.read<EmployeeProvider>();
+      p.search('');
+      p.load();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.watch<EmployeeProvider>();
+    final list = p.filtered;
+    return Scaffold(
+      appBar: AppBar(title: Text('Employees (${p.all.length})')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => pushScreen(context, const EmployeeFormScreen()),
+        icon: const Icon(Icons.person_add),
+        label: const Text('Add'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              onChanged: p.search,
+              decoration: const InputDecoration(
+                hintText: 'Search name, ID, department...',
+                prefixIcon: Icon(Icons.search),
+              ),
+            ),
+          ),
+          Expanded(
+            child: p.loading && p.all.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : list.isEmpty
+                    ? const EmptyState(icon: Icons.person_search, message: 'No employees found')
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                        itemCount: list.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) {
+                          final e = list[i];
+                          return Card(
+                            child: ListTile(
+                              leading: EmployeeAvatar(initials: e.initials),
+                              title: Text(e.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              subtitle: Text('${e.id}  \u2022  ${e.designation}\n${e.department}'),
+                              isThreeLine: true,
+                              trailing: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (e.isAdmin) const StatusChip('Admin', AppTheme.warning),
+                                  if (!e.isActive) const StatusChip('Inactive', AppTheme.muted),
+                                  const Icon(Icons.edit_outlined, size: 18),
+                                ],
+                              ),
+                              onTap: () => pushScreen(context, EmployeeFormScreen(employee: e)),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/admin/leave_approvals_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/theme.dart';
+import '../../models/leave.dart';
+import '../../providers/leave_provider.dart';
+import '../../widgets/common.dart';
+import '../leave/leave_screen.dart';
+
+class LeaveApprovalsScreen extends StatefulWidget {
+  const LeaveApprovalsScreen({super.key});
+
+  @override
+  State<LeaveApprovalsScreen> createState() => _LeaveApprovalsScreenState();
+}
+
+class _LeaveApprovalsScreenState extends State<LeaveApprovalsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<LeaveProvider>().loadAll());
+  }
+
+  Future<void> _decide(LeaveRequest r, bool approve) async {
+    final commentCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(approve ? 'Approve leave?' : 'Reject leave?'),
+        content: TextField(
+          controller: commentCtrl,
+          decoration: InputDecoration(labelText: approve ? 'Comment (optional)' : 'Reason for rejection'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: approve ? AppTheme.success : AppTheme.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(approve ? 'Approve' : 'Reject'),
+          ),
+        ],
+      ),
+    );
+    final comment = commentCtrl.text;
+    commentCtrl.dispose();
+    if (ok != true || !mounted) return;
+    final error = await context.read<LeaveProvider>().decide(r, approve, comment: comment);
+    if (!mounted) return;
+    showSnack(context, error ?? (approve ? 'Leave approved' : 'Leave rejected'), error: error != null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.watch<LeaveProvider>();
+    final pending = p.pendingApprovals;
+    final history = p.allRequests.where((r) => r.status != LeaveStatus.pending).toList();
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Leave Approvals'),
+          bottom: TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorColor: Colors.white,
+            tabs: [
+              Tab(text: 'Pending (${pending.length})'),
+              const Tab(text: 'History'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _list(p, pending, actionable: true),
+            _list(p, history, actionable: false),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _list(LeaveProvider p, List<LeaveRequest> items, {required bool actionable}) {
+    if (p.loading && items.isEmpty) return const Center(child: CircularProgressIndicator());
+    if (items.isEmpty) {
+      return EmptyState(
+        icon: actionable ? Icons.task_alt : Icons.history,
+        message: actionable ? 'No pending requests' : 'No history yet',
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: p.loadAll,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: items
+            .map((r) => LeaveRequestTile(
+                  request: r,
+                  showEmployee: true,
+                  actions: actionable
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
+                                  onPressed: () => _decide(r, false),
+                                  icon: const Icon(Icons.close),
+                                  label: const Text('Reject'),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: FilledButton.icon(
+                                  style: FilledButton.styleFrom(backgroundColor: AppTheme.success),
+                                  onPressed: () => _decide(r, true),
+                                  icon: const Icon(Icons.check),
+                                  label: const Text('Approve'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : null,
+                ))
+            .toList(),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/announcements/announcements_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../core/theme.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/content_provider.dart';
+import '../../widgets/common.dart';
+
+class AnnouncementsScreen extends StatelessWidget {
+  const AnnouncementsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.watch<ContentProvider>();
+    final auth = context.watch<AuthProvider>();
+    return Scaffold(
+      appBar: AppBar(title: const Text('Announcements')),
+      floatingActionButton: auth.isAdmin
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAdd(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Post'),
+            )
+          : null,
+      body: c.announcements.isEmpty
+          ? const EmptyState(icon: Icons.campaign_outlined, message: 'No announcements')
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              itemCount: c.announcements.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 10),
+              itemBuilder: (context, i) {
+                final a = c.announcements[i];
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            if (a.pinned) const Padding(padding: EdgeInsets.only(right: 6), child: Icon(Icons.push_pin, size: 18, color: AppTheme.warning)),
+                            Expanded(child: Text(a.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                            if (auth.isAdmin)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 20),
+                                tooltip: 'Delete',
+                                onPressed: () => c.deleteAnnouncement(a.id),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(a.body),
+                        const SizedBox(height: 10),
+                        Text('${a.author}  \u2022  ${Fmt.date(a.date)}', style: const TextStyle(color: AppTheme.muted, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  Future<void> _showAdd(BuildContext context) async {
+    final titleCtrl = TextEditingController();
+    final bodyCtrl = TextEditingController();
+    var pinned = false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('New announcement'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Title')),
+                const SizedBox(height: 12),
+                TextField(controller: bodyCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Message')),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: pinned,
+                  onChanged: (v) => setLocal(() => pinned = v ?? false),
+                  title: const Text('Pin to top'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Post')),
+          ],
+        ),
+      ),
+    );
+    if (ok == true && titleCtrl.text.trim().isNotEmpty && context.mounted) {
+      final author = context.read<AuthProvider>().user?.name ?? 'HR';
+      await context.read<ContentProvider>().addAnnouncement(
+            title: titleCtrl.text,
+            body: bodyCtrl.text,
+            author: author,
+            pinned: pinned,
+          );
+      if (context.mounted) showSnack(context, 'Announcement posted');
+    }
+    titleCtrl.dispose();
+    bodyCtrl.dispose();
+  }
+}
+
+===== FILE: lib/screens/attendance/attendance_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../core/theme.dart';
+import '../../models/attendance.dart';
+import '../../providers/attendance_provider.dart';
+import '../../widgets/common.dart';
+import '../../widgets/punch_card.dart';
+import '../../widgets/status_colors.dart';
+
+class AttendanceScreen extends StatelessWidget {
+  const AttendanceScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.watch<AttendanceProvider>();
+    final summary = p.monthSummary;
+    final records = p.monthRecords.reversed.toList();
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Attendance')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const PunchCard(),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => p.changeMonth(-1)),
+                      Expanded(
+                        child: Text(Fmt.month(p.selectedMonth),
+                            textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: p.isCurrentMonth ? null : () => p.changeMonth(1),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (p.loading)
+                    const Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator())
+                  else
+                    _MonthCalendar(month: p.selectedMonth, records: p.monthRecords),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 6,
+                    children: [
+                      AttendanceStatus.present,
+                      AttendanceStatus.absent,
+                      AttendanceStatus.leave,
+                      AttendanceStatus.holiday,
+                      AttendanceStatus.weekend,
+                    ].map((s) => _Legend(status: s, count: summary[s] ?? 0)).toList(),
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _Stat('Present days', '${summary[AttendanceStatus.present] ?? 0}'),
+                      _Stat('Total hours', Fmt.duration(p.monthWorked)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SectionHeader('History'),
+          if (records.isEmpty && !p.loading)
+            const EmptyState(icon: Icons.event_busy, message: 'No attendance for this month'),
+          ...records.map((r) => _HistoryTile(record: r)),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthCalendar extends StatelessWidget {
+  const _MonthCalendar({required this.month, required this.records});
+  final DateTime month;
+  final List<AttendanceRecord> records;
+
+  @override
+  Widget build(BuildContext context) {
+    final daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+    final leading = DateTime(month.year, month.month, 1).weekday - 1; // Monday first
+    final byDay = {for (final r in records) r.date.day: r};
+    const weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final cells = <Widget>[
+      ...weekdays.map((d) => Center(child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.muted)))),
+      ...List.generate(leading, (_) => const SizedBox()),
+      ...List.generate(daysInMonth, (i) {
+        final day = i + 1;
+        final r = byDay[day];
+        final color = r == null ? null : attendanceColor(r.status);
+        final isToday = isSameDay(DateTime(month.year, month.month, day), DateTime.now());
+        return Container(
+          margin: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: color?.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+            border: isToday ? Border.all(color: AppTheme.primary, width: 2) : null,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$day',
+            style: TextStyle(color: color ?? Colors.grey.shade400, fontWeight: FontWeight.w600),
+          ),
+        );
+      }),
+    ];
+    return GridView.count(
+      crossAxisCount: 7,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: cells,
+    );
+  }
+}
+
+class _Legend extends StatelessWidget {
+  const _Legend({required this.status, required this.count});
+  final AttendanceStatus status;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 10, decoration: BoxDecoration(color: attendanceColor(status), shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        Text('${status.label} ($count)', style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat(this.label, this.value);
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+        Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.muted)),
+      ],
+    );
+  }
+}
+
+class _HistoryTile extends StatelessWidget {
+  const _HistoryTile({required this.record});
+  final AttendanceRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = attendanceColor(record.status);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Card(
+        child: ListTile(
+          leading: Container(
+            width: 46,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('${record.date.day}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
+                Text(Fmt.weekday(record.date), style: TextStyle(fontSize: 11, color: color)),
+              ],
+            ),
+          ),
+          title: record.hasPunchedIn
+              ? Text('${Fmt.time(record.punchIn)}  -  ${Fmt.time(record.punchOut)}')
+              : Text(record.note ?? record.status.label),
+          subtitle: record.hasPunchedIn ? Text('Worked ${Fmt.duration(record.workedDuration)}') : null,
+          trailing: StatusChip(record.status.label, color),
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/auth/login_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/theme.dart';
+import '../../providers/auth_provider.dart';
+import '../home/home_shell.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _idCtrl = TextEditingController();
+  final _pwCtrl = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _idCtrl.dispose();
+    _pwCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+    final auth = context.read<AuthProvider>();
+    final ok = await auth.login(_idCtrl.text, _pwCtrl.text);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeShell()));
+    }
+  }
+
+  void _fillDemo(String id, String pw) {
+    setState(() {
+      _idCtrl.text = id;
+      _pwCtrl.text = pw;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Icon(Icons.badge_outlined, size: 64, color: AppTheme.primary),
+                    const SizedBox(height: 12),
+                    Text('Welcome to iHRMS',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    const Text('Login with your employee ID', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.muted)),
+                    const SizedBox(height: 32),
+                    TextFormField(
+                      controller: _idCtrl,
+                      textCapitalization: TextCapitalization.characters,
+                      textInputAction: TextInputAction.next,
+                      decoration: const InputDecoration(labelText: 'Employee ID', prefixIcon: Icon(Icons.badge)),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter your employee ID' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _pwCtrl,
+                      obscureText: _obscure,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                        ),
+                      ),
+                      validator: (v) => (v == null || v.isEmpty) ? 'Enter your password' : null,
+                    ),
+                    if (auth.error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(auth.error!, style: const TextStyle(color: AppTheme.danger), textAlign: TextAlign.center),
+                    ],
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: auth.loading ? null : _submit,
+                      child: auth.loading
+                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please contact HR to reset your password')),
+                      ),
+                      child: const Text('Forgot password?'),
+                    ),
+                    const SizedBox(height: 24),
+                    // Demo accounts - remove when a real backend is connected.
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Demo accounts (tap to fill)', style: TextStyle(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                ActionChip(
+                                  avatar: const Icon(Icons.person, size: 18),
+                                  label: const Text('Employee: EMP001 / emp123'),
+                                  onPressed: () => _fillDemo('EMP001', 'emp123'),
+                                ),
+                                ActionChip(
+                                  avatar: const Icon(Icons.admin_panel_settings, size: 18),
+                                  label: const Text('Admin: ADM001 / admin123'),
+                                  onPressed: () => _fillDemo('ADM001', 'admin123'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/dashboard/dashboard_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../core/nav.dart';
+import '../../core/theme.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/content_provider.dart';
+import '../../providers/leave_provider.dart';
+import '../../providers/payslip_provider.dart';
+import '../../widgets/common.dart';
+import '../../widgets/leave_balance_card.dart';
+import '../../widgets/punch_card.dart';
+import '../admin/attendance_report_screen.dart';
+import '../admin/employee_list_screen.dart';
+import '../admin/leave_approvals_screen.dart';
+import '../announcements/announcements_screen.dart';
+import '../holidays/holidays_screen.dart';
+import '../home/home_shell.dart';
+import '../leave/apply_leave_screen.dart';
+import '../profile/profile_screen.dart';
+
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
+  String _greeting() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
+    if (user == null) return const SizedBox.shrink();
+    final leave = context.watch<LeaveProvider>();
+    final content = context.watch<ContentProvider>();
+    final payslip = context.watch<PayslipProvider>().latest;
+
+    final tiles = <_Tile>[
+      _Tile('Apply Leave', Icons.edit_calendar, AppTheme.warning, () => pushScreen(context, const ApplyLeaveScreen())),
+      _Tile('Attendance', Icons.calendar_month, AppTheme.success, () => HomeShell.of(context)?.goTo(HomeShellState.tabAttendance)),
+      _Tile('Payslips', Icons.receipt_long, AppTheme.primary, () => HomeShell.of(context)?.goTo(HomeShellState.tabPayslip)),
+      _Tile('Holidays', Icons.beach_access, Colors.purple, () => pushScreen(context, const HolidaysScreen())),
+      _Tile('Announcements', Icons.campaign, AppTheme.info, () => pushScreen(context, const AnnouncementsScreen())),
+      _Tile('My Profile', Icons.person, Colors.teal, () => pushScreen(context, const ProfileScreen())),
+      if (user.isAdmin) ...[
+        _Tile('Employees', Icons.groups, Colors.indigo, () => pushScreen(context, const EmployeeListScreen())),
+        _Tile('Approvals', Icons.fact_check, Colors.deepOrange, () => pushScreen(context, const LeaveApprovalsScreen())),
+        _Tile('Att. Report', Icons.analytics, Colors.blueGrey, () => pushScreen(context, const AttendanceReportScreen())),
+      ],
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        toolbarHeight: 72,
+        title: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(user.initials, style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${_greeting()},', style: const TextStyle(fontSize: 13, color: Colors.white70)),
+                  Text(user.firstName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Announcements',
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () => pushScreen(context, const AnnouncementsScreen()),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async => HomeShell.of(context)?.refreshAll(),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const PunchCard(),
+            const SectionHeader('Quick actions'),
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.05,
+              children: tiles.map((t) => _TileView(tile: t)).toList(),
+            ),
+            if (user.isAdmin && leave.pendingApprovals.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Card(
+                color: AppTheme.warning.withValues(alpha: 0.08),
+                child: ListTile(
+                  leading: const Icon(Icons.pending_actions, color: AppTheme.warning),
+                  title: Text('${leave.pendingApprovals.length} leave request(s) waiting for approval'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => pushScreen(context, const LeaveApprovalsScreen()),
+                ),
+              ),
+            ],
+            SectionHeader('Leave balance', action: 'View all', onAction: () => HomeShell.of(context)?.goTo(HomeShellState.tabLeave)),
+            SizedBox(
+              height: 128,
+              child: leave.balances.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: leave.balances.length,
+                      separatorBuilder: (context, index) => const SizedBox(width: 10),
+                      itemBuilder: (_, i) => LeaveBalanceCard(balance: leave.balances[i]),
+                    ),
+            ),
+            if (payslip != null) ...[
+              const SectionHeader('Last salary'),
+              Card(
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.currency_rupee)),
+                  title: Text(Fmt.inr(payslip.netPay), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  subtitle: Text('Net pay for ${Fmt.month(payslip.month)}'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => HomeShell.of(context)?.goTo(HomeShellState.tabPayslip),
+                ),
+              ),
+            ],
+            if (content.nextHoliday != null) ...[
+              const SectionHeader('Upcoming holiday'),
+              Card(
+                child: ListTile(
+                  leading: const CircleAvatar(backgroundColor: Color(0xFFF3E5F5), child: Icon(Icons.celebration, color: Colors.purple)),
+                  title: Text(content.nextHoliday!.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('${Fmt.date(content.nextHoliday!.date)} (${Fmt.weekday(content.nextHoliday!.date)})'),
+                  onTap: () => pushScreen(context, const HolidaysScreen()),
+                ),
+              ),
+            ],
+            if (content.announcements.isNotEmpty) ...[
+              SectionHeader('Announcements', action: 'See all', onAction: () => pushScreen(context, const AnnouncementsScreen())),
+              Card(
+                child: ListTile(
+                  leading: const CircleAvatar(child: Icon(Icons.campaign)),
+                  title: Text(content.announcements.first.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(content.announcements.first.body, maxLines: 2, overflow: TextOverflow.ellipsis),
+                  onTap: () => pushScreen(context, const AnnouncementsScreen()),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Tile {
+  const _Tile(this.label, this.icon, this.color, this.onTap);
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+}
+
+class _TileView extends StatelessWidget {
+  const _TileView({required this.tile});
+  final _Tile tile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: tile.onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: tile.color.withValues(alpha: 0.12),
+                child: Icon(tile.icon, color: tile.color),
+              ),
+              const SizedBox(height: 8),
+              Text(tile.label, textAlign: TextAlign.center, maxLines: 2, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/holidays/holidays_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../models/holiday.dart';
+import '../../providers/content_provider.dart';
+import '../../widgets/common.dart';
+
+class HolidaysScreen extends StatelessWidget {
+  const HolidaysScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.watch<ContentProvider>();
+    final today = dateOnly(DateTime.now());
+    return Scaffold(
+      appBar: AppBar(title: Text('Holidays ${c.year}')),
+      body: c.loading && c.holidays.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : c.holidays.isEmpty
+              ? const EmptyState(icon: Icons.beach_access, message: 'No holidays listed')
+              : ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: c.holidays.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 8),
+                  itemBuilder: (context, i) {
+                    final h = c.holidays[i];
+                    final past = h.date.isBefore(today);
+                    final isNext = identical(h, c.nextHoliday);
+                    return Opacity(
+                      opacity: past ? 0.5 : 1,
+                      child: Card(
+                        shape: isNext
+                            ? RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                side: const BorderSide(color: Colors.purple, width: 1.5),
+                              )
+                            : null,
+                        child: ListTile(
+                          leading: Container(
+                            width: 50,
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('${h.date.day}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.purple)),
+                                Text(Fmt.shortDate(h.date).split(' ').last, style: const TextStyle(fontSize: 11, color: Colors.purple)),
+                              ],
+                            ),
+                          ),
+                          title: Text(h.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: Text(Fmt.weekday(h.date) + (isNext ? '  \u2022  Next holiday' : '')),
+                          trailing: StatusChip(h.type.label, h.type == HolidayType.national ? Colors.green : Colors.purple),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}
+
+===== FILE: lib/screens/home/home_shell.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/attendance_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/content_provider.dart';
+import '../../providers/employee_provider.dart';
+import '../../providers/leave_provider.dart';
+import '../../providers/payslip_provider.dart';
+import '../attendance/attendance_screen.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../leave/leave_screen.dart';
+import '../more/more_screen.dart';
+import '../payslip/payslip_list_screen.dart';
+
+/// Main screen with bottom navigation.
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
+
+  /// Lets child screens switch tabs, e.g. HomeShell.of(context)?.goTo(1).
+  static HomeShellState? of(BuildContext context) => context.findAncestorStateOfType<HomeShellState>();
+
+  @override
+  State<HomeShell> createState() => HomeShellState();
+}
+
+class HomeShellState extends State<HomeShell> {
+  int _index = 0;
+
+  static const tabAttendance = 1;
+  static const tabLeave = 2;
+  static const tabPayslip = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => refreshAll());
+  }
+
+  Future<void> refreshAll() async {
+    final user = context.read<AuthProvider>().user;
+    if (user == null) return;
+    final futures = <Future<void>>[
+      context.read<AttendanceProvider>().load(user.id),
+      context.read<LeaveProvider>().loadMine(user.id),
+      context.read<PayslipProvider>().load(user.id),
+      context.read<ContentProvider>().load(),
+    ];
+    if (user.isAdmin) {
+      futures.add(context.read<EmployeeProvider>().load());
+      futures.add(context.read<LeaveProvider>().loadAll());
+    }
+    await Future.wait(futures);
+  }
+
+  void goTo(int index) => setState(() => _index = index);
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = const [
+      DashboardScreen(),
+      AttendanceScreen(),
+      LeaveScreen(),
+      PayslipListScreen(),
+      MoreScreen(),
+    ];
+    return Scaffold(
+      body: IndexedStack(index: _index, children: pages),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: goTo,
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.access_time), selectedIcon: Icon(Icons.access_time_filled), label: 'Attendance'),
+          NavigationDestination(icon: Icon(Icons.event_note_outlined), selectedIcon: Icon(Icons.event_note), label: 'Leave'),
+          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Payslip'),
+          NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view), label: 'More'),
+        ],
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/leave/apply_leave_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../core/theme.dart';
+import '../../models/leave.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/leave_provider.dart';
+import '../../widgets/common.dart';
+
+class ApplyLeaveScreen extends StatefulWidget {
+  const ApplyLeaveScreen({super.key});
+
+  @override
+  State<ApplyLeaveScreen> createState() => _ApplyLeaveScreenState();
+}
+
+class _ApplyLeaveScreenState extends State<ApplyLeaveScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _reasonCtrl = TextEditingController();
+  LeaveType _type = LeaveType.casual;
+  DateTimeRange? _range;
+
+  @override
+  void dispose() {
+    _reasonCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDates() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year, now.month - 1, 1),
+      lastDate: DateTime(now.year + 1, 12, 31),
+      initialDateRange: _range,
+      helpText: 'Select leave dates',
+    );
+    if (picked != null) setState(() => _range = picked);
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_range == null) {
+      showSnack(context, 'Please select leave dates', error: true);
+      return;
+    }
+    final user = context.read<AuthProvider>().user!;
+    final error = await context.read<LeaveProvider>().apply(
+          employeeId: user.id,
+          employeeName: user.name,
+          type: _type,
+          from: _range!.start,
+          to: _range!.end,
+          reason: _reasonCtrl.text,
+        );
+    if (!mounted) return;
+    if (error != null) {
+      showSnack(context, error, error: true);
+    } else {
+      showSnack(context, 'Leave request submitted');
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final leave = context.watch<LeaveProvider>();
+    LeaveBalance? balance;
+    for (final b in leave.balances) {
+      if (b.type == _type) balance = b;
+    }
+    final days = _range == null ? 0 : countLeaveDays(_range!.start, _range!.end);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Apply Leave')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Text('Leave type', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: LeaveType.values
+                  .map((t) => ChoiceChip(
+                        label: Text(t.label),
+                        selected: _type == t,
+                        onSelected: (_) => setState(() => _type = t),
+                      ))
+                  .toList(),
+            ),
+            if (balance != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Available: ${balance.available.toStringAsFixed(0)} of ${balance.total.toStringAsFixed(0)} days'
+                '${balance.pending > 0 ? ' (${balance.pending.toStringAsFixed(0)} pending approval)' : ''}',
+                style: const TextStyle(color: AppTheme.muted),
+              ),
+            ],
+            const SizedBox(height: 20),
+            const Text('Dates', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: _pickDates,
+              borderRadius: BorderRadius.circular(12),
+              child: InputDecorator(
+                decoration: const InputDecoration(prefixIcon: Icon(Icons.date_range)),
+                child: Text(
+                  _range == null
+                      ? 'Tap to select from - to'
+                      : '${Fmt.date(_range!.start)}  to  ${Fmt.date(_range!.end)}',
+                ),
+              ),
+            ),
+            if (_range != null) ...[
+              const SizedBox(height: 6),
+              Text('$days working day${days == 1 ? '' : 's'} (Sundays not counted)', style: const TextStyle(color: AppTheme.muted)),
+            ],
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _reasonCtrl,
+              maxLines: 4,
+              maxLength: 300,
+              decoration: const InputDecoration(labelText: 'Reason', alignLabelWithHint: true),
+              validator: (v) => (v == null || v.trim().length < 3) ? 'Please enter a reason' : null,
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: leave.submitting ? null : _submit,
+              icon: leave.submitting
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.send),
+              label: const Text('Submit request'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/leave/leave_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../core/nav.dart';
+import '../../models/leave.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/leave_provider.dart';
+import '../../widgets/common.dart';
+import '../../widgets/leave_balance_card.dart';
+import '../../widgets/status_colors.dart';
+import '../admin/leave_approvals_screen.dart';
+import 'apply_leave_screen.dart';
+
+class LeaveScreen extends StatelessWidget {
+  const LeaveScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final leave = context.watch<LeaveProvider>();
+    final user = auth.user;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Leave'),
+        actions: [
+          if (auth.isAdmin)
+            TextButton.icon(
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              onPressed: () => pushScreen(context, const LeaveApprovalsScreen()),
+              icon: Badge(
+                isLabelVisible: leave.pendingApprovals.isNotEmpty,
+                label: Text('${leave.pendingApprovals.length}'),
+                child: const Icon(Icons.fact_check),
+              ),
+              label: const Text('Approvals'),
+            ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => pushScreen(context, const ApplyLeaveScreen()),
+        icon: const Icon(Icons.add),
+        label: const Text('Apply Leave'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          if (user != null) await leave.loadMine(user.id);
+        },
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+          children: [
+            const SectionHeader('Balance (this year)'),
+            SizedBox(
+              height: 128,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: leave.balances.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 10),
+                itemBuilder: (_, i) => LeaveBalanceCard(balance: leave.balances[i]),
+              ),
+            ),
+            const SectionHeader('My requests'),
+            if (leave.loading && leave.myRequests.isEmpty)
+              const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+            else if (leave.myRequests.isEmpty)
+              const EmptyState(icon: Icons.event_available, message: 'No leave requests yet')
+            else
+              ...leave.myRequests.map((r) => LeaveRequestTile(request: r, onCancel: () => _cancel(context, r))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cancel(BuildContext context, LeaveRequest r) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel leave request?'),
+        content: Text('${r.type.label}: ${Fmt.shortDate(r.fromDate)} - ${Fmt.shortDate(r.toDate)}'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes, cancel')),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final error = await context.read<LeaveProvider>().cancel(r);
+    if (!context.mounted) return;
+    showSnack(context, error ?? 'Leave request cancelled', error: error != null);
+  }
+}
+
+class LeaveRequestTile extends StatelessWidget {
+  const LeaveRequestTile({super.key, required this.request, this.onCancel, this.showEmployee = false, this.actions});
+  final LeaveRequest request;
+  final VoidCallback? onCancel;
+  final bool showEmployee;
+  final Widget? actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = request;
+    final dates = isSameDay(r.fromDate, r.toDate)
+        ? Fmt.date(r.fromDate)
+        : '${Fmt.shortDate(r.fromDate)} - ${Fmt.date(r.toDate)}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      showEmployee ? '${r.employeeName} (${r.employeeId})' : r.type.label,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                  ),
+                  StatusChip(r.status.label, leaveStatusColor(r.status)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              if (showEmployee) Text(r.type.label, style: const TextStyle(fontWeight: FontWeight.w500)),
+              Text('$dates  \u2022  ${r.days} day${r.days == 1 ? '' : 's'}'),
+              const SizedBox(height: 4),
+              Text('Reason: ${r.reason}', style: TextStyle(color: Colors.grey.shade700)),
+              if (r.approverComment != null) ...[
+                const SizedBox(height: 4),
+                Text('HR comment: ${r.approverComment}', style: TextStyle(color: Colors.grey.shade700, fontStyle: FontStyle.italic)),
+              ],
+              Text('Applied on ${Fmt.date(r.appliedOn)}', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+              if (onCancel != null && r.status == LeaveStatus.pending)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(onPressed: onCancel, child: const Text('Cancel request')),
+                ),
+              if (actions != null) actions!,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/more/more_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/nav.dart';
+import '../../core/theme.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/common.dart';
+import '../admin/attendance_report_screen.dart';
+import '../admin/employee_list_screen.dart';
+import '../admin/leave_approvals_screen.dart';
+import '../announcements/announcements_screen.dart';
+import '../holidays/holidays_screen.dart';
+import '../profile/profile_screen.dart';
+
+class MoreScreen extends StatelessWidget {
+  const MoreScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().user;
+    if (user == null) return const SizedBox.shrink();
+    return Scaffold(
+      appBar: AppBar(title: const Text('More')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(12),
+              leading: EmployeeAvatar(initials: user.initials, radius: 26),
+              title: Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text('${user.id}  \u2022  ${user.designation}'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => pushScreen(context, const ProfileScreen()),
+            ),
+          ),
+          const SectionHeader('General'),
+          _group([
+            _item(context, Icons.beach_access, 'Holiday calendar', const HolidaysScreen()),
+            _item(context, Icons.campaign, 'Announcements', const AnnouncementsScreen()),
+            _item(context, Icons.person, 'My profile', const ProfileScreen()),
+          ]),
+          if (user.isAdmin) ...[
+            const SectionHeader('Admin / HR'),
+            _group([
+              _item(context, Icons.groups, 'Employees', const EmployeeListScreen()),
+              _item(context, Icons.fact_check, 'Leave approvals', const LeaveApprovalsScreen()),
+              _item(context, Icons.analytics, 'Attendance report', const AttendanceReportScreen()),
+            ]),
+          ],
+          const SizedBox(height: 20),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.logout, color: AppTheme.danger),
+              title: const Text('Logout', style: TextStyle(color: AppTheme.danger)),
+              onTap: () => logout(context),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Center(child: Text('iHRMS v1.0.0', style: TextStyle(color: AppTheme.muted, fontSize: 12))),
+        ],
+      ),
+    );
+  }
+
+  Widget _group(List<Widget> children) => Card(child: Column(children: children));
+
+  Widget _item(BuildContext context, IconData icon, String title, Widget screen) {
+    return ListTile(
+      leading: Icon(icon, color: AppTheme.primary),
+      title: Text(title),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => pushScreen(context, screen),
+    );
+  }
+}
+
+===== FILE: lib/screens/payslip/payslip_detail_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../core/theme.dart';
+import '../../models/payslip.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/payslip_provider.dart';
+import '../../widgets/common.dart';
+
+class PayslipDetailScreen extends StatefulWidget {
+  const PayslipDetailScreen({super.key, required this.payslip});
+  final Payslip payslip;
+
+  @override
+  State<PayslipDetailScreen> createState() => _PayslipDetailScreenState();
+}
+
+class _PayslipDetailScreenState extends State<PayslipDetailScreen> {
+  bool _downloading = false;
+
+  Future<void> _download() async {
+    setState(() => _downloading = true);
+    final path = await context.read<PayslipProvider>().downloadPdf(widget.payslip);
+    if (!mounted) return;
+    setState(() => _downloading = false);
+    // TODO(pdf): open/share the generated file.
+    showSnack(context, path == null ? 'PDF download coming soon (connect backend / pdf package)' : 'Saved to $path');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.payslip;
+    final user = context.watch<AuthProvider>().user;
+    return Scaffold(
+      appBar: AppBar(title: Text('Payslip - ${Fmt.month(s.month)}')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [AppTheme.primary, AppTheme.primaryDark]),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Net Pay', style: TextStyle(color: Colors.white70)),
+                const SizedBox(height: 4),
+                Text(Fmt.inrPrecise(s.netPay), style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Text('Paid days: ${s.paidDays.toStringAsFixed(0)} / ${s.workingDays}', style: const TextStyle(color: Colors.white)),
+                if (s.bankAccountMasked != null)
+                  Text('Bank A/c: ${s.bankAccountMasked}', style: const TextStyle(color: Colors.white70)),
+              ],
+            ),
+          ),
+          if (user != null) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    _row('Employee', '${user.name} (${user.id})'),
+                    _row('Designation', user.designation),
+                    _row('Department', user.department),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SectionHeader('Earnings'),
+          _table(s.earnings, 'Gross Earnings', s.grossEarnings, AppTheme.success),
+          const SectionHeader('Deductions'),
+          _table(s.deductions, 'Total Deductions', s.totalDeductions, AppTheme.danger),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: _downloading ? null : _download,
+            icon: _downloading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.picture_as_pdf),
+            label: const Text('Download PDF'),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            SizedBox(width: 110, child: Text(label, style: const TextStyle(color: AppTheme.muted))),
+            Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
+          ],
+        ),
+      );
+
+  Widget _table(List<PayItem> items, String totalLabel, double total, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          children: [
+            ...items.map((e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(e.label)),
+                      Text(Fmt.inrPrecise(e.amount)),
+                    ],
+                  ),
+                )),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(child: Text(totalLabel, style: const TextStyle(fontWeight: FontWeight.bold))),
+                  Text(Fmt.inrPrecise(total), style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/payslip/payslip_list_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../core/nav.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/payslip_provider.dart';
+import '../../widgets/common.dart';
+import 'payslip_detail_screen.dart';
+
+class PayslipListScreen extends StatelessWidget {
+  const PayslipListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.watch<PayslipProvider>();
+    final user = context.watch<AuthProvider>().user;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Payslips')),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          if (user != null) await p.load(user.id);
+        },
+        child: p.loading && p.payslips.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : p.payslips.isEmpty
+                ? ListView(children: const [EmptyState(icon: Icons.receipt_long, message: 'No payslips yet')])
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: p.payslips.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, i) {
+                      final s = p.payslips[i];
+                      return Card(
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          leading: const CircleAvatar(child: Icon(Icons.receipt_long)),
+                          title: Text(Fmt.month(s.month), style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('Gross ${Fmt.inr(s.grossEarnings)}  \u2022  Deductions ${Fmt.inr(s.totalDeductions)}'),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(Fmt.inr(s.netPay), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              const Text('Net pay', style: TextStyle(fontSize: 11)),
+                            ],
+                          ),
+                          onTap: () => pushScreen(context, PayslipDetailScreen(payslip: s)),
+                        ),
+                      );
+                    },
+                  ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/screens/profile/profile_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/formatters.dart';
+import '../../core/theme.dart';
+import '../../models/employee.dart';
+import '../../providers/attendance_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/common.dart';
+import '../auth/login_screen.dart';
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().user;
+    if (user == null) return const Scaffold();
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Profile')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Center(
+            child: Column(
+              children: [
+                EmployeeAvatar(initials: user.initials, radius: 44),
+                const SizedBox(height: 12),
+                Text(user.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                Text('${user.designation}  \u2022  ${user.department}', style: const TextStyle(color: AppTheme.muted)),
+                const SizedBox(height: 8),
+                StatusChip(user.role.label, user.isAdmin ? AppTheme.warning : AppTheme.primary),
+              ],
+            ),
+          ),
+          const SectionHeader('Work'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  InfoRow(icon: Icons.badge, label: 'Employee ID', value: user.id),
+                  InfoRow(icon: Icons.event, label: 'Date of joining', value: Fmt.date(user.joiningDate)),
+                  InfoRow(icon: Icons.supervisor_account, label: 'Reporting manager', value: user.managerName ?? '-'),
+                ],
+              ),
+            ),
+          ),
+          const SectionHeader('Personal'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  InfoRow(icon: Icons.email_outlined, label: 'Email', value: user.email),
+                  InfoRow(icon: Icons.phone_outlined, label: 'Phone', value: user.phone),
+                  InfoRow(icon: Icons.home_outlined, label: 'Address', value: user.address ?? '-'),
+                  InfoRow(icon: Icons.bloodtype_outlined, label: 'Blood group', value: user.bloodGroup ?? '-'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: () => _changePassword(context),
+            icon: const Icon(Icons.lock_reset),
+            label: const Text('Change password'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
+            onPressed: () => logout(context),
+            icon: const Icon(Icons.logout),
+            label: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _changePassword(BuildContext context) async {
+    final oldCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Change password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: oldCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Current password')),
+            const SizedBox(height: 12),
+            TextField(controller: newCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'New password (min 6)')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+        ],
+      ),
+    );
+    if (ok == true && context.mounted) {
+      final error = await context.read<AuthProvider>().changePassword(oldCtrl.text, newCtrl.text);
+      if (context.mounted) showSnack(context, error ?? 'Password changed', error: error != null);
+    }
+    oldCtrl.dispose();
+    newCtrl.dispose();
+  }
+}
+
+/// Logs out and returns to the login screen.
+Future<void> logout(BuildContext context) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Logout?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Logout')),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  context.read<AttendanceProvider>().clear();
+  await context.read<AuthProvider>().logout();
+  if (!context.mounted) return;
+  Navigator.of(context).pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => const LoginScreen()),
+    (route) => false,
+  );
+}
+
+===== FILE: lib/screens/splash/splash_screen.dart =====
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/theme.dart';
+import '../../providers/auth_provider.dart';
+import '../auth/login_screen.dart';
+import '../home/home_shell.dart';
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _start();
+  }
+
+  Future<void> _start() async {
+    final auth = context.read<AuthProvider>();
+    await Future.wait([
+      auth.restoreSession(),
+      Future<void>.delayed(const Duration(milliseconds: 1500)),
+    ]);
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(MaterialPageRoute(
+      builder: (_) => auth.isLoggedIn ? const HomeShell() : const LoginScreen(),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.primary,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+              child: const Icon(Icons.badge_outlined, size: 56, color: AppTheme.primary),
+            ),
+            const SizedBox(height: 20),
+            const Text('iHRMS', style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold, letterSpacing: 1)),
+            const SizedBox(height: 6),
+            const Text('Your HR, in your pocket', style: TextStyle(color: Colors.white70)),
+            const SizedBox(height: 40),
+            const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/services/punch_verification_service.dart =====
+import '../models/attendance.dart';
+
+/// Hooks for location + selfie checks during punch in/out.
+///
+/// Everything here is a placeholder so the app works without permissions.
+/// Next steps (see README):
+///  * Location: add `geolocator`, request permission, return the real position.
+///  * Geo-fence: compare with the office coordinates below.
+///  * Selfie: add `image_picker` (or `camera`), capture a front-camera photo,
+///    upload it to storage (e.g. Firebase Storage) and return its URL.
+class PunchVerificationService {
+  const PunchVerificationService();
+
+  /// Office location and allowed radius (sample: Mohali). Change for your office.
+  static const double officeLatitude = 30.7046;
+  static const double officeLongitude = 76.7179;
+  static const double allowedRadiusMeters = 200;
+
+  /// TODO(geo): return the device's current GPS position.
+  Future<PunchLocation?> getCurrentLocation() async => null;
+
+  /// TODO(geo-fence): return false when [location] is farther than
+  /// [allowedRadiusMeters] from the office (use Geolocator.distanceBetween).
+  bool isInsideOffice(PunchLocation? location) => true;
+
+  /// TODO(selfie): open the front camera, upload the photo, return its URL.
+  Future<String?> captureSelfie() async => null;
+}
+
+===== FILE: lib/widgets/common.dart =====
+import 'package:flutter/material.dart';
+
+import '../core/theme.dart';
+
+class SectionHeader extends StatelessWidget {
+  const SectionHeader(this.title, {super.key, this.action, this.onAction});
+  final String title;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          ),
+          if (action != null) TextButton(onPressed: onAction, child: Text(action!)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Coloured pill used for statuses.
+class StatusChip extends StatelessWidget {
+  const StatusChip(this.label, this.color, {super.key});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12)),
+    );
+  }
+}
+
+class InfoRow extends StatelessWidget {
+  const InfoRow({super.key, required this.icon, required this.label, required this.value});
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppTheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 12, color: AppTheme.muted)),
+                const SizedBox(height: 2),
+                Text(value.isEmpty ? '-' : value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class EmptyState extends StatelessWidget {
+  const EmptyState({super.key, required this.icon, required this.message});
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 56, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class EmployeeAvatar extends StatelessWidget {
+  const EmployeeAvatar({super.key, required this.initials, this.radius = 22});
+  final String initials;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+      child: Text(
+        initials,
+        style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: radius * 0.7),
+      ),
+    );
+  }
+}
+
+void showSnack(BuildContext context, String message, {bool error = false}) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: error ? AppTheme.danger : null,
+      behavior: SnackBarBehavior.floating,
+    ));
+}
+
+===== FILE: lib/widgets/leave_balance_card.dart =====
+import 'package:flutter/material.dart';
+
+import '../core/theme.dart';
+import '../models/leave.dart';
+
+class LeaveBalanceCard extends StatelessWidget {
+  const LeaveBalanceCard({super.key, required this.balance});
+  final LeaveBalance balance;
+
+  Color get _color {
+    switch (balance.type) {
+      case LeaveType.casual:
+        return AppTheme.primary;
+      case LeaveType.sick:
+        return AppTheme.danger;
+      case LeaveType.earned:
+        return AppTheme.success;
+      case LeaveType.unpaid:
+        return AppTheme.muted;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = balance.total == 0 ? 0.0 : balance.used / balance.total;
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(balance.type.label, style: const TextStyle(fontSize: 12, color: AppTheme.muted), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(balance.available.toStringAsFixed(0), style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: _color)),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4, left: 4),
+                child: Text('/ ${balance.total.toStringAsFixed(0)}', style: const TextStyle(color: AppTheme.muted)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: progress.clamp(0.0, 1.0),
+            color: _color,
+            backgroundColor: _color.withValues(alpha: 0.12),
+            minHeight: 5,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            balance.pending > 0 ? '${balance.pending.toStringAsFixed(0)} pending' : '${balance.used.toStringAsFixed(0)} used',
+            style: const TextStyle(fontSize: 11, color: AppTheme.muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+===== FILE: lib/widgets/punch_card.dart =====
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../core/formatters.dart';
+import '../core/theme.dart';
+import '../models/attendance.dart';
+import '../providers/attendance_provider.dart';
+import 'common.dart';
+
+/// Today's punch in / punch out card with a live clock.
+class PunchCard extends StatefulWidget {
+  const PunchCard({super.key});
+
+  @override
+  State<PunchCard> createState() => _PunchCardState();
+}
+
+class _PunchCardState extends State<PunchCard> {
+  late Timer _timer;
+  DateTime _now = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  Future<void> _punch() async {
+    final provider = context.read<AttendanceProvider>();
+    final wasIn = provider.today?.hasPunchedIn ?? false;
+    final error = await provider.punch();
+    if (!mounted) return;
+    if (error != null) {
+      showSnack(context, error, error: true);
+    } else {
+      showSnack(context, wasIn ? 'Punched out at ${Fmt.time(DateTime.now())}' : 'Punched in at ${Fmt.time(DateTime.now())}');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<AttendanceProvider>();
+    final today = provider.today;
+    final isOff = today != null &&
+        (today.status == AttendanceStatus.holiday ||
+            today.status == AttendanceStatus.weekend ||
+            today.status == AttendanceStatus.leave) &&
+        !today.hasPunchedIn;
+    final done = today?.hasPunchedOut ?? false;
+    final working = today?.isWorking ?? false;
+
+    String statusText;
+    if (today == null) {
+      statusText = 'Loading...';
+    } else if (done) {
+      statusText = 'Day complete';
+    } else if (working) {
+      statusText = 'You are punched in';
+    } else if (isOff) {
+      statusText = today.note ?? today.status.label;
+    } else {
+      statusText = 'Not punched in yet';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppTheme.primary, AppTheme.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(Fmt.fullDay(_now), style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text(Fmt.time(_now), style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(statusText, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _timeBox('Punch In', Fmt.time(today?.punchIn)),
+              const SizedBox(width: 10),
+              _timeBox('Punch Out', Fmt.time(today?.punchOut)),
+              const SizedBox(width: 10),
+              _timeBox('Worked', today?.hasPunchedIn == true ? Fmt.duration(today!.workedDuration) : '--'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: working ? AppTheme.danger : AppTheme.primary,
+                disabledBackgroundColor: Colors.white.withValues(alpha: 0.4),
+              ),
+              onPressed: (today == null || done || provider.punching) ? null : _punch,
+              icon: provider.punching
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(working ? Icons.logout : Icons.fingerprint),
+              label: Text(
+                done ? 'Attendance marked' : (working ? 'Punch Out' : 'Punch In'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _timeBox(String label, String value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            const SizedBox(height: 4),
+            FittedBox(
+              child: Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+===== FILE: lib/widgets/status_colors.dart =====
+import 'package:flutter/material.dart';
+
+import '../core/theme.dart';
+import '../models/attendance.dart';
+import '../models/leave.dart';
+
+Color attendanceColor(AttendanceStatus s) {
+  switch (s) {
+    case AttendanceStatus.present:
+      return AppTheme.success;
+    case AttendanceStatus.absent:
+      return AppTheme.danger;
+    case AttendanceStatus.leave:
+      return AppTheme.warning;
+    case AttendanceStatus.holiday:
+      return Colors.purple;
+    case AttendanceStatus.weekend:
+      return AppTheme.muted;
+    case AttendanceStatus.notMarked:
+      return Colors.blueGrey;
+  }
+}
+
+Color leaveStatusColor(LeaveStatus s) {
+  switch (s) {
+    case LeaveStatus.pending:
+      return AppTheme.warning;
+    case LeaveStatus.approved:
+      return AppTheme.success;
+    case LeaveStatus.rejected:
+      return AppTheme.danger;
+    case LeaveStatus.cancelled:
+      return AppTheme.muted;
+  }
+}
+
+===== FILE: test/screens_smoke_test.dart =====
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ihrms/app.dart';
+import 'package:ihrms/app_providers.dart';
+import 'package:ihrms/repositories/repository_factory.dart';
+
+/// Opens every screen on a phone-sized display and fails on any
+/// layout overflow or exception.
+void main() {
+  Future<void> settle(WidgetTester tester, [int steps = 10]) async {
+    for (var i = 0; i < steps; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+  }
+
+  Future<void> login(WidgetTester tester, String id, String pw) async {
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(AppProviders(repositories: buildRepositories(), child: const IhrmsApp()));
+    await settle(tester, 12); // splash
+    expect(find.text('Welcome to iHRMS'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).at(0), id);
+    await tester.enterText(find.byType(TextFormField).at(1), pw);
+    await tester.tap(find.text('Login'));
+    await settle(tester, 12);
+  }
+
+  Future<void> openAndBack(WidgetTester tester, Finder finder) async {
+    await tester.ensureVisible(finder);
+    await tester.tap(finder);
+    await settle(tester);
+    await tester.pageBack();
+    await settle(tester, 4);
+  }
+
+  Future<void> tab(WidgetTester tester, IconData icon) async {
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.byIcon(icon)));
+    await settle(tester);
+  }
+
+  testWidgets('employee flow', (tester) async {
+    await login(tester, 'EMP001', 'emp123');
+    expect(find.text('Manjot'), findsOneWidget);
+
+    // Punch in from the dashboard.
+    final punch = find.text('Punch In');
+    if (punch.evaluate().isNotEmpty) {
+      await tester.tap(punch.first);
+      await settle(tester);
+    }
+
+    await tab(tester, Icons.access_time);
+    final attList = find.descendant(of: find.byType(AppBar), matching: find.text('Attendance'));
+    expect(attList, findsOneWidget);
+    await tester.tap(find.byIcon(Icons.chevron_left).hitTestable().first);
+    await settle(tester);
+    await tester.scrollUntilVisible(find.text('History'), 300, scrollable: find.byType(Scrollable).hitTestable().first);
+    await settle(tester, 3);
+    expect(find.text('History'), findsOneWidget);
+
+    await tab(tester, Icons.event_note_outlined);
+    await openAndBack(tester, find.text('Apply Leave'));
+
+    await tab(tester, Icons.receipt_long_outlined);
+    await openAndBack(tester, find.text('Net pay').first);
+
+    await tab(tester, Icons.grid_view_outlined);
+    await openAndBack(tester, find.text('Holiday calendar'));
+    await openAndBack(tester, find.text('Announcements'));
+    await openAndBack(tester, find.text('My profile'));
+    expect(find.text('Admin / HR'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('admin flow', (tester) async {
+    await login(tester, 'ADM001', 'admin123');
+    expect(find.text('Harpreet'), findsOneWidget);
+
+    await tab(tester, Icons.grid_view_outlined);
+    await openAndBack(tester, find.text('Leave approvals'));
+    await openAndBack(tester, find.text('Attendance report'));
+
+    await tester.tap(find.text('Employees'));
+    await settle(tester);
+    await openAndBack(tester, find.text('Manjot Singh'));
+    await openAndBack(tester, find.text('Add'));
+    await tester.pageBack();
+    await settle(tester, 4);
+
+    await tab(tester, Icons.event_note_outlined);
+    await openAndBack(tester, find.text('Approvals'));
+
+    await tester.pumpWidget(const SizedBox());
+  });
+}
+
+===== FILE: test/widget_test.dart =====
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ihrms/models/leave.dart';
+import 'package:ihrms/repositories/repository_factory.dart';
+
+void main() {
+  test('leave day count skips Sundays', () {
+    // 2026-10-24 is a Saturday, 2026-10-26 a Monday.
+    expect(countLeaveDays(DateTime(2026, 10, 24), DateTime(2026, 10, 26)), 2);
+  });
+
+  test('mock login works with demo credentials', () async {
+    final repos = buildRepositories();
+    final user = await repos.auth.login(employeeId: 'emp001', password: 'emp123');
+    expect(user.id, 'EMP001');
+    final slips = await repos.payslips.getPayslips(user.id);
+    expect(slips, isNotEmpty);
+    expect(slips.first.netPay, greaterThan(0));
+  });
+}
+
+===== END OF CODE =====
