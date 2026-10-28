@@ -93,10 +93,10 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: AppColors.navy,
       body: Center(
-        child: const Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             BrandLogo(size: 62, borderRadius: 21),
